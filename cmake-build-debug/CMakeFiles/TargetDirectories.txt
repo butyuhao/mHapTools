@@ -1,3 +1,0 @@
-/Users/butyuhao/Documents/GitHub/bam2hap/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/Users/butyuhao/Documents/GitHub/bam2hap/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/butyuhao/Documents/GitHub/bam2hap/cmake-build-debug/CMakeFiles/bam2hap.dir

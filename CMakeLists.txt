@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
-project(bam2hap)
+project(haptools)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(bam2hap front_end.cpp)
+add_executable(haptools front_end.cpp)
