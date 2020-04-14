@@ -3,4 +3,4 @@ project(haptools)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(haptools front_end.cpp)
+add_executable(haptools main.cpp)

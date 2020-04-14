@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/butyuhao/Documents/GitHub/haptools/convert.cpp
+getopt.h
+-
+convert.h
+/Users/butyuhao/Documents/GitHub/haptools/convert.h
+unistd.h
+-
+getopt.h
+-
+
+/Users/butyuhao/Documents/GitHub/haptools/convert.h
+
+/Users/butyuhao/Documents/GitHub/haptools/main.cpp
+iostream
+-
+string.h
+-
+convert.cpp
+/Users/butyuhao/Documents/GitHub/haptools/convert.cpp
+
