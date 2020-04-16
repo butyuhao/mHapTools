@@ -3,4 +3,12 @@ project(haptools)
 
 set(CMAKE_CXX_STANDARD 14)
 
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lz -lm -lbz2 -llzma -lcurl" CACHE STRING "Set C++ Compiler Flags" FORCE)
+
 add_executable(haptools main.cpp)
+
+target_link_libraries(haptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/lib/libhts.a)
+
+file(GLOB CRAM_OBJS "htslib-1.10.2/cram/*.o")
+
+target_link_libraries(haptools ${CRAM_OBJS})

@@ -4,4 +4,8 @@
 CMakeFiles/haptools.dir/main.cpp.o
  /Users/butyuhao/Documents/GitHub/haptools/convert.cpp
  /Users/butyuhao/Documents/GitHub/haptools/convert.h
+ /Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/htslib/hts.h
+ /Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/htslib/hts_defs.h
+ /Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/htslib/hts_log.h
+ /Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/htslib/sam.h
  /Users/butyuhao/Documents/GitHub/haptools/main.cpp

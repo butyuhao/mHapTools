@@ -14,6 +14,9 @@
 # EXTERNAL cache entries
 ########################
 
+//Path to a library.
+/Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/lib:FILEPATH=/Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/lib-NOTFOUND
+
 //Path to a program.
 CMAKE_AR:FILEPATH=/Library/Developer/CommandLineTools/usr/bin/ar
 
@@ -38,8 +41,8 @@ CMAKE_COLOR_MAKEFILE:BOOL=ON
 //CXX compiler
 CMAKE_CXX_COMPILER:FILEPATH=/Library/Developer/CommandLineTools/usr/bin/c++
 
-//Flags used by the CXX compiler during all build types.
-CMAKE_CXX_FLAGS:STRING=
+//Set C++ Compiler Flags
+CMAKE_CXX_FLAGS:STRING= -lz -lm -lbz2 -llzma -lcurl
 
 //Flags used by the CXX compiler during DEBUG builds.
 CMAKE_CXX_FLAGS_DEBUG:STRING=-g
@@ -220,6 +223,9 @@ haptools_BINARY_DIR:STATIC=/Users/butyuhao/Documents/GitHub/haptools/cmake-build
 
 //Value Computed by CMake
 haptools_SOURCE_DIR:STATIC=/Users/butyuhao/Documents/GitHub/haptools
+
+//The directory containing a CMake configuration file for htslib.
+htslib_DIR:PATH=htslib_DIR-NOTFOUND
 
 
 ########################
