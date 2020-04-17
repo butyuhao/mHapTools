@@ -17,10 +17,16 @@ getopt.h
 -
 stdlib.h
 -
+string
+-
 htslib-1.10.2/htslib/sam.h
 /Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/htslib/sam.h
 
 /Users/butyuhao/Documents/GitHub/haptools/convert.h
+vector
+-
+string_view
+-
 
 /Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2/htslib/hts.h
 stddef.h
