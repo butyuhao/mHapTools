@@ -7,11 +7,25 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string>
-#include "htslib-1.10.2/htslib/sam.h"
+#include <htslib/sam.h>
+#include <htslib/tbx.h>
 
 using namespace std;
 
 //Configure the getopt
+
+struct context {
+  samFile *fp_in;
+  bam_hdr_t *header;
+  bam1_t *aln;
+  char *input_file_path;   /* -i option */
+  char *output_file_path;  /* -o option */
+  char *aligner;      /* -a option */
+  char *bed_file;     /* -b option */
+  char *cpg_file;      /* -c option */
+  char *region;       /* -r option */
+  tbx_t *tbx_idx;
+} ctx;
 
 bool query_region::parse() {
   string_view arg_sv = string_view (arg);
@@ -69,44 +83,55 @@ void query_region::print() {
   cout << "Chr:" << i_chr << " Start:" << i_start << " End:" << i_end << endl;
 }
 
-struct convert_args_s {
-  samFile *fp_in;
-  bam_hdr_t *bamHdr;
-  bam1_t *aln;
-  char *input_file;   /* -i option */
-  char *aligner;      /* -a option */
-  char *bed_file;     /* -b option */
-  char *cpg_pos;      /* -c option */
-  char *region;       /* -r option */
-  char *output_file;  /* -o option */
-} convert_args;
-
 static const char *opt_string = "i:a:b:c:r:o:";
 
 static const struct option long_opts[] = {
     { "input", required_argument, NULL, 'i' },
     { "aligner", optional_argument, NULL, 'a' },
     { "bed_file", optional_argument, NULL, 'b' },
-    { "cpg_pos", required_argument, NULL, 'c' },
+    { "cpg_file", required_argument, NULL, 'c' },
     { "region", optional_argument, NULL, 'r' },
     { NULL, no_argument, NULL, 0 }
 };
 
-void parse_region_arg(const char* &arg, query_region *q_region) {
+bool open_tabix_file(context &ctx) {
+  ctx.tbx_idx = tbx_index_load(ctx.cpg_file);
+  cout << ctx.tbx_idx->idx;
 
 }
 
+void parse_sam(context &ctx, query_region &q_region) {
+  open_tabix_file(ctx);
+}
+
+inline void init_ctx() {
+  //Initialize ctx
+  ctx.fp_in = NULL;
+  ctx.header = NULL;
+  ctx.aln = NULL;
+  ctx.input_file_path = NULL;
+  ctx.aligner = NULL;
+  ctx.bed_file = NULL;
+  ctx.cpg_file = NULL;
+  ctx.region = NULL;
+  ctx.output_file_path = NULL;
+  ctx.tbx_idx = NULL;
+}
+
+bool open_sam_file(context &ctx) {
+
+  ctx.fp_in = hts_open(ctx.input_file_path, "r");
+  ctx.header = sam_hdr_read(ctx.fp_in); //read header
+  if(ctx.header == NULL) {
+    sam_close(ctx.fp_in);
+    return EXIT_FAILURE;
+  }
+  //ctx.aln = bam_init1(); //initialize an alignment
+  return EXIT_SUCCESS;
+}
+
 int main_convert(int argc, char *argv[]) {
-  //Initialize convert_args
-  convert_args.fp_in = NULL;
-  convert_args.bamHdr = NULL;
-  convert_args.aln = NULL;
-  convert_args.input_file = NULL;
-  convert_args.aligner = NULL;
-  convert_args.bed_file = NULL;
-  convert_args.cpg_pos = NULL;
-  convert_args.region = NULL;
-  convert_args.output_file = NULL;
+  init_ctx();
 
   int long_index;
 
@@ -114,9 +139,7 @@ int main_convert(int argc, char *argv[]) {
   while(opt != -1) {
     switch(opt) {
       case 'i':
-        convert_args.fp_in = sam_open(optarg,"r");
-        convert_args.bamHdr = sam_hdr_read(convert_args.fp_in); //read header
-        convert_args.aln = bam_init1(); //initialize an alignment
+        ctx.input_file_path = optarg;
         break;
 
       case 'a':
@@ -128,12 +151,12 @@ int main_convert(int argc, char *argv[]) {
         break;
 
       case 'c':
-        cout << optarg << endl;
+        ctx.cpg_file = optarg;
         break;
 
       case 'r':
         //cout << optarg << endl;
-        convert_args.region = optarg;
+        ctx.region = optarg;
         break;
 
       default:
@@ -142,19 +165,30 @@ int main_convert(int argc, char *argv[]) {
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
 
-  if (convert_args.region) {
-    query_region q_region = query_region(convert_args.region);
-    bool result = q_region.parse();
-    if(result == 1) {
+  if (ctx.region) {
+    bool ret;
+    query_region q_region = query_region(ctx.region);
+    ret = q_region.parse();
+    if(ret == EXIT_FAILURE) {
+      //fail to parse the query
       q_region.print();
-      goto dtor;
+      goto DTOR;
     }
+    ret = open_sam_file(ctx);
+    parse_sam(ctx, q_region);
+  }
+
+  DTOR:
+  bam_destroy1(ctx.aln);
+  sam_close(ctx.fp_in);
+
+  return EXIT_SUCCESS;
   }
   //
 //
 //  //header parse
-//  char *tar = convert_args.bamHdr->text ;
-//  uint32_t *tarlen = convert_args.bamHdr->target_len ;
+//  char *tar = ctx.bamHdr->text ;
+//  uint32_t *tarlen = ctx.bamHdr->target_len ;
 //
 //  cout << tar << endl;
 //  // content parse
@@ -162,14 +196,14 @@ int main_convert(int argc, char *argv[]) {
 //  int locus = 2000;
 //  int comp;
 //
-//  while(sam_read1(convert_args.fp_in,convert_args.bamHdr,convert_args.aln) > 0){
+//  while(sam_read1(ctx.fp_in,ctx.bamHdr,ctx.aln) > 0){
 //
-//    int32_t pos = convert_args.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
-//    char *chr = convert_args.bamHdr->target_name[convert_args.aln->core.tid] ; //contig name (chromosome)
-//    uint32_t len = convert_args.aln->core.l_qseq; //length of the read.
+//    int32_t pos = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
+//    char *chr = ctx.bamHdr->target_name[ctx.aln->core.tid] ; //contig name (chromosome)
+//    uint32_t len = ctx.aln->core.l_qseq; //length of the read.
 //
-//    uint8_t *q = bam_get_seq(convert_args.aln); //quality string
-//    uint32_t q2 = convert_args.aln->core.qual ; //mapping quality
+//    uint8_t *q = bam_get_seq(ctx.aln); //quality string
+//    uint32_t q2 = ctx.aln->core.qual ; //mapping quality
 //
 //
 //    char *qseq = (char *)malloc(len);
@@ -187,9 +221,4 @@ int main_convert(int argc, char *argv[]) {
 //      }
 //    }
 //  }
-  dtor:
-  bam_destroy1(convert_args.aln);
-  sam_close(convert_args.fp_in);
 
-  return EXIT_SUCCESS;
-}

@@ -79,20 +79,7 @@ haptools_EXTERNAL_OBJECTS =
 
 haptools: CMakeFiles/haptools.dir/main.cpp.o
 haptools: CMakeFiles/haptools.dir/build.make
-haptools: ../htslib-1.10.2/lib/libhts.a
-haptools: ../htslib-1.10.2/cram/cram_codecs.o
-haptools: ../htslib-1.10.2/cram/cram_decode.o
-haptools: ../htslib-1.10.2/cram/cram_encode.o
-haptools: ../htslib-1.10.2/cram/cram_external.o
-haptools: ../htslib-1.10.2/cram/cram_index.o
-haptools: ../htslib-1.10.2/cram/cram_io.o
-haptools: ../htslib-1.10.2/cram/cram_samtools.o
-haptools: ../htslib-1.10.2/cram/cram_stats.o
-haptools: ../htslib-1.10.2/cram/mFILE.o
-haptools: ../htslib-1.10.2/cram/open_trace_file.o
-haptools: ../htslib-1.10.2/cram/pooled_alloc.o
-haptools: ../htslib-1.10.2/cram/rANS_static.o
-haptools: ../htslib-1.10.2/cram/string_alloc.o
+haptools: ../htslib-1.10.2/libhts.dylib
 haptools: CMakeFiles/haptools.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/butyuhao/Documents/GitHub/haptools/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable haptools"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/haptools.dir/link.txt --verbose=$(VERBOSE)

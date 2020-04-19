@@ -42,7 +42,7 @@ CMAKE_COLOR_MAKEFILE:BOOL=ON
 CMAKE_CXX_COMPILER:FILEPATH=/Library/Developer/CommandLineTools/usr/bin/c++
 
 //Set C++ Compiler Flags
-CMAKE_CXX_FLAGS:STRING= -lz -lm -lbz2 -llzma -lcurl
+CMAKE_CXX_FLAGS:STRING= -lz -lm -lbz2 -llzma -lcurl -lz -lm -lbz2 -llzma -lcurl -lz -lm -lbz2 -llzma -lcurl -lz -lm -lbz2 -llzma -lcurl -lz -lm -lbz2 -llzma -lcurl -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2 -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10/htslib-1.10.2 -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10/ -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10/htslib-1.10 -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10 -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10/htslib-1.10 -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10 -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10/htslib-1.10 -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10 -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10/htslib-1.10 -I/Users/butyuhao/Documents/GitHub/haptools/samtools-1.10 -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2 -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2 -lz -lm -lbz2 -llzma -lcurl -I/Users/butyuhao/Documents/GitHub/haptools/htslib-1.10.2 -lz -lm -lbz2 -llzma -lcurl
 
 //Flags used by the CXX compiler during DEBUG builds.
 CMAKE_CXX_FLAGS_DEBUG:STRING=-g

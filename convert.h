@@ -9,7 +9,7 @@
 using namespace std;
 
 class query_region {
-  //用于保存一条查询的染色体、开始位点、结束位点。
+  //用于保存与处理一条查询的染色体、开始位点、结束位点。
  public:
   query_region(char* &_arg)
       : arg (_arg) {};
