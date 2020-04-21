@@ -23,6 +23,8 @@ htslib/sam.h
 -
 htslib/tbx.h
 -
+htslib/hts.h
+-
 
 /Users/butyuhao/Documents/GitHub/haptools/convert.h
 vector

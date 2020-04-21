@@ -95,7 +95,7 @@ extern const tbx_conf_t tbx_conf_gff, tbx_conf_bed, tbx_conf_psltbl, tbx_conf_sa
     Equivalent to tbx_index_load3(fn, NULL, HTS_IDX_SAVE_REMOTE);
 */
     HTSLIB_EXPORT
-    tbx_t *tbx_index_load(const char *fn);
+    tbx_t *tbx_indewx_load(const char *fn);
 
 /// Load or stream a .tbi or .csi index
 /** @param fn     Name of the data file corresponding to the index

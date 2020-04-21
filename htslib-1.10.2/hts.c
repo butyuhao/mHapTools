@@ -3681,6 +3681,7 @@ static hts_idx_t *idx_find_and_load(const char *fn, int fmt, int flags)
 }
 
 hts_idx_t *hts_idx_load(const char *fn, int fmt) {
+
     return idx_find_and_load(fn, fmt, 1);
 }
 

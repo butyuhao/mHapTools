@@ -9,22 +9,27 @@
 #include <string>
 #include <htslib/sam.h>
 #include <htslib/tbx.h>
+#include <htslib/hts.h>
 
 using namespace std;
 
 //Configure the getopt
 
 struct context {
-  samFile *fp_in;
-  bam_hdr_t *header;
+  htsFile *fp_bam;
+  htsFile *fp_cpg;
+  bam_hdr_t *hdr_bam;/* -i bam文件头部的指针 */
+
   bam1_t *aln;
-  char *input_file_path;   /* -i option */
-  char *output_file_path;  /* -o option */
+
+  char *fn_bam;
+  char *fn_cpg;
+  char *bam_path;   /* -i option */
+  char *output_path;  /* -o option */
   char *aligner;      /* -a option */
   char *bed_file;     /* -b option */
-  char *cpg_file;      /* -c option */
+  char *cpg_path;      /* -c option */
   char *region;       /* -r option */
-  tbx_t *tbx_idx;
 } ctx;
 
 bool query_region::parse() {
@@ -89,45 +94,63 @@ static const struct option long_opts[] = {
     { "input", required_argument, NULL, 'i' },
     { "aligner", optional_argument, NULL, 'a' },
     { "bed_file", optional_argument, NULL, 'b' },
-    { "cpg_file", required_argument, NULL, 'c' },
+    { "cpg_path", required_argument, NULL, 'c' },
     { "region", optional_argument, NULL, 'r' },
     { NULL, no_argument, NULL, 0 }
 };
 
-bool open_tabix_file(context &ctx) {
-  ctx.tbx_idx = tbx_index_load(ctx.cpg_file);
-  cout << ctx.tbx_idx->idx;
-
-}
-
 void parse_sam(context &ctx, query_region &q_region) {
-  open_tabix_file(ctx);
+  
 }
 
 inline void init_ctx() {
   //Initialize ctx
-  ctx.fp_in = NULL;
-  ctx.header = NULL;
+  ctx.fp_bam = NULL;
+  ctx.fp_cpg = NULL;
+  ctx.hdr_bam = NULL;/* -i bam文件头部的指针 */
+
   ctx.aln = NULL;
-  ctx.input_file_path = NULL;
-  ctx.aligner = NULL;
-  ctx.bed_file = NULL;
-  ctx.cpg_file = NULL;
-  ctx.region = NULL;
-  ctx.output_file_path = NULL;
-  ctx.tbx_idx = NULL;
+
+  ctx.fn_bam = NULL;
+  ctx.fn_cpg = NULL;
+  ctx.bam_path = NULL;   /* -i option */
+  ctx.cpg_path = NULL;      /* -c option */
+  ctx.output_path = NULL;  /* -o option */
+  ctx.aligner = NULL;      /* -a option */
+  ctx.bed_file = NULL;     /* -b option */
+
+  ctx.region = NULL;       /* -r option */
 }
 
-bool open_sam_file(context &ctx) {
+bool open_bam_file(context &ctx) {
 
-  ctx.fp_in = hts_open(ctx.input_file_path, "r");
-  ctx.header = sam_hdr_read(ctx.fp_in); //read header
-  if(ctx.header == NULL) {
-    sam_close(ctx.fp_in);
+  ctx.fp_bam = hts_open(ctx.bam_path, "r");
+  ctx.hdr_bam = sam_hdr_read(ctx.fp_bam); //read header
+  if(ctx.hdr_bam == NULL) {
+    hts_close(ctx.fp_bam);
     return EXIT_FAILURE;
   }
-  //ctx.aln = bam_init1(); //initialize an alignment
   return EXIT_SUCCESS;
+}
+
+bool open_cpg_file(context &ctx) {
+  ctx.fp_cpg = hts_open(ctx.cpg_path, "r");
+  if(ctx.fp_cpg == NULL) {
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}
+
+void destroy(context &ctx) {
+  if (ctx.fp_bam) {
+    hts_close(ctx.fp_bam);
+  }
+  if(ctx.fn_cpg) {
+    hts_close(ctx.fp_cpg);
+  }
+  if(ctx.aln) {
+    bam_destroy1(ctx.aln);
+  }
 }
 
 int main_convert(int argc, char *argv[]) {
@@ -139,7 +162,7 @@ int main_convert(int argc, char *argv[]) {
   while(opt != -1) {
     switch(opt) {
       case 'i':
-        ctx.input_file_path = optarg;
+        ctx.bam_path = optarg;
         break;
 
       case 'a':
@@ -151,7 +174,7 @@ int main_convert(int argc, char *argv[]) {
         break;
 
       case 'c':
-        ctx.cpg_file = optarg;
+        ctx.cpg_path = optarg;
         break;
 
       case 'r':
@@ -172,16 +195,21 @@ int main_convert(int argc, char *argv[]) {
     if(ret == EXIT_FAILURE) {
       //fail to parse the query
       q_region.print();
-      goto DTOR;
+      destroy(ctx);
+      return EXIT_FAILURE;
     }
-    ret = open_sam_file(ctx);
+    ret = open_bam_file(ctx);
+    if(ret == EXIT_FAILURE) {
+      destroy(ctx);
+      return EXIT_FAILURE;
+    }
+    ret = open_cpg_file(ctx);
+    if(ret == EXIT_FAILURE) {
+      destroy(ctx);
+      return EXIT_FAILURE;
+    }
     parse_sam(ctx, q_region);
   }
-
-  DTOR:
-  bam_destroy1(ctx.aln);
-  sam_close(ctx.fp_in);
-
   return EXIT_SUCCESS;
   }
   //
@@ -196,7 +224,7 @@ int main_convert(int argc, char *argv[]) {
 //  int locus = 2000;
 //  int comp;
 //
-//  while(sam_read1(ctx.fp_in,ctx.bamHdr,ctx.aln) > 0){
+//  while(sam_read1(ctx.fp_bam,ctx.bamHdr,ctx.aln) > 0){
 //
 //    int32_t pos = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
 //    char *chr = ctx.bamHdr->target_name[ctx.aln->core.tid] ; //contig name (chromosome)
