@@ -1,39 +1,14 @@
 //
 // Created by Yuhao Dan on 2020/4/13.
 //
-#include <getopt.h>
 #include "convert.h"
-#include <unistd.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <string>
-#include <htslib/sam.h>
-#include <htslib/tbx.h>
-#include <htslib/hts.h>
+
+
 
 using namespace std;
 
-//Configure the getopt
-
-struct context {
-  htsFile *fp_bam;
-  htsFile *fp_cpg;
-  bam_hdr_t *hdr_bam;/* -i bam文件头部的指针 */
-
-  bam1_t *aln;
-
-  char *fn_bam;
-  char *fn_cpg;
-  char *bam_path;   /* -i option */
-  char *output_path;  /* -o option */
-  char *aligner;      /* -a option */
-  char *bed_file;     /* -b option */
-  char *cpg_path;      /* -c option */
-  char *region;       /* -r option */
-} ctx;
-
-bool query_region::parse() {
-  string_view arg_sv = string_view (arg);
+bool context::parse_region() {
+  string_view arg_sv = string_view (region);
   bool is_get_chr = false;
   bool is_get_start = false;
   bool is_get_end = false;
@@ -41,7 +16,7 @@ bool query_region::parse() {
   for(i = 0; i < arg_sv.size(); i++) {
     if(arg_sv[i] == ':') {
       //get the chr name
-      i_chr = arg_sv.substr(0, i);
+      i_chr = string(arg_sv.substr(0, i));
       is_get_chr = true;
       break;
     }
@@ -84,7 +59,7 @@ bool query_region::parse() {
   return EXIT_FAILURE;
 }
 
-void query_region::print() {
+void context::print_region() {
   cout << "Chr:" << i_chr << " Start:" << i_start << " End:" << i_end << endl;
 }
 
@@ -99,27 +74,80 @@ static const struct option long_opts[] = {
     { NULL, no_argument, NULL, 0 }
 };
 
-void parse_sam(context &ctx, query_region &q_region) {
-  
+void parse_cpg_line(context &ctx, int shift = 500) {
+  //匹配返回start位置，不匹配返回-1
+  int tab_cnt = 0;
+  string_view cpg_line_sv = string_view(ctx.fp_cpg->line.s);
+  int i_start = ctx.i_start - shift;
+  int i_end = ctx.i_end + shift;
+  int i = 0;
+  int pos = 0;
+  for(; i < cpg_line_sv.size(); i++) {
+    if(cpg_line_sv[i] == '\t') {
+      //指定的ichr与当前读取到的cpg的ichr相同
+      if(cpg_line_sv.substr(0, i).compare(ctx.i_chr) == 0) {
+        //将ichr部分从line中去除
+        cpg_line_sv = cpg_line_sv.substr(i + 1);
+        //curser清零
+        i = 0;
+        //找到原line中的第2个tab位置
+        for(; i < cpg_line_sv.size(); i++) {
+          if(cpg_line_sv[i] == '\t') {
+            pos = atoi(string(cpg_line_sv.substr(0, i)).c_str());
+            //该cpg起始位点在用户要求的位点范围内
+            if(pos >= i_start && pos <= i_end) {
+              ctx.cpg_pos.push_back(pos);
+            }
+          }
+        }
+      }
+    }
+
+  }
 }
 
-inline void init_ctx() {
+bool get_cpg_pos(context &ctx) {
+  int  ret;
+  ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
+  parse_cpg_line(ctx);
+  cout << ctx.fp_cpg->line.s << endl;
+  cout << ctx.fp_cpg->line.l << endl;
+  cout << ctx.fp_cpg->line.m << endl;
+  while(ret >= 0) {
+    ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
+    parse_cpg_line(ctx);
+  }
+}
+
+void parse_sam(context &ctx) {
+  int ret;
+  ret = get_cpg_pos(ctx);
+}
+
+inline context::~context() {
+  //to_do明确一下哪些指针需要被关掉。
+  if(fp_bam) {
+    hts_close(fp_bam);
+  }
+  if(fp_cpg) {
+    hts_close(fp_cpg);
+  }
+}
+
+inline void context::init_ctx() {
   //Initialize ctx
-  ctx.fp_bam = NULL;
-  ctx.fp_cpg = NULL;
-  ctx.hdr_bam = NULL;/* -i bam文件头部的指针 */
-
-  ctx.aln = NULL;
-
-  ctx.fn_bam = NULL;
-  ctx.fn_cpg = NULL;
-  ctx.bam_path = NULL;   /* -i option */
-  ctx.cpg_path = NULL;      /* -c option */
-  ctx.output_path = NULL;  /* -o option */
-  ctx.aligner = NULL;      /* -a option */
-  ctx.bed_file = NULL;     /* -b option */
-
-  ctx.region = NULL;       /* -r option */
+  fp_bam = NULL;
+  fp_cpg = NULL;
+  hdr_bam = NULL;/* -i bam文件头部的指针
+  aln = NULL;
+  fn_bam = NULL;
+  fn_cpg = NULL;
+  bam_path = NULL;   /* -i option */
+  cpg_path = NULL;      /* -c option */
+  output_path = NULL;  /* -o option */
+  aligner = NULL;      /* -a option */
+  bed_file = NULL;     /* -b option
+  region = NULL;       /* -r option */
 }
 
 bool open_bam_file(context &ctx) {
@@ -141,20 +169,9 @@ bool open_cpg_file(context &ctx) {
   return EXIT_SUCCESS;
 }
 
-void destroy(context &ctx) {
-  if (ctx.fp_bam) {
-    hts_close(ctx.fp_bam);
-  }
-  if(ctx.fn_cpg) {
-    hts_close(ctx.fp_cpg);
-  }
-  if(ctx.aln) {
-    bam_destroy1(ctx.aln);
-  }
-}
-
 int main_convert(int argc, char *argv[]) {
-  init_ctx();
+  context ctx = context();
+  ctx.init_ctx();
 
   int long_index;
 
@@ -190,26 +207,26 @@ int main_convert(int argc, char *argv[]) {
 
   if (ctx.region) {
     bool ret;
-    query_region q_region = query_region(ctx.region);
-    ret = q_region.parse();
+    ret = ctx.parse_region();
     if(ret == EXIT_FAILURE) {
       //fail to parse the query
-      q_region.print();
-      destroy(ctx);
+      ctx.print_region();
+
       return EXIT_FAILURE;
     }
     ret = open_bam_file(ctx);
     if(ret == EXIT_FAILURE) {
-      destroy(ctx);
+
       return EXIT_FAILURE;
     }
     ret = open_cpg_file(ctx);
     if(ret == EXIT_FAILURE) {
-      destroy(ctx);
+
       return EXIT_FAILURE;
     }
-    parse_sam(ctx, q_region);
+    parse_sam(ctx);
   }
+
   return EXIT_SUCCESS;
   }
   //

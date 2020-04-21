@@ -7,10 +7,22 @@
 #IncludeRegexTransform: 
 
 /Users/butyuhao/Documents/GitHub/haptools/convert.cpp
-getopt.h
--
 convert.h
 /Users/butyuhao/Documents/GitHub/haptools/convert.h
+
+/Users/butyuhao/Documents/GitHub/haptools/convert.h
+vector
+-
+string_view
+-
+htslib/hts.h
+-
+htslib/sam.h
+-
+htslib/tbx.h
+-
+htslib/kseq.h
+-
 unistd.h
 -
 getopt.h
@@ -19,17 +31,9 @@ stdlib.h
 -
 string
 -
-htslib/sam.h
+getopt.h
 -
-htslib/tbx.h
--
-htslib/hts.h
--
-
-/Users/butyuhao/Documents/GitHub/haptools/convert.h
 vector
--
-string_view
 -
 
 /Users/butyuhao/Documents/GitHub/haptools/main.cpp
