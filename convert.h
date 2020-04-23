@@ -51,4 +51,34 @@ class context {
 
 
 };
+
+class sam_read {
+ public:
+  sam_read() {}
+  bool init(context &ctx);
+  bool haplo_type();
+  void _get_bismark_std();
+  bool _get_XM_tag();
+  bool _get_ZS_tag();
+  void _get_bismark_QC();
+  uint8_t *XM_tag;
+  uint8_t *ZS_tag;
+  int8_t WC = -1;
+  bool QC = false;
+
+  int32_t start; //left most position of alignment in zero based coordianate (+1)
+  int32_t end;
+  char *chr; //contig name (chromosome)
+  uint32_t len; //length of the read.
+  uint8_t *quality; //quality string
+  uint32_t map_quality; //mapping quality
+  vector<char> seq;//the sequence of the reads
+
+  context *ctx;
+
+  enum direction {
+    DIRECTION_PLUS = 0,
+    DIRECTION_MINUS
+  };
+};
 #endif //BAM2HAP__CONVERT_H_

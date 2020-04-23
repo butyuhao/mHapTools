@@ -33,7 +33,7 @@ bool context::parse_region() {
         is_get_start = true;
         break;
       } else {
-        return EXIT_FAILURE;
+        return false;
       }
     }
   }
@@ -46,7 +46,7 @@ bool context::parse_region() {
         }
         i_end = i_end * 10 + (arg_sv[i] - '0');
       } else {
-        return EXIT_FAILURE;
+        return false;
       }
     }
   }
@@ -54,9 +54,9 @@ bool context::parse_region() {
     is_get_end = true;
   }
   if(is_get_end && is_get_start && is_get_chr) {
-    return EXIT_SUCCESS;
+    return true;
   }
-  return EXIT_FAILURE;
+  return false;
 }
 
 void context::print_region() {
@@ -107,22 +107,129 @@ void parse_cpg_line(context &ctx, int shift = 500) {
 }
 
 bool get_cpg_pos(context &ctx) {
+  //读取cpg文件，如果cpg的开始位点在用户指定的范围内，将其放到cpg_pos中
+  //???这边可以只限定开始位点吗？还是需要开始和结束都在范围内？
   int  ret;
   ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
   parse_cpg_line(ctx);
-  cout << ctx.fp_cpg->line.s << endl;
-  cout << ctx.fp_cpg->line.l << endl;
-  cout << ctx.fp_cpg->line.m << endl;
   while(ret >= 0) {
     ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
     parse_cpg_line(ctx);
   }
+  return ret;
 }
 
-void parse_sam(context &ctx) {
-  int ret;
-  ret = get_cpg_pos(ctx);
+bool sam_read::init(context &ctx) {
+  this->ctx = &ctx;
+
+  start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
+  len = ctx.aln->core.l_qseq; //length of the read.
+  end = start + len - 1;
+  chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //contig name (chromosome)
+
+  quality = bam_get_seq(ctx.aln); //quality string
+  map_quality = ctx.aln->core.qual ; //mapping quality
+
+
+  for(int i=0; i< len ; i++){
+    seq.push_back(seq_nt16_str[bam_seqi(quality,i)]); //gets nucleotide id and converts them into IUPAC id.
+  }
+
+  if(strcmp(ctx.aligner, "BISMARK") == 0) {
+    _get_bismark_std();
+
+    if(_get_XM_tag()) {
+      _get_bismark_QC();
+    } else {
+      cout << "Error:XM tag is required in SAM." << endl;
+      return false;
+    }
+  } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
+    //??？这个位置要确认一下确实可以运行
+
+  } else if(strcmp(ctx.aligner, "MAQ") == 0) {
+
+  } else {
+    cout << "Only BSMAP, BISMARK and MAQ are supported." << endl;
+    return false;
+  }
+  return true;
 }
+
+bool sam_read::haplo_type() {
+  uint32_t r_pos;
+  vector<int> cpg;
+  string hap_seq = "";
+
+  for(int i = 0; i < ctx->cpg_pos.size(); i++) {
+    int pos = ctx->cpg_pos[i];
+    if(pos < start || pos > end) {
+      continue;
+    }
+    if(WC == DIRECTION_PLUS) {
+      r_pos = pos - start;
+    } else {
+      r_pos = pos - start + 1;
+    }
+    if(r_pos > len) {
+      continue;
+    }
+    cpg.push_back(pos);
+  hap_seq += seq[r_pos];
+  }
+}
+
+void sam_read::_get_bismark_std() {
+  if(ctx->aln->core.flag == 99 || ctx->aln->core.flag == 147) {
+    WC = DIRECTION_PLUS;
+  } else if (ctx->aln->core.flag == 83 || ctx->aln->core.flag == 163) {
+    WC = DIRECTION_MINUS;
+  }
+}
+
+bool sam_read::_get_XM_tag() {
+
+  for(int i = 0; i < ctx->aln->l_data - 1; i++) {
+    //get XM tag. if success, return true, else, return false
+    if(ctx->aln->data[i] == 'X' && ctx->aln->data[i + 1] == 'M') {
+      XM_tag = ctx->aln->data + i + 2;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool sam_read::_get_ZS_tag() {
+  for(int i = 0; i < ctx->aln->l_data - 1; i++) {
+    //get XM tag. if success, return EXIT_SUCCESS, else, return EXIT_FAILURE
+    if(ctx->aln->data[i] == 'Z' && ctx->aln->data[i + 1] == 'S') {
+      ZS_tag = ctx->aln->data + i + 2;
+      return true;
+    }
+  }
+  return false;
+}
+
+void sam_read::_get_bismark_QC() {
+  for(int i = 0; XM_tag[i] != '\0'; i++) {
+    if(XM_tag[i] == 'X' || XM_tag[i] == 'H' || XM_tag[i] == 'U') {
+      QC = false;
+    }
+  }
+  QC = true;
+}
+
+void itor_sam(context &ctx) {
+
+  while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) > 0){
+    sam_read sam_r = sam_read();
+    sam_r.init(ctx);
+    cout << sam_r.quality << endl;
+    sam_r.haplo_type();
+    sam_r.seq.clear();
+  }
+}
+
 
 inline context::~context() {
   //to_do明确一下哪些指针需要被关掉。
@@ -131,6 +238,9 @@ inline context::~context() {
   }
   if(fp_cpg) {
     hts_close(fp_cpg);
+  }
+  if(aln) {
+    bam_destroy1(aln);
   }
 }
 
@@ -155,22 +265,27 @@ bool open_bam_file(context &ctx) {
   ctx.fp_bam = hts_open(ctx.bam_path, "r");
   ctx.hdr_bam = sam_hdr_read(ctx.fp_bam); //read header
   if(ctx.hdr_bam == NULL) {
-    hts_close(ctx.fp_bam);
-    return EXIT_FAILURE;
+
+    return false;
   }
-  return EXIT_SUCCESS;
+  ctx.aln = bam_init1();
+  if(ctx.aln == NULL) {
+
+  }
+  return true;
 }
 
 bool open_cpg_file(context &ctx) {
   ctx.fp_cpg = hts_open(ctx.cpg_path, "r");
   if(ctx.fp_cpg == NULL) {
-    return EXIT_FAILURE;
+    return false;
   }
-  return EXIT_SUCCESS;
+  return true;
 }
 
 int main_convert(int argc, char *argv[]) {
   context ctx = context();
+  //初始化context中的变量
   ctx.init_ctx();
 
   int long_index;
@@ -183,7 +298,7 @@ int main_convert(int argc, char *argv[]) {
         break;
 
       case 'a':
-        cout << optarg << endl;
+        ctx.aligner = optarg;
         break;
 
       case 'b':
@@ -208,62 +323,25 @@ int main_convert(int argc, char *argv[]) {
   if (ctx.region) {
     bool ret;
     ret = ctx.parse_region();
-    if(ret == EXIT_FAILURE) {
+    if(!ret) {
       //fail to parse the query
       ctx.print_region();
-
       return EXIT_FAILURE;
     }
+
     ret = open_bam_file(ctx);
-    if(ret == EXIT_FAILURE) {
-
+    if(!ret) {
       return EXIT_FAILURE;
     }
+
     ret = open_cpg_file(ctx);
-    if(ret == EXIT_FAILURE) {
-
+    if(!ret) {
       return EXIT_FAILURE;
     }
-    parse_sam(ctx);
+
+    itor_sam(ctx);
   }
 
   return EXIT_SUCCESS;
   }
-  //
-//
-//  //header parse
-//  char *tar = ctx.bamHdr->text ;
-//  uint32_t *tarlen = ctx.bamHdr->target_len ;
-//
-//  cout << tar << endl;
-//  // content parse
-//  char *chrom = "1";
-//  int locus = 2000;
-//  int comp;
-//
-//  while(sam_read1(ctx.fp_bam,ctx.bamHdr,ctx.aln) > 0){
-//
-//    int32_t pos = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
-//    char *chr = ctx.bamHdr->target_name[ctx.aln->core.tid] ; //contig name (chromosome)
-//    uint32_t len = ctx.aln->core.l_qseq; //length of the read.
-//
-//    uint8_t *q = bam_get_seq(ctx.aln); //quality string
-//    uint32_t q2 = ctx.aln->core.qual ; //mapping quality
-//
-//
-//    char *qseq = (char *)malloc(len);
-//
-//    for(int i=0; i< len ; i++){
-//      qseq[i] = seq_nt16_str[bam_seqi(q,i)]; //gets nucleotide id and converts them into IUPAC id.
-//    }
-//
-//    cout << chr << " " << pos << " " << len << " " << " " << qseq << " " << " " << q << " " << q2 << endl;
-//
-//    if(strcmp(chrom, chr) == 0){
-//
-//      if(locus > pos+len){
-//        cout << chr << pos << len << qseq << q2;
-//      }
-//    }
-//  }
 
