@@ -16,6 +16,7 @@
 #include <string>
 #include <getopt.h>
 #include <vector>
+#define test_mode true
 
 using namespace std;
 
@@ -42,7 +43,7 @@ class context {
   char *cpg_path;      /* -c option */
   char *region;       /* -r option */
 
-  vector<int> cpg_pos;
+  vector<uint32_t> cpg_pos;
 
   //region
   string i_chr;

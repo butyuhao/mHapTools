@@ -78,10 +78,12 @@ void parse_cpg_line(context &ctx, int shift = 500) {
   //匹配返回start位置，不匹配返回-1
   int tab_cnt = 0;
   string_view cpg_line_sv = string_view(ctx.fp_cpg->line.s);
-  int i_start = ctx.i_start - shift;
-  int i_end = ctx.i_end + shift;
+  uint32_t i_start = ctx.i_start - shift;
+  uint32_t i_end = ctx.i_end + shift;
   int i = 0;
-  int pos = 0;
+  int i_ = 0;
+  uint32_t cpg_start = 0;
+  uint32_t cpg_end = 0;
   for(; i < cpg_line_sv.size(); i++) {
     if(cpg_line_sv[i] == '\t') {
       //指定的ichr与当前读取到的cpg的ichr相同
@@ -93,10 +95,11 @@ void parse_cpg_line(context &ctx, int shift = 500) {
         //找到原line中的第2个tab位置
         for(; i < cpg_line_sv.size(); i++) {
           if(cpg_line_sv[i] == '\t') {
-            pos = atoi(string(cpg_line_sv.substr(0, i)).c_str());
-            //该cpg起始位点在用户要求的位点范围内
-            if(pos >= i_start && pos <= i_end) {
-              ctx.cpg_pos.push_back(pos);
+            cpg_start = atoi(string(cpg_line_sv.substr(0, i)).c_str());
+            cpg_end = atoi(string(cpg_line_sv.substr(i, cpg_line_sv.size() - i)).c_str());
+            //确保cpg位点在用户指定的范围内。
+            if(cpg_start >= i_start && cpg_end <= i_end) {
+              ctx.cpg_pos.push_back(cpg_start);
             }
           }
         }
@@ -108,7 +111,6 @@ void parse_cpg_line(context &ctx, int shift = 500) {
 
 bool get_cpg_pos(context &ctx) {
   //读取cpg文件，如果cpg的开始位点在用户指定的范围内，将其放到cpg_pos中
-  //???这边可以只限定开始位点吗？还是需要开始和结束都在范围内？
   int  ret;
   ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
   parse_cpg_line(ctx);
@@ -224,7 +226,6 @@ void itor_sam(context &ctx) {
   while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) > 0){
     sam_read sam_r = sam_read();
     sam_r.init(ctx);
-    cout << sam_r.quality << endl;
     sam_r.haplo_type();
     sam_r.seq.clear();
   }
@@ -321,24 +322,34 @@ int main_convert(int argc, char *argv[]) {
   }
 
   if (ctx.region) {
+    if(test_mode) {
+      cout << "start parsing region" << endl;
+      cout << ctx.region << endl;
+    }
     bool ret;
     ret = ctx.parse_region();
+
+    if(test_mode) {
+      ctx.print_region();
+    }
+
     if(!ret) {
       //fail to parse the query
       ctx.print_region();
       return EXIT_FAILURE;
     }
-
     ret = open_bam_file(ctx);
     if(!ret) {
+      cout << "Fail to open bam file" << endl;
       return EXIT_FAILURE;
     }
 
     ret = open_cpg_file(ctx);
     if(!ret) {
+      cout << "Fail to open cpg file" << endl;
       return EXIT_FAILURE;
     }
-
+    get_cpg_pos(ctx);
     itor_sam(ctx);
   }
 
