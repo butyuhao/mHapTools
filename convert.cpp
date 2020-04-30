@@ -124,19 +124,24 @@ bool get_cpg_pos(context &ctx) {
 bool sam_read::init(context &ctx) {
   this->ctx = &ctx;
 
+  chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //checked
   start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
-  len = ctx.aln->core.l_qseq; //length of the read.
   end = start + len - 1;
-  chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //contig name (chromosome)
 
-  quality = bam_get_seq(ctx.aln); //quality string
-  map_quality = ctx.aln->core.qual ; //mapping quality
-
-
+  len = ctx.aln->core.l_qseq; //length of the read.
+  qual = bam_get_qual(ctx.aln); //quality string
+  qname = bam_get_qname(ctx.aln);
+  flag = ctx.aln->core.flag; //
+  //char *rname;
+  mapq = ctx.aln->core.qual ; //mapping quality
+  cigar = bam_get_cigar(ctx.aln);
+  //*rnext;
+  //pnext;
+  //tlen;
+  //get the seq and put it into a vector
   for(int i=0; i< len ; i++){
     seq.push_back(seq_nt16_str[bam_seqi(quality,i)]); //gets nucleotide id and converts them into IUPAC id.
   }
-
   if(strcmp(ctx.aligner, "BISMARK") == 0) {
     _get_bismark_std();
 
@@ -162,9 +167,10 @@ bool sam_read::haplo_type() {
   uint32_t r_pos;
   vector<int> cpg;
   string hap_seq = "";
+  vector<int8_t> hap_qul;
 
   for(int i = 0; i < ctx->cpg_pos.size(); i++) {
-    int pos = ctx->cpg_pos[i];
+    uint32_t pos = ctx->cpg_pos[i];
     if(pos < start || pos > end) {
       continue;
     }
@@ -177,7 +183,8 @@ bool sam_read::haplo_type() {
       continue;
     }
     cpg.push_back(pos);
-  hap_seq += seq[r_pos];
+    hap_seq += seq[r_pos];
+    //cout << quality[i] << endl;
   }
 }
 
@@ -221,13 +228,31 @@ void sam_read::_get_bismark_QC() {
   QC = true;
 }
 
+uint8_t* sam_read::_my_bam_get_seq(context &ctx) {
+  bool pre_split_flag = 0;
+  bool split_flag = 0;
+  int split_cnt = 0;
+  cout<<hex;
+  for(int i = 0; i < ctx.aln->l_data; i++) {
+    if(ctx.aln->data[i] == '\0') {
+      cout << "X";
+    } else {
+      cout << ctx.aln->data[i];
+    }
+  }
+  return NULL;
+}
+
 void itor_sam(context &ctx) {
 
-  while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) > 0){
-    sam_read sam_r = sam_read();
-    sam_r.init(ctx);
-    sam_r.haplo_type();
-    sam_r.seq.clear();
+  while(sam_read1(ctx.fp_bam, ctx.fp_bam->bam_header, ctx.aln) > 0){
+    if(ctx.aln->core.pos + 1 == 48954) {
+      sam_read sam_r = sam_read();
+      sam_r.init(ctx);
+      sam_r.haplo_type();
+      sam_r.seq.clear();
+    }
+
   }
 }
 
@@ -266,12 +291,11 @@ bool open_bam_file(context &ctx) {
   ctx.fp_bam = hts_open(ctx.bam_path, "r");
   ctx.hdr_bam = sam_hdr_read(ctx.fp_bam); //read header
   if(ctx.hdr_bam == NULL) {
-
     return false;
   }
   ctx.aln = bam_init1();
   if(ctx.aln == NULL) {
-
+    return false;
   }
   return true;
 }

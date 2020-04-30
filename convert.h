@@ -62,19 +62,29 @@ class sam_read {
   bool _get_XM_tag();
   bool _get_ZS_tag();
   void _get_bismark_QC();
+  uint8_t* _my_bam_get_seq(context &ctx);
   uint8_t *XM_tag;
   uint8_t *ZS_tag;
   int8_t WC = -1;
   bool QC = false;
 
-  int32_t start; //left most position of alignment in zero based coordianate (+1)
-  int32_t end;
-  char *chr; //contig name (chromosome)
-  uint32_t len; //length of the read.
-  uint8_t *quality; //quality string
-  uint32_t map_quality; //mapping quality
+  char *qname;
+  uint16_t flag; //
+  char *rname;
+  uint32_t pos;
+  uint8_t mapq; //mapping quality
+  uint32_t *cigar;
+  char *rnext;
+  int pnext;
+  int32_t tlen;
   vector<char> seq;//the sequence of the reads
 
+  char *chr; //contig name (chromosome)
+  int32_t start; //left most position of alignment in zero based coordianate (+1)
+  int32_t end;
+  uint32_t len; //length of the read.
+  uint8_t *qual; //quality string
+  
   context *ctx;
 
   enum direction {
