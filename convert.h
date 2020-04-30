@@ -20,6 +20,9 @@
 
 using namespace std;
 
+
+uint8_t _base[16] = {0,65,67,0,71,0,0,0,84,0,0,0,0,0,0,78};
+
 class context {
  public:
   context () {};
@@ -89,6 +92,7 @@ class sam_read {
   char *rnext;
   int pnext;
   int32_t tlen;
+  uint8_t *seq_p;
   vector<char> seq;//the sequence of the reads
 
   char *chr; //contig name (chromosome)

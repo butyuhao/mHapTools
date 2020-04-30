@@ -144,9 +144,11 @@ bool sam_read::init(context &ctx) {
   //*rnext;
   //pnext;
   //tlen;
-  //get the seq and put it into a vector
-  for(int i=0; i< len ; i++){
-    seq.push_back(seq_nt16_str[bam_seqi(qual,i)]); //gets nucleotide id and converts them into IUPAC id.
+
+  //get the seq pointer and put it into a vector
+  seq_p = bam_get_seq(ctx.aln);
+  for(int i=0; i < len;++i){
+    seq.push_back(_base[bam_seqi(seq_p, i)]);
   }
   if(strcmp(ctx.aligner, "BISMARK") == 0) {
     _get_bismark_std();
@@ -175,7 +177,8 @@ bool sam_read::haplo_type() {
   vector<int8_t> hap_qual;
   string hap_seq = "";
   uint32_t pos;
-
+  for(int i = 0; i < seq.size(); i++) {
+  }
   for(int i = 0; i < ctx->cpg_pos.size(); i++) {
     pos = ctx->cpg_pos[i];
     if(pos < start || pos > end) {
@@ -186,7 +189,7 @@ bool sam_read::haplo_type() {
     } else {
       r_pos = pos - start + 1;
     }
-    if(r_pos > len) {
+    if(r_pos >= len) {
       continue;
     }
     cpg.push_back(pos);
@@ -223,12 +226,11 @@ bool sam_read::haplo_type() {
     } else {
       cout << "Error! Strand undefined" << endl;
     }
-    _hap_met = hap_met;
-    if (_cpg.size() > 0) {
-      HT = HT_s(chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, WC);
-    }
   }
-  
+  _hap_met = hap_met;
+  if (_cpg.size() > 0) {
+    HT = HT_s(chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, WC);
+  }
 }
 
 void sam_read::_get_bismark_std() {
