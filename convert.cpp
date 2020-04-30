@@ -124,23 +124,29 @@ bool get_cpg_pos(context &ctx) {
 bool sam_read::init(context &ctx) {
   this->ctx = &ctx;
 
+  len = ctx.aln->core.l_qseq; //length of the read.
+
   chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //checked
   start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
   end = start + len - 1;
 
-  len = ctx.aln->core.l_qseq; //length of the read.
+
   qual = bam_get_qual(ctx.aln); //quality string
   qname = bam_get_qname(ctx.aln);
   flag = ctx.aln->core.flag; //
   //char *rname;
   mapq = ctx.aln->core.qual ; //mapping quality
   cigar = bam_get_cigar(ctx.aln);
+//  for(int i=0; i < ctx.aln->core.n_cigar;++i){
+//    int icigar = cigar[i];
+//    printf("%d%d\n",bam_cigar_op(icigar),bam_cigar_oplen(icigar));
+//  }
   //*rnext;
   //pnext;
   //tlen;
   //get the seq and put it into a vector
   for(int i=0; i< len ; i++){
-    seq.push_back(seq_nt16_str[bam_seqi(quality,i)]); //gets nucleotide id and converts them into IUPAC id.
+    seq.push_back(seq_nt16_str[bam_seqi(qual,i)]); //gets nucleotide id and converts them into IUPAC id.
   }
   if(strcmp(ctx.aligner, "BISMARK") == 0) {
     _get_bismark_std();
@@ -152,10 +158,10 @@ bool sam_read::init(context &ctx) {
       return false;
     }
   } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
-    //??？这个位置要确认一下确实可以运行
+    //todo
 
   } else if(strcmp(ctx.aligner, "MAQ") == 0) {
-
+    //todo
   } else {
     cout << "Only BSMAP, BISMARK and MAQ are supported." << endl;
     return false;
@@ -165,12 +171,13 @@ bool sam_read::init(context &ctx) {
 
 bool sam_read::haplo_type() {
   uint32_t r_pos;
-  vector<int> cpg;
+  vector<uint32_t> cpg;
+  vector<int8_t> hap_qual;
   string hap_seq = "";
-  vector<int8_t> hap_qul;
+  uint32_t pos;
 
   for(int i = 0; i < ctx->cpg_pos.size(); i++) {
-    uint32_t pos = ctx->cpg_pos[i];
+    pos = ctx->cpg_pos[i];
     if(pos < start || pos > end) {
       continue;
     }
@@ -184,8 +191,44 @@ bool sam_read::haplo_type() {
     }
     cpg.push_back(pos);
     hap_seq += seq[r_pos];
-    //cout << quality[i] << endl;
+    hap_qual.push_back(qual[r_pos]);
   }
+  if(cpg.size() == 0) {
+    QC = false;
+  }
+  _hap_seq = hap_seq;
+  _hap_qual = hap_qual;
+  _cpg = cpg;
+  string hap_met = "";
+  for(int i = 0; i < hap_seq.size(); i++) {
+    char nucleobases = hap_seq[i];
+    if(WC == DIRECTION_PLUS) {
+      if(nucleobases == 'C') {
+        hap_met += '1';
+      } else if (nucleobases == 'T') {
+        hap_met += '0';
+      } else {
+        hap_met += nucleobases;
+        QC = false;
+      }
+    } else if (WC == DIRECTION_MINUS) {
+      if (nucleobases == 'G') {
+        hap_met += '1';
+      } else if (nucleobases == 'A') {
+        hap_met += '0';
+      } else {
+        hap_met += nucleobases;
+        QC = false;
+      }
+    } else {
+      cout << "Error! Strand undefined" << endl;
+    }
+    _hap_met = hap_met;
+    if (_cpg.size() > 0) {
+      HT = HT_s(chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, WC);
+    }
+  }
+  
 }
 
 void sam_read::_get_bismark_std() {
@@ -201,7 +244,8 @@ bool sam_read::_get_XM_tag() {
   for(int i = 0; i < ctx->aln->l_data - 1; i++) {
     //get XM tag. if success, return true, else, return false
     if(ctx->aln->data[i] == 'X' && ctx->aln->data[i + 1] == 'M') {
-      XM_tag = ctx->aln->data + i + 2;
+      XM_tag = ctx->aln->data + i + 3;
+      //cout << XM_tag;
       return true;
     }
   }

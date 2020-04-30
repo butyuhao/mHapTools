@@ -53,6 +53,18 @@ class context {
 
 };
 
+struct HT_s {
+  HT_s() {}
+  HT_s (char *_h_chr, uint32_t _h_start, uint32_t _h_end, string &_hap_met, int _count, int8_t _WC)
+      : h_chr(_h_chr), h_start(_h_start), h_end(_h_end), hap_met(_hap_met), count(_count), WC(_WC){}
+  char *h_chr;
+  uint32_t h_start;
+  uint32_t h_end;
+  string hap_met;
+  int count;
+  int8_t WC;
+};
+
 class sam_read {
  public:
   sam_read() {}
@@ -84,8 +96,15 @@ class sam_read {
   int32_t end;
   uint32_t len; //length of the read.
   uint8_t *qual; //quality string
-  
+
   context *ctx;
+
+  string _hap_seq;
+  vector<int8_t> _hap_qual;
+  vector<uint32_t> _cpg;
+  string _hap_met;
+
+  HT_s HT;
 
   enum direction {
     DIRECTION_PLUS = 0,
