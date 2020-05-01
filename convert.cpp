@@ -321,10 +321,12 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
   return merged_HT;
 }
 
-void itor_sam(context &ctx) {
+map<string, int> itor_sam(context &ctx) {
 
   map<char*, vector<sam_read>> sam_map;
+  map<string, int> res_map;
   map<char*, vector<sam_read>>::iterator iter;
+  vector<HT_s> res_l;
   while(sam_read1(ctx.fp_bam, ctx.fp_bam->bam_header, ctx.aln) > 0){
     if(ctx.aln->core.pos + 1 == 48954) {
       sam_read sam_r = sam_read();
@@ -352,11 +354,31 @@ void itor_sam(context &ctx) {
       sam_read samF = iter->second[0];
       sam_read samR = iter->second[1];
       if(paired_end_check(samF, samR)) {
-
+        HT_s ht = paired_end_merge(samF, samR);
+        res_l.push_back(ht);
+      } else {
+        for(int i = 0; i < iter->second.size(); i++) {
+          res_l.push_back(iter->second[i].HT);
+        }
+      }
+    } else {
+      for(int i = 0; i < iter->second.size(); i++) {
+        res_l.push_back(iter->second[i].HT);
       }
     }
     iter++;
   }
+  for(auto _ht: res_l) {
+    string ht_id = _ht.to_str();
+    map<string, int>::iterator res_map_itor;
+    res_map_itor = res_map.find(ht_id);
+    if(res_map_itor == res_map.end()){
+      res_map[ht_id] = 1;
+    } else {
+      res_map[ht_id] += 1;
+    }
+  }
+  return res_map;
 }
 
 
@@ -477,7 +499,17 @@ int main_convert(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
     get_cpg_pos(ctx);
-    itor_sam(ctx);
+    map<string, int> res_map;
+    res_map = itor_sam(ctx);
+    for(auto r_map: res_map) {
+      char direction = '+';
+      if (r_map.first[r_map.first.size() - 1] == sam_read::DIRECTION_MINUS) {
+        direction = '-';
+      }
+      string out_string = r_map.first.substr(0, r_map.first.size() - 1);
+      out_string = out_string + '\t' + to_string(r_map.second) + '\t' + direction;
+      cout << out_string;
+    }
   }
 
   return EXIT_SUCCESS;
