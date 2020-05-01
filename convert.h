@@ -16,6 +16,7 @@
 #include <string>
 #include <getopt.h>
 #include <vector>
+#include <map>
 #define test_mode true
 
 using namespace std;
@@ -77,7 +78,8 @@ class sam_read {
   bool _get_XM_tag();
   bool _get_ZS_tag();
   void _get_bismark_QC();
-  uint8_t* _my_bam_get_seq(context &ctx);
+
+
   uint8_t *XM_tag;
   uint8_t *ZS_tag;
   int8_t WC = -1;
@@ -109,6 +111,7 @@ class sam_read {
   string _hap_met;
 
   HT_s HT;
+  HT_s merged_HT;
 
   enum direction {
     DIRECTION_PLUS = 0,

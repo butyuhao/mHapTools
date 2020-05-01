@@ -274,31 +274,88 @@ void sam_read::_get_bismark_QC() {
   QC = true;
 }
 
-uint8_t* sam_read::_my_bam_get_seq(context &ctx) {
-  bool pre_split_flag = 0;
-  bool split_flag = 0;
-  int split_cnt = 0;
-  cout<<hex;
-  for(int i = 0; i < ctx.aln->l_data; i++) {
-    if(ctx.aln->data[i] == '\0') {
-      cout << "X";
-    } else {
-      cout << ctx.aln->data[i];
+bool paired_end_check(sam_read &samF, sam_read &samR) {
+  if(strcmp(samF.qname, samR.qname) != 0) {
+    return false;
+  }
+  if (strcmp(samF.chr, samR.chr) != 0) {
+    return false;
+  }
+  bool checkF = samF._cpg[samF._cpg.size() - 1] >= samR._cpg[0];
+  bool checkR = samR._cpg[samF._cpg.size() - 1] >= samF._cpg[0];
+  return (checkF && checkR) || (!checkF && !checkR);
+}
+
+HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
+  map<uint32_t, char> merged_seq;
+  map<uint32_t, int8_t> merged_qual;
+  map<uint32_t, char> merged_met;
+  map<uint32_t, char>::iterator merged_met_itor;
+  for(int i = 0; i < samF._cpg.size(); i++) {
+    uint32_t pos = samF._cpg[i];
+    merged_seq[pos] = samF._hap_seq[i];
+    merged_qual[pos] = samF._hap_qual[i];
+    merged_met[pos] = samF._hap_met[i];
+  }
+  for(int i = 0; i < samR._cpg.size(); i++) {
+    uint32_t pos = samR._cpg[i];
+    merged_met_itor = merged_met.find(pos);
+    if(merged_met_itor == merged_met.end() || samR._hap_qual[i] > merged_qual[pos]) {
+      merged_seq[pos] = samR._hap_seq[i];
+      merged_qual[pos] = samR._hap_qual[i];
+      merged_met[pos] = samR._hap_met[i];
     }
   }
-  return NULL;
+  //map创建后，其key直接就是降序排列的
+  string hap_seq = "";
+  string hap_met = "";
+  merged_met_itor = merged_met.begin();
+  vector<uint32_t> cpg;
+  while(merged_met_itor != merged_met.end()) {
+    cpg.push_back(merged_met_itor->first);
+    hap_seq += merged_seq[merged_met_itor->first];
+    hap_met += merged_met[merged_met_itor->first];
+    merged_met_itor++;
+  }
+  HT_s merged_HT = HT_s(samF.chr, cpg[0], cpg[cpg.size() - 1], hap_met, 1, samF.WC);
+  return merged_HT;
 }
 
 void itor_sam(context &ctx) {
 
+  map<char*, vector<sam_read>> sam_map;
+  map<char*, vector<sam_read>>::iterator iter;
   while(sam_read1(ctx.fp_bam, ctx.fp_bam->bam_header, ctx.aln) > 0){
     if(ctx.aln->core.pos + 1 == 48954) {
       sam_read sam_r = sam_read();
       sam_r.init(ctx);
       sam_r.haplo_type();
-      sam_r.seq.clear();
+      if(!sam_r.QC) {
+        continue;
+      }
+      iter = sam_map.find(sam_r.qname);
+      if(iter == sam_map.end()) {
+        vector<sam_read> v;
+        v.push_back(sam_r);
+        sam_map[sam_r.qname] = v;
+      } else {
+        vector<sam_read> v;
+        v = sam_map[sam_r.qname];
+        v.push_back(sam_r);
+        sam_map[sam_r.qname] = v;
+      }
     }
+  }
+  iter = sam_map.begin();
+  while(iter != sam_map.end()) {
+    if(iter->second.size() == 2) {
+      sam_read samF = iter->second[0];
+      sam_read samR = iter->second[1];
+      if(paired_end_check(samF, samR)) {
 
+      }
+    }
+    iter++;
   }
 }
 
