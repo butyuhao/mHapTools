@@ -1,6 +1,7 @@
 //
 // Created by Yuhao Dan on 2020/4/13.
 //
+
 #include "convert.h"
 
 
@@ -31,6 +32,7 @@ bool context::parse_region() {
         i_start = i_start * 10 + (arg_sv[i] - '0');
       } else if (arg_sv[i] == '-') {
         is_get_start = true;
+        i_start += 1;
         break;
       } else {
         return false;
@@ -122,39 +124,45 @@ bool get_cpg_pos(context &ctx) {
 }
 
 bool sam_read::init(context &ctx) {
+  bool ret;
+
   this->ctx = &ctx;
 
-  len = ctx.aln->core.l_qseq; //length of the read.
+  read_len = ctx.aln->core.l_qseq; //length of the read.
 
-  chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //checked
-  start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
-  end = start + len - 1;
+  read_chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //checked
+  read_start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
+  read_end = read_start + read_len - 1;
 
 
-  qual = bam_get_qual(ctx.aln); //quality string
-  qname = bam_get_qname(ctx.aln);
+  read_qual = bam_get_qual(ctx.aln); //quality string
+  read_name = bam_get_qname(ctx.aln);
   flag = ctx.aln->core.flag; //
-  //char *rname;
-  mapq = ctx.aln->core.qual ; //mapping quality
-  cigar = bam_get_cigar(ctx.aln);
+
+  read_map_quality = int(ctx.aln->core.qual); //mapping quality
+  read_cigar = bam_get_cigar(ctx.aln);
 //  for(int i=0; i < ctx.aln->core.n_cigar;++i){
 //    int icigar = cigar[i];
 //    printf("%d%d\n",bam_cigar_op(icigar),bam_cigar_oplen(icigar));
 //  }
-  //*rnext;
-  //pnext;
-  //tlen;
 
   //get the seq pointer and put it into a vector
-  seq_p = bam_get_seq(ctx.aln);
-  for(int i=0; i < len;++i){
+  uint8_t *seq_p = bam_get_seq(ctx.aln);
+  for(int i=0; i < read_len; ++i){
     seq.push_back(_base[bam_seqi(seq_p, i)]);
   }
   if(strcmp(ctx.aligner, "BISMARK") == 0) {
-    _get_bismark_std();
+    ret = _get_bismark_std();
 
-    if(_get_XM_tag()) {
-      _get_bismark_QC();
+    if(!ret) {
+      return false;
+    }
+
+    if(_get_XM_tag(ctx)) {
+      ret = _get_bismark_QC(ctx);
+      if(!ret) {
+        return false;
+      }
     } else {
       cout << "Error:XM tag is required in SAM." << endl;
       return false;
@@ -181,20 +189,24 @@ bool sam_read::haplo_type() {
   }
   for(int i = 0; i < ctx->cpg_pos.size(); i++) {
     pos = ctx->cpg_pos[i];
-    if(pos < start || pos > end) {
+    if(pos < read_start || pos > read_end) {
       continue;
     }
     if(WC == DIRECTION_PLUS) {
-      r_pos = pos - start;
+      r_pos = pos - read_start;
     } else {
-      r_pos = pos - start + 1;
+      r_pos = pos - read_start + 1;
     }
-    if(r_pos >= len) {
+    if(r_pos >= read_len) {
       continue;
     }
     cpg.push_back(pos);
+    if(r_pos > read_len) {
+      cout << "r_pos > len" << endl;
+      continue;
+    }
     hap_seq += seq[r_pos];
-    hap_qual.push_back(qual[r_pos]);
+    hap_qual.push_back(read_qual[r_pos]);
   }
   if(cpg.size() == 0) {
     QC = false;
@@ -229,29 +241,29 @@ bool sam_read::haplo_type() {
   }
   _hap_met = hap_met;
   if (_cpg.size() > 0) {
-    HT = HT_s(chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, WC);
+    HT = HT_s(read_chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, WC);
   }
 }
 
-void sam_read::_get_bismark_std() {
+bool sam_read::_get_bismark_std() {
   if(ctx->aln->core.flag == 99 || ctx->aln->core.flag == 147) {
     WC = DIRECTION_PLUS;
   } else if (ctx->aln->core.flag == 83 || ctx->aln->core.flag == 163) {
     WC = DIRECTION_MINUS;
+  } else {
+    cout << "sam_read::_get_bismark_std() Unknown flag" << endl;
+    return false;
   }
+  return true;
 }
 
-bool sam_read::_get_XM_tag() {
+bool sam_read::_get_XM_tag(context &ctx) {
 
-  for(int i = 0; i < ctx->aln->l_data - 1; i++) {
-    //get XM tag. if success, return true, else, return false
-    if(ctx->aln->data[i] == 'X' && ctx->aln->data[i + 1] == 'M') {
-      XM_tag = ctx->aln->data + i + 3;
-      //cout << XM_tag;
-      return true;
-    }
+  ctx.bam_aux_p = bam_aux_get(ctx.aln, "XM");
+  if(!ctx.bam_aux_p) {
+    return false;
   }
-  return false;
+  return true;
 }
 
 bool sam_read::_get_ZS_tag() {
@@ -265,20 +277,25 @@ bool sam_read::_get_ZS_tag() {
   return false;
 }
 
-void sam_read::_get_bismark_QC() {
-  for(int i = 0; XM_tag[i] != '\0'; i++) {
-    if(XM_tag[i] == 'X' || XM_tag[i] == 'H' || XM_tag[i] == 'U') {
-      QC = false;
+bool sam_read::_get_bismark_QC(context &ctx) {
+  XM_tag = bam_aux2Z(ctx.bam_aux_p);
+  if(!XM_tag) {
+    return false;
+  }
+  string_view XM_tag_sv  = string_view(XM_tag);
+  for(auto c : XM_tag_sv) {
+    if(c == 'X' || c == 'H' || c == 'U') {
+      return false;
     }
   }
-  QC = true;
+  return true;
 }
 
 bool paired_end_check(sam_read &samF, sam_read &samR) {
-  if(strcmp(samF.qname, samR.qname) != 0) {
+  if(strcmp(samF.read_name, samR.read_name) != 0) {
     return false;
   }
-  if (strcmp(samF.chr, samR.chr) != 0) {
+  if (strcmp(samF.read_chr, samR.read_chr) != 0) {
     return false;
   }
   bool checkF = samF._cpg[samF._cpg.size() - 1] >= samR._cpg[0];
@@ -306,6 +323,13 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
       merged_met[pos] = samR._hap_met[i];
     }
   }
+  cout << "cpg:";
+  merged_met_itor = merged_met.begin();
+  while(merged_met_itor != merged_met.end()) {
+    cout << " " << merged_met_itor->first;
+  }
+  cout << endl;
+
   //map创建后，其key直接就是降序排列的
   string hap_seq = "";
   string hap_met = "";
@@ -317,67 +341,99 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
     hap_met += merged_met[merged_met_itor->first];
     merged_met_itor++;
   }
-  HT_s merged_HT = HT_s(samF.chr, cpg[0], cpg[cpg.size() - 1], hap_met, 1, samF.WC);
+  HT_s merged_HT = HT_s(samF.read_chr, cpg[0], cpg[cpg.size() - 1], hap_met, 1, samF.WC);
   return merged_HT;
 }
 
-map<string, int> itor_sam(context &ctx) {
 
-  map<char*, vector<sam_read>> sam_map;
+
+map<string, int> itor_sam(context &ctx) {
+  cout << "enter itor_sam()" << endl;
+  map<string, vector<sam_read>> sam_map;
   map<string, int> res_map;
-  map<char*, vector<sam_read>>::iterator iter;
+  map<string, vector<sam_read>>::iterator iter;
   vector<HT_s> res_l;
   while(sam_read1(ctx.fp_bam, ctx.fp_bam->bam_header, ctx.aln) > 0){
-    if(ctx.aln->core.pos + 1 == 48954) {
-      sam_read sam_r = sam_read();
-      sam_r.init(ctx);
-      sam_r.haplo_type();
-      if(!sam_r.QC) {
-        continue;
-      }
-      iter = sam_map.find(sam_r.qname);
-      if(iter == sam_map.end()) {
-        vector<sam_read> v;
-        v.push_back(sam_r);
-        sam_map[sam_r.qname] = v;
-      } else {
-        vector<sam_read> v;
-        v = sam_map[sam_r.qname];
-        v.push_back(sam_r);
-        sam_map[sam_r.qname] = v;
-      }
+    //todo 在生成sam对象之前先来一个is_valid()来判断，如果不符合要求直接过。
+    if(ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
+      || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
+      cout << "flag continue" << endl;
+      continue;
     }
-  }
-  iter = sam_map.begin();
-  while(iter != sam_map.end()) {
-    if(iter->second.size() == 2) {
-      sam_read samF = iter->second[0];
-      sam_read samR = iter->second[1];
-      if(paired_end_check(samF, samR)) {
-        HT_s ht = paired_end_merge(samF, samR);
-        res_l.push_back(ht);
-      } else {
-        for(int i = 0; i < iter->second.size(); i++) {
-          res_l.push_back(iter->second[i].HT);
-        }
-      }
-    } else {
-      for(int i = 0; i < iter->second.size(); i++) {
-        res_l.push_back(iter->second[i].HT);
-      }
+    sam_read sam_r = sam_read();
+    int ret = sam_r.init(ctx);
+    if(!ret) {
+      cout << "init fail." << endl;
+      continue;
     }
-    iter++;
-  }
-  for(auto _ht: res_l) {
-    string ht_id = _ht.to_str();
-    map<string, int>::iterator res_map_itor;
-    res_map_itor = res_map.find(ht_id);
-    if(res_map_itor == res_map.end()){
-      res_map[ht_id] = 1;
-    } else {
-      res_map[ht_id] += 1;
+
+    string qname = string(sam_r.read_name);
+
+    //结果限定在用户指定的范围内
+    if(strcmp(ctx.i_chr.c_str(), sam_r.read_chr) != 0) {
+      continue;
     }
+    if(sam_r.read_start < ctx.i_start || sam_r.read_end > ctx.i_end) {
+      continue;
+    }
+//    sam_r.haplo_type();
+//    if(!sam_r.QC) {
+//      continue;
+//    }
+//
+//    iter = sam_map.find(qname);
+//    if(iter == sam_map.end()) {
+//      cout << "no" << endl;
+//      vector<sam_read> v;
+//      v.push_back(sam_r);
+//      sam_map[qname] = v;
+//    } else {
+//      cout << "yes" << endl;
+//      vector<sam_read> v;
+//      v = sam_map[qname];
+//      v.push_back(sam_r);
+//      sam_map[qname] = v;
+//    }
   }
+//  iter = sam_map.begin();
+//  while(iter != sam_map.end()) {
+//    cout << "itor" << endl;
+//    cout << iter->second.size() << endl;
+//    if(iter->second.size() == 2) {
+//      sam_read samF = iter->second[0];
+//      sam_read samR = iter->second[1];
+//      if(paired_end_check(samF, samR)) {
+//        HT_s ht = paired_end_merge(samF, samR);
+//        res_l.push_back(ht);
+//        if(test_mode) {
+//          cout << "Merged:" << samF.read_name << " and " << samR.read_name << endl;
+//        }
+//      } else {
+//        for(int i = 0; i < iter->second.size(); i++) {
+//          res_l.push_back(iter->second[i].HT);
+//          cout << "overlap:";
+//          cout << iter->second[i].read_name << endl;
+//        }
+//      }
+//    } else {
+//      for(int i = 0; i < iter->second.size(); i++) {
+//        res_l.push_back(iter->second[i].HT);
+//        cout << "single" << iter->second[i].read_name << endl;
+//      }
+//    }
+//    iter++;
+//  }
+//  for(auto _ht: res_l) {
+//    string ht_id = _ht.to_str();
+//    map<string, int>::iterator res_map_itor;
+//    res_map_itor = res_map.find(ht_id);
+//    if(res_map_itor == res_map.end()){
+//      res_map[ht_id] = 1;
+//    } else {
+//      res_map[ht_id] += 1;
+//    }
+//  }
+  cout << "leave itor_sam()" << endl;
   return res_map;
 }
 
@@ -434,6 +490,8 @@ bool open_cpg_file(context &ctx) {
 }
 
 int main_convert(int argc, char *argv[]) {
+
+
   context ctx = context();
   //初始化context中的变量
   ctx.init_ctx();
@@ -501,6 +559,9 @@ int main_convert(int argc, char *argv[]) {
     get_cpg_pos(ctx);
     map<string, int> res_map;
     res_map = itor_sam(ctx);
+
+    ofstream out_stream("out.hap");
+
     for(auto r_map: res_map) {
       char direction = '+';
       if (r_map.first[r_map.first.size() - 1] == sam_read::DIRECTION_MINUS) {
@@ -508,8 +569,12 @@ int main_convert(int argc, char *argv[]) {
       }
       string out_string = r_map.first.substr(0, r_map.first.size() - 1);
       out_string = out_string + '\t' + to_string(r_map.second) + '\t' + direction;
-      cout << out_string;
+      cout << out_string << endl;
+      out_stream << out_string << endl;
+
     }
+
+    out_stream.close();
   }
 
   return EXIT_SUCCESS;

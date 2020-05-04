@@ -17,6 +17,8 @@
 #include <getopt.h>
 #include <vector>
 #include <map>
+#include<fstream>
+
 #define test_mode true
 
 using namespace std;
@@ -37,6 +39,7 @@ class context {
   bam_hdr_t *hdr_bam;/* -i bam文件头部的指针 */
 
   bam1_t *aln;
+  uint8_t *bam_aux_p;//bam文件辅助信息的指针
 
   char *fn_bam;
   char *fn_cpg;
@@ -51,9 +54,8 @@ class context {
 
   //region
   string i_chr;
-  int i_start = -1;
-  int i_end = -1;
-
+  uint32_t i_start = -1;
+  uint32_t i_end = -1;
 
 };
 
@@ -77,44 +79,38 @@ class sam_read {
   sam_read() {}
   bool init(context &ctx);
   bool haplo_type();
-  void _get_bismark_std();
-  bool _get_XM_tag();
+  bool _get_bismark_std();
+  bool _get_XM_tag(context &ctx);
   bool _get_ZS_tag();
-  void _get_bismark_QC();
+  bool _get_bismark_QC(context &ctxain);
 
-
-  uint8_t *XM_tag;
-  uint8_t *ZS_tag;
-  int8_t WC = -1;
+  char *XM_tag = NULL;
+  uint8_t *ZS_tag = NULL;
+  int8_t WC = 0;
   bool QC = false;
 
-  char *qname;
-  uint16_t flag; //
-  char *rname;
-  uint32_t pos;
-  uint8_t mapq; //mapping quality
-  uint32_t *cigar;
-  char *rnext;
-  int pnext;
-  int32_t tlen;
-  uint8_t *seq_p;
+  char *read_name = NULL;
+  uint16_t flag = 0; //
+  int read_map_quality = 0; //mapping quality
+  uint32_t *read_cigar = NULL;
+
   vector<char> seq;//the sequence of the reads
 
-  char *chr; //contig name (chromosome)
-  int32_t start; //left most position of alignment in zero based coordianate (+1)
-  int32_t end;
-  uint32_t len; //length of the read.
-  uint8_t *qual; //quality string
+  char *read_chr = NULL; //contig name (chromosome)
+  int32_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
+  int32_t read_end = 0;
+  uint32_t read_len = 0; //length of the read.
+  uint8_t *read_qual = NULL; //quality string
 
-  context *ctx;
+  context *ctx = NULL;
 
-  string _hap_seq;
+  string _hap_seq = "";
   vector<int8_t> _hap_qual;
   vector<uint32_t> _cpg;
-  string _hap_met;
+  string _hap_met = "";
 
-  HT_s HT;
-  HT_s merged_HT;
+  HT_s HT = HT_s();
+  HT_s merged_HT = HT_s();
 
   enum direction {
     DIRECTION_PLUS = 0,
