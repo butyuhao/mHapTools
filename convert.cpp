@@ -133,8 +133,13 @@ bool sam_read::init(context &ctx) {
   read_chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //checked
   read_start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
   read_end = read_start + read_len - 1;
-
-
+  //判断read在用户指定的范围内
+  if(strcmp(ctx.i_chr.c_str(), read_chr) != 0) {
+    return false;
+  }
+  if(read_start < ctx.i_start || read_end > ctx.i_end) {
+    return false;
+  }
   read_qual = bam_get_qual(ctx.aln); //quality string
   read_name = bam_get_qname(ctx.aln);
   flag = ctx.aln->core.flag; //
@@ -185,14 +190,15 @@ bool sam_read::haplo_type() {
   vector<int8_t> hap_qual;
   string hap_seq = "";
   uint32_t pos;
-  for(int i = 0; i < seq.size(); i++) {
-  }
   for(int i = 0; i < ctx->cpg_pos.size(); i++) {
     pos = ctx->cpg_pos[i];
-    if(pos < read_start || pos > read_end) {
+    if(pos < read_start) {
       continue;
     }
-    if(WC == DIRECTION_PLUS) {
+    if(pos > read_end) {
+      break;
+    }
+    if(read_WC == DIRECTION_PLUS) {
       r_pos = pos - read_start;
     } else {
       r_pos = pos - read_start + 1;
@@ -217,7 +223,7 @@ bool sam_read::haplo_type() {
   string hap_met = "";
   for(int i = 0; i < hap_seq.size(); i++) {
     char nucleobases = hap_seq[i];
-    if(WC == DIRECTION_PLUS) {
+    if(read_WC == DIRECTION_PLUS) {
       if(nucleobases == 'C') {
         hap_met += '1';
       } else if (nucleobases == 'T') {
@@ -226,7 +232,7 @@ bool sam_read::haplo_type() {
         hap_met += nucleobases;
         QC = false;
       }
-    } else if (WC == DIRECTION_MINUS) {
+    } else if (read_WC == DIRECTION_MINUS) {
       if (nucleobases == 'G') {
         hap_met += '1';
       } else if (nucleobases == 'A') {
@@ -241,15 +247,16 @@ bool sam_read::haplo_type() {
   }
   _hap_met = hap_met;
   if (_cpg.size() > 0) {
-    HT = HT_s(read_chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, WC);
+    HT = HT_s(read_chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, read_WC);
   }
+  return true;
 }
 
 bool sam_read::_get_bismark_std() {
   if(ctx->aln->core.flag == 99 || ctx->aln->core.flag == 147) {
-    WC = DIRECTION_PLUS;
+    read_WC = DIRECTION_PLUS;
   } else if (ctx->aln->core.flag == 83 || ctx->aln->core.flag == 163) {
-    WC = DIRECTION_MINUS;
+    read_WC = DIRECTION_MINUS;
   } else {
     cout << "sam_read::_get_bismark_std() Unknown flag" << endl;
     return false;
@@ -299,7 +306,7 @@ bool paired_end_check(sam_read &samF, sam_read &samR) {
     return false;
   }
   bool checkF = samF._cpg[samF._cpg.size() - 1] >= samR._cpg[0];
-  bool checkR = samR._cpg[samF._cpg.size() - 1] >= samF._cpg[0];
+  bool checkR = samR._cpg[samR._cpg.size() - 1] >= samF._cpg[0];
   return (checkF && checkR) || (!checkF && !checkR);
 }
 
@@ -341,7 +348,7 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
     hap_met += merged_met[merged_met_itor->first];
     merged_met_itor++;
   }
-  HT_s merged_HT = HT_s(samF.read_chr, cpg[0], cpg[cpg.size() - 1], hap_met, 1, samF.WC);
+  HT_s merged_HT = HT_s(samF.read_chr, cpg[0], cpg[cpg.size() - 1], hap_met, 1, samF.read_WC);
   return merged_HT;
 }
 
@@ -363,76 +370,68 @@ map<string, int> itor_sam(context &ctx) {
     sam_read sam_r = sam_read();
     int ret = sam_r.init(ctx);
     if(!ret) {
-      cout << "init fail." << endl;
       continue;
     }
 
     string qname = string(sam_r.read_name);
 
     //结果限定在用户指定的范围内
-    if(strcmp(ctx.i_chr.c_str(), sam_r.read_chr) != 0) {
+
+    sam_r.haplo_type();
+    if(!sam_r.QC) {
       continue;
     }
-    if(sam_r.read_start < ctx.i_start || sam_r.read_end > ctx.i_end) {
-      continue;
+
+    iter = sam_map.find(qname);
+    if(iter == sam_map.end()) {
+      cout << "no" << endl;
+      vector<sam_read> v;
+      v.push_back(sam_r);
+      sam_map[qname] = v;
+    } else {
+      cout << "yes" << endl;
+      vector<sam_read> v;
+      v = sam_map[qname];
+      v.push_back(sam_r);
+      sam_map[qname] = v;
     }
-//    sam_r.haplo_type();
-//    if(!sam_r.QC) {
-//      continue;
-//    }
-//
-//    iter = sam_map.find(qname);
-//    if(iter == sam_map.end()) {
-//      cout << "no" << endl;
-//      vector<sam_read> v;
-//      v.push_back(sam_r);
-//      sam_map[qname] = v;
-//    } else {
-//      cout << "yes" << endl;
-//      vector<sam_read> v;
-//      v = sam_map[qname];
-//      v.push_back(sam_r);
-//      sam_map[qname] = v;
-//    }
   }
-//  iter = sam_map.begin();
-//  while(iter != sam_map.end()) {
-//    cout << "itor" << endl;
-//    cout << iter->second.size() << endl;
-//    if(iter->second.size() == 2) {
-//      sam_read samF = iter->second[0];
-//      sam_read samR = iter->second[1];
-//      if(paired_end_check(samF, samR)) {
-//        HT_s ht = paired_end_merge(samF, samR);
-//        res_l.push_back(ht);
-//        if(test_mode) {
-//          cout << "Merged:" << samF.read_name << " and " << samR.read_name << endl;
-//        }
-//      } else {
-//        for(int i = 0; i < iter->second.size(); i++) {
-//          res_l.push_back(iter->second[i].HT);
-//          cout << "overlap:";
-//          cout << iter->second[i].read_name << endl;
-//        }
-//      }
-//    } else {
-//      for(int i = 0; i < iter->second.size(); i++) {
-//        res_l.push_back(iter->second[i].HT);
-//        cout << "single" << iter->second[i].read_name << endl;
-//      }
-//    }
-//    iter++;
-//  }
-//  for(auto _ht: res_l) {
-//    string ht_id = _ht.to_str();
-//    map<string, int>::iterator res_map_itor;
-//    res_map_itor = res_map.find(ht_id);
-//    if(res_map_itor == res_map.end()){
-//      res_map[ht_id] = 1;
-//    } else {
-//      res_map[ht_id] += 1;
-//    }
-//  }
+  iter = sam_map.begin();
+  while(iter != sam_map.end()) {
+    if(iter->second.size() == 2) {
+      sam_read samF = iter->second[0];
+      sam_read samR = iter->second[1];
+      if(paired_end_check(samF, samR)) {
+        HT_s ht = paired_end_merge(samF, samR);
+        res_l.push_back(ht);
+        if(test_mode) {
+          cout << "Merged:" << samF.read_name << " and " << samR.read_name << endl;
+        }
+      } else {
+        for(int i = 0; i < iter->second.size(); i++) {
+          res_l.push_back(iter->second[i].HT);
+          cout << "overlap:";
+          cout << iter->second[i].read_name << endl;
+        }
+      }
+    } else {
+      for(int i = 0; i < iter->second.size(); i++) {
+        res_l.push_back(iter->second[i].HT);
+        cout << "single" << iter->second[i].read_name << endl;
+      }
+    }
+    iter++;
+  }
+  for(auto _ht: res_l) {
+    string ht_id = _ht.to_str();
+    map<string, int>::iterator res_map_itor;
+    res_map_itor = res_map.find(ht_id);
+    if(res_map_itor == res_map.end()){
+      res_map[ht_id] = 1;
+    } else {
+      res_map[ht_id] += 1;
+    }
+  }
   cout << "leave itor_sam()" << endl;
   return res_map;
 }

@@ -82,11 +82,11 @@ class sam_read {
   bool _get_bismark_std();
   bool _get_XM_tag(context &ctx);
   bool _get_ZS_tag();
-  bool _get_bismark_QC(context &ctxain);
+  bool _get_bismark_QC(context &ctxainain);
 
   char *XM_tag = NULL;
   uint8_t *ZS_tag = NULL;
-  int8_t WC = 0;
+  int read_WC = 0;
   bool QC = false;
 
   char *read_name = NULL;
