@@ -73,14 +73,21 @@ static const struct option long_opts[] = {
     { "bed_file", optional_argument, NULL, 'b' },
     { "cpg_path", required_argument, NULL, 'c' },
     { "region", optional_argument, NULL, 'r' },
+    { "output", optional_argument, NULL, 'o' },
     { NULL, no_argument, NULL, 0 }
 };
 
-void parse_cpg_line(context &ctx, int shift = 500) {
+void parse_cpg_line(context &ctx, uint32_t shift = 500) {
   //匹配返回start位置，不匹配返回-1
   int tab_cnt = 0;
+  uint32_t i_start;
   string_view cpg_line_sv = string_view(ctx.fp_cpg->line.s);
-  uint32_t i_start = ctx.i_start - shift;
+  //todo 现在限定了start的下限，避免减去500后溢出，之后应该确保所有输入都能被正确处理
+  if(ctx.i_start >= 500) {
+    i_start = ctx.i_start - shift;
+  } else {
+    i_start = 0;
+  }
   uint32_t i_end = ctx.i_end + shift;
   int i = 0;
   int i_ = 0;
@@ -137,7 +144,7 @@ bool sam_read::init(context &ctx) {
   if(strcmp(ctx.i_chr.c_str(), read_chr) != 0) {
     return false;
   }
-  if(read_start < ctx.i_start || read_end > ctx.i_end) {
+  if(!((read_start >= ctx.i_start && read_start <= ctx.i_end) || (read_end > ctx.i_start && read_end <= ctx.i_end))) {
     return false;
   }
   read_qual = bam_get_qual(ctx.aln); //quality string
@@ -330,13 +337,6 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
       merged_met[pos] = samR._hap_met[i];
     }
   }
-  cout << "cpg:";
-  merged_met_itor = merged_met.begin();
-  while(merged_met_itor != merged_met.end()) {
-    cout << " " << merged_met_itor->first;
-  }
-  cout << endl;
-
   //map创建后，其key直接就是降序排列的
   string hap_seq = "";
   string hap_met = "";
@@ -355,7 +355,7 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
 
 
 map<string, int> itor_sam(context &ctx) {
-  cout << "enter itor_sam()" << endl;
+  //cout << "enter itor_sam()" << endl;
   map<string, vector<sam_read>> sam_map;
   map<string, int> res_map;
   map<string, vector<sam_read>>::iterator iter;
@@ -364,63 +364,59 @@ map<string, int> itor_sam(context &ctx) {
     //todo 在生成sam对象之前先来一个is_valid()来判断，如果不符合要求直接过。
     if(ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
       || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
-      cout << "flag continue" << endl;
+      //cout << "flag continue" << endl;
       continue;
     }
     sam_read sam_r = sam_read();
     int ret = sam_r.init(ctx);
+    //cout << "start:" << sam_r.read_start << " end:" << sam_r.read_end << endl;
     if(!ret) {
       continue;
     }
 
     string qname = string(sam_r.read_name);
 
-    //结果限定在用户指定的范围内
-
     sam_r.haplo_type();
     if(!sam_r.QC) {
+      //cout << "!QC" << endl;
       continue;
     }
 
     iter = sam_map.find(qname);
     if(iter == sam_map.end()) {
-      cout << "no" << endl;
       vector<sam_read> v;
       v.push_back(sam_r);
       sam_map[qname] = v;
     } else {
-      cout << "yes" << endl;
       vector<sam_read> v;
       v = sam_map[qname];
       v.push_back(sam_r);
       sam_map[qname] = v;
     }
   }
-  iter = sam_map.begin();
-  while(iter != sam_map.end()) {
-    if(iter->second.size() == 2) {
-      sam_read samF = iter->second[0];
-      sam_read samR = iter->second[1];
+  for(auto sam_l :  sam_map) {
+    if(sam_l.second.size() == 2) {
+      sam_read samF = sam_l.second[0];
+      sam_read samR = sam_l.second[1];
       if(paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
         res_l.push_back(ht);
         if(test_mode) {
-          cout << "Merged:" << samF.read_name << " and " << samR.read_name << endl;
+          //cout << "Merged:" << samF.read_name << " and " << samR.read_name << endl;
         }
       } else {
-        for(int i = 0; i < iter->second.size(); i++) {
-          res_l.push_back(iter->second[i].HT);
-          cout << "overlap:";
-          cout << iter->second[i].read_name << endl;
+        for(int i = 0; i < sam_l.second.size(); i++) {
+          res_l.push_back(sam_l.second[i].HT);
+          //cout << "overlap:";
+          //cout << sam_l.second[i].read_name << endl;
         }
       }
     } else {
-      for(int i = 0; i < iter->second.size(); i++) {
-        res_l.push_back(iter->second[i].HT);
-        cout << "single" << iter->second[i].read_name << endl;
+      for(int i = 0; i < sam_l.second.size(); i++) {
+        res_l.push_back(sam_l.second[i].HT);
+        //cout << "single" << sam_l.second[i].read_name << endl;
       }
     }
-    iter++;
   }
   for(auto _ht: res_l) {
     string ht_id = _ht.to_str();
@@ -432,7 +428,7 @@ map<string, int> itor_sam(context &ctx) {
       res_map[ht_id] += 1;
     }
   }
-  cout << "leave itor_sam()" << endl;
+  //cout << "leave itor_sam()" << endl;
   return res_map;
 }
 
@@ -521,6 +517,11 @@ int main_convert(int argc, char *argv[]) {
         ctx.region = optarg;
         break;
 
+      case 'o':
+        //cout << optarg << endl;
+        ctx.output_path = optarg;
+        break;
+
       default:
         break;
     }
@@ -555,20 +556,20 @@ int main_convert(int argc, char *argv[]) {
       cout << "Fail to open cpg file" << endl;
       return EXIT_FAILURE;
     }
+
     get_cpg_pos(ctx);
     map<string, int> res_map;
     res_map = itor_sam(ctx);
-
     ofstream out_stream("out.hap");
 
     for(auto r_map: res_map) {
       char direction = '+';
-      if (r_map.first[r_map.first.size() - 1] == sam_read::DIRECTION_MINUS) {
+      if (r_map.first[r_map.first.size() - 1] == '1') {
         direction = '-';
       }
       string out_string = r_map.first.substr(0, r_map.first.size() - 1);
-      out_string = out_string + '\t' + to_string(r_map.second) + '\t' + direction;
-      cout << out_string << endl;
+      out_string = '\t' + out_string + '\t' + to_string(r_map.second) + '\t' + direction;
+      //cout << out_string << endl;
       out_stream << out_string << endl;
 
     }

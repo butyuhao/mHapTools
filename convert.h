@@ -19,7 +19,7 @@
 #include <map>
 #include<fstream>
 
-#define test_mode true
+#define test_mode false
 
 using namespace std;
 
@@ -87,7 +87,7 @@ class sam_read {
   char *XM_tag = NULL;
   uint8_t *ZS_tag = NULL;
   int read_WC = 0;
-  bool QC = false;
+  bool QC = true;
 
   char *read_name = NULL;
   uint16_t flag = 0; //
@@ -97,8 +97,8 @@ class sam_read {
   vector<char> seq;//the sequence of the reads
 
   char *read_chr = NULL; //contig name (chromosome)
-  int32_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
-  int32_t read_end = 0;
+  uint32_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
+  uint32_t read_end = 0;
   uint32_t read_len = 0; //length of the read.
   uint8_t *read_qual = NULL; //quality string
 
