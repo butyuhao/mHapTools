@@ -450,16 +450,16 @@ inline void context::init_ctx() {
   //Initialize ctx
   fp_bam = NULL;
   fp_cpg = NULL;
-  hdr_bam = NULL;/* -i bam文件头部的指针
+  hdr_bam = NULL; // -i bam文件头部的指针
   aln = NULL;
   fn_bam = NULL;
   fn_cpg = NULL;
-  bam_path = NULL;   /* -i option */
-  cpg_path = NULL;      /* -c option */
-  output_path = NULL;  /* -o option */
-  aligner = NULL;      /* -a option */
-  bed_file = NULL;     /* -b option
-  region = NULL;       /* -r option */
+  bam_path = NULL;     // -i option
+  cpg_path = NULL;     // -c option
+  output_path = NULL;  // -o option
+  aligner = NULL;      // -a option
+  bed_file = NULL;     // -b option
+  region = NULL;       // -r option
 }
 
 bool open_bam_file(context &ctx) {
