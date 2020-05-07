@@ -57,6 +57,9 @@ class context {
   uint32_t i_start = -1;
   uint32_t i_end = -1;
 
+  map<string, u_int32_t > res_map_sort;
+  vector<pair<string, u_int32_t>> vt;
+
 };
 
 struct HT_s {
@@ -65,6 +68,9 @@ struct HT_s {
       : h_chr(_h_chr), h_start(_h_start), h_end(_h_end), hap_met(_hap_met), count(_count), WC(_WC){}
   string to_str() {
     return string(h_chr) + '\t' + to_string(h_start) + '\t' + to_string(h_end) + '\t' + hap_met + to_string(WC);
+  }
+  u_int32_t get_h_start() {
+    return h_start;
   }
   char *h_chr;
   uint32_t h_start;
@@ -81,7 +87,7 @@ class sam_read {
   bool haplo_type();
   bool _get_bismark_std();
   bool _get_XM_tag(context &ctx);
-  bool _get_ZS_tag();
+  bool _get_ZS_tag(context &ctx);
   bool _get_bismark_QC(context &ctxainain);
 
   char *XM_tag = NULL;

@@ -5,11 +5,7 @@
 #include <sstream>
 #include "convert.h"
 
-
-
 using namespace std;
-
-//struct CmpByKeyLength;
 
 bool context::parse_region() {
   string_view arg_sv = string_view (region);
@@ -183,7 +179,9 @@ bool sam_read::init(context &ctx) {
       return false;
     }
   } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
-    //todo
+    if(_get_ZS_tag(ctx)) {
+
+    }
 
   } else if(strcmp(ctx.aligner, "MAQ") == 0) {
     //todo
@@ -283,15 +281,13 @@ bool sam_read::_get_XM_tag(context &ctx) {
   return true;
 }
 
-bool sam_read::_get_ZS_tag() {
-  for(int i = 0; i < ctx->aln->l_data - 1; i++) {
-    //get XM tag. if success, return EXIT_SUCCESS, else, return EXIT_FAILURE
-    if(ctx->aln->data[i] == 'Z' && ctx->aln->data[i + 1] == 'S') {
-      ZS_tag = ctx->aln->data + i + 2;
-      return true;
-    }
+bool sam_read::_get_ZS_tag(context &ctx) {
+
+  ctx.bam_aux_p = bam_aux_get(ctx.aln, "ZS");
+  if(!ctx.bam_aux_p) {
+    return false;
   }
-  return false;
+  return true;
 }
 
 bool sam_read::_get_bismark_QC(context &ctx) {
@@ -367,6 +363,14 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
 //  }
 //};
 
+struct cmp
+{
+  bool operator()(const pair<string,u_int32_t> &p1,const pair<string,u_int32_t> &p2)
+  {
+    return p1.second < p2.second;
+  }
+};
+
 map<string, int> itor_sam(context &ctx) {
   //cout << "enter itor_sam()" << endl;
 
@@ -432,9 +436,12 @@ map<string, int> itor_sam(context &ctx) {
       }
     }
   }
+
   for(auto _ht: res_l) {
     string ht_id = _ht.to_str();
+
     map<string, int>::iterator res_map_itor;
+    ctx.res_map_sort[ht_id] = _ht.get_h_start();
     res_map_itor = res_map.find(ht_id);
     if(res_map_itor == res_map.end()){
       res_map[ht_id] = 1;
@@ -442,6 +449,11 @@ map<string, int> itor_sam(context &ctx) {
       res_map[ht_id] += 1;
     }
   }
+  for(auto rms : ctx.res_map_sort) {
+    ctx.vt.push_back(pair<string, u_int32_t >(rms.first, rms.second));
+  }
+  sort(ctx.vt.begin(),ctx.vt.end(),cmp());
+
   //cout << "leave itor_sam()" << endl;
   return res_map;
 }
@@ -575,15 +587,21 @@ int main_convert(int argc, char *argv[]) {
     get_cpg_pos(ctx);
     map<string, int> res_map;
     res_map = itor_sam(ctx);
-    ofstream out_stream("out.hap");
+    string out_stream_name;
+    if (ctx.output_path) {
+      out_stream_name = ctx.output_path;
+    } else {
+      out_stream_name = "out.hap";
+    }
+    ofstream out_stream(out_stream_name);
 
-    for(auto r_map: res_map) {
+    for(auto p: ctx.vt) {
       char direction = '+';
-      if (r_map.first[r_map.first.size() - 1] == '1') {
+      if (p.first[p.first.size() - 1] == '1') {
         direction = '-';
       }
-      string out_string = r_map.first.substr(0, r_map.first.size() - 1);
-      out_string = '\t' + out_string + '\t' + to_string(r_map.second) + '\t' + direction;
+      string out_string = p.first.substr(0, p.first.size() - 1);
+      out_string = out_string + '\t' + to_string(res_map[p.first]) + '\t' + direction;
       //cout << out_string << endl;
       out_stream << out_string << endl;
 
