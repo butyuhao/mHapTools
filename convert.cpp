@@ -2,11 +2,14 @@
 // Created by Yuhao Dan on 2020/4/13.
 //
 
+#include <sstream>
 #include "convert.h"
 
 
 
 using namespace std;
+
+//struct CmpByKeyLength;
 
 bool context::parse_region() {
   string_view arg_sv = string_view (region);
@@ -352,10 +355,21 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
   return merged_HT;
 }
 
-
+//struct CmpByKeyLength {
+//  bool operator()(const string &k1, const string &k2) const {
+//    istringstream isk1(k1);
+//    istringstream isk2(k2);
+//    uint32_t k1uint;
+//    uint32_t k2uint;
+//    isk1 >> k1uint;
+//    isk2 >> k1uint;
+//    return k1uint < k2uint;
+//  }
+//};
 
 map<string, int> itor_sam(context &ctx) {
   //cout << "enter itor_sam()" << endl;
+
   map<string, vector<sam_read>> sam_map;
   map<string, int> res_map;
   map<string, vector<sam_read>>::iterator iter;
@@ -483,6 +497,7 @@ bool open_cpg_file(context &ctx) {
   }
   return true;
 }
+
 
 int main_convert(int argc, char *argv[]) {
 

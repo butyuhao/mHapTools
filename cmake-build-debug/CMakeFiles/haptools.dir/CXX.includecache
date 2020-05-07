@@ -7,6 +7,8 @@
 #IncludeRegexTransform: 
 
 /Users/butyuhao/Documents/GitHub/haptools/convert.cpp
+sstream
+-
 convert.h
 /Users/butyuhao/Documents/GitHub/haptools/convert.h
 
