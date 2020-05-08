@@ -179,8 +179,8 @@ bool sam_read::init(context &ctx) {
       return false;
     }
   } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
-    if(_get_ZS_tag(ctx)) {
-
+    if(!_get_ZS_tag(ctx)) {
+      return false;
     }
 
   } else if(strcmp(ctx.aligner, "MAQ") == 0) {
@@ -285,6 +285,17 @@ bool sam_read::_get_ZS_tag(context &ctx) {
 
   ctx.bam_aux_p = bam_aux_get(ctx.aln, "ZS");
   if(!ctx.bam_aux_p) {
+    return false;
+  }
+  ZS_tag = bam_aux2Z(ctx.bam_aux_p);
+  if(!ZS_tag) {
+    return false;
+  }
+  if(*ZS_tag == '+') {
+    read_WC = DIRECTION_PLUS;
+  } else if(*ZS_tag == '-'){
+    read_WC = DIRECTION_MINUS;
+  } else {
     return false;
   }
   return true;

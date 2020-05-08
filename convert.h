@@ -91,7 +91,7 @@ class sam_read {
   bool _get_bismark_QC(context &ctxainain);
 
   char *XM_tag = NULL;
-  uint8_t *ZS_tag = NULL;
+  char *ZS_tag = NULL;
   int read_WC = 0;
   bool QC = true;
 
