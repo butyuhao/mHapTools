@@ -166,12 +166,14 @@ bool sam_read::init(context &ctx) {
     ret = _get_bismark_std();
 
     if(!ret) {
+      cout << "Error:_get_bismark_std()." << endl;
       return false;
     }
 
     if(_get_XM_tag(ctx)) {
       ret = _get_bismark_QC(ctx);
       if(!ret) {
+        cout << "ERROR:_get_bismark_QC()." << endl;
         return false;
       }
     } else {
@@ -183,10 +185,10 @@ bool sam_read::init(context &ctx) {
       return false;
     }
 
-  } else if(strcmp(ctx.aligner, "MAQ") == 0) {
-    //todo
+  } else if(strcmp(ctx.aligner, "UNKNOWN") == 0) {
+    read_WC = DIRECTION_UNKNOWN;
   } else {
-    cout << "Only BSMAP, BISMARK and MAQ are supported." << endl;
+    cout << "Only BSMAP, BISMARK and UNKNOWN are supported." << endl;
     return false;
   }
   return true;
@@ -206,7 +208,7 @@ bool sam_read::haplo_type() {
     if(pos > read_end) {
       break;
     }
-    if(read_WC == DIRECTION_PLUS) {
+    if(read_WC == DIRECTION_PLUS || read_WC == DIRECTION_UNKNOWN) {
       r_pos = pos - read_start;
     } else {
       r_pos = pos - read_start + 1;
@@ -231,13 +233,14 @@ bool sam_read::haplo_type() {
   string hap_met = "";
   for(int i = 0; i < hap_seq.size(); i++) {
     char nucleobases = hap_seq[i];
-    if(read_WC == DIRECTION_PLUS) {
+    if(read_WC == DIRECTION_PLUS || read_WC == DIRECTION_UNKNOWN) {
       if(nucleobases == 'C') {
         hap_met += '1';
       } else if (nucleobases == 'T') {
         hap_met += '0';
       } else {
         hap_met += nucleobases;
+        cout << hap_met << endl;
         QC = false;
       }
     } else if (read_WC == DIRECTION_MINUS) {
@@ -523,7 +526,7 @@ bool open_cpg_file(context &ctx) {
 
 
 int main_convert(int argc, char *argv[]) {
-
+//todo 增加检查option合法性的部分
 
   context ctx = context();
   //初始化context中的变量
@@ -610,6 +613,8 @@ int main_convert(int argc, char *argv[]) {
       char direction = '+';
       if (p.first[p.first.size() - 1] == '1') {
         direction = '-';
+      } else if (p.first[p.first.size() - 1] == DIRECTION_UNKNOWN + '0') {
+        direction = '*';
       }
       string out_string = p.first.substr(0, p.first.size() - 1);
       out_string = out_string + '\t' + to_string(res_map[p.first]) + '\t' + direction;

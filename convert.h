@@ -19,7 +19,7 @@
 #include <map>
 #include<fstream>
 
-#define test_mode false
+#define test_mode true
 
 using namespace std;
 
@@ -60,6 +60,7 @@ class context {
   map<string, u_int32_t > res_map_sort;
   vector<pair<string, u_int32_t>> vt;
 
+
 };
 
 struct HT_s {
@@ -78,6 +79,12 @@ struct HT_s {
   string hap_met;
   int count;
   int8_t WC;
+};
+
+enum direction {
+  DIRECTION_PLUS = 0,
+  DIRECTION_MINUS,
+  DIRECTION_UNKNOWN
 };
 
 class sam_read {
@@ -118,9 +125,6 @@ class sam_read {
   HT_s HT = HT_s();
   HT_s merged_HT = HT_s();
 
-  enum direction {
-    DIRECTION_PLUS = 0,
-    DIRECTION_MINUS
-  };
+
 };
 #endif //BAM2HAP__CONVERT_H_
