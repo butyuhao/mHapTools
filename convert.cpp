@@ -89,7 +89,6 @@ void parse_cpg_line(context &ctx, uint32_t shift = 500) {
   }
   uint32_t i_end = ctx.i_end + shift;
   int i = 0;
-  int i_ = 0;
   uint32_t cpg_start = 0;
   uint32_t cpg_end = 0;
   for(; i < cpg_line_sv.size(); i++) {
@@ -113,20 +112,77 @@ void parse_cpg_line(context &ctx, uint32_t shift = 500) {
         }
       }
     }
-
   }
 }
+
+bool load_cpg_with_idx(context &ctx, uint32_t shift = 500) {
+  //concat name of the tbi file
+  uint32_t  i_start;
+
+  if(ctx.i_start >= 500) {
+    i_start = ctx.i_start - shift;
+  } else {
+    i_start = 0;
+  }
+  uint32_t i_end = ctx.i_end + shift;
+
+  string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
+  if (cpg_idx_fn.size() == 0) {
+    return false;
+  }
+  //get the tbi index
+  tbx_t *idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
+  int tid = tbx_name2id(idx_cpg, ctx.i_chr.c_str());
+  hts_itr_t *cpg_itr = tbx_itr_queryi(idx_cpg, tid, i_start, i_end);
+  kstring_t ksbuf = {0, 0, NULL};
+  string_view cpg_line_sv;
+  u_int32_t cpg_start = 0;
+  u_int32_t cpg_end = 0;
+
+
+  while(tbx_itr_next(ctx.fp_cpg, idx_cpg, cpg_itr, &ksbuf) >= 0) {
+    cpg_line_sv = string_view(ksbuf.s);
+    int i = 0;
+    for(; i < cpg_line_sv.size(); i++) {
+      if(cpg_line_sv[i] == '\t') {
+          cpg_line_sv = cpg_line_sv.substr(i + 1);
+          //curser清零
+          i = 0;
+          //找到原line中的第2个tab位置
+          for(; i < cpg_line_sv.size(); i++) {
+            if(cpg_line_sv[i] == '\t') {
+              cpg_start = atoi(string(cpg_line_sv.substr(0, i)).c_str());
+              cpg_end = atoi(string(cpg_line_sv.substr(i, cpg_line_sv.size() - i)).c_str());
+              //确保cpg位点在用户指定的范围内。
+                ctx.cpg_pos.push_back(cpg_start);
+            }
+          }
+        }
+      }
+    }
+  return true;
+}
+
+
 
 bool get_cpg_pos(context &ctx) {
   //读取cpg文件，如果cpg的开始位点在用户指定的范围内，将其放到cpg_pos中
   int  ret;
-  ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
-  parse_cpg_line(ctx);
-  while(ret >= 0) {
+  //cpg文件为XXX.gz,则对应文件为XXX.gz.tbi
+  if(load_cpg_with_idx(ctx)) {
+    //使用带有index的方法读取
+    return true;
+  } else {
+    //使用不带有index的方法读取
     ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
     parse_cpg_line(ctx);
+    while(ret >= 0) {
+      ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
+      parse_cpg_line(ctx);
+    }
   }
-  return ret;
+
+  return true;
 }
 
 bool sam_read::init(context &ctx) {
@@ -173,7 +229,7 @@ bool sam_read::init(context &ctx) {
     if(_get_XM_tag(ctx)) {
       ret = _get_bismark_QC(ctx);
       if(!ret) {
-        cout << "ERROR:_get_bismark_QC()." << endl;
+        //cout << "ERROR:_get_bismark_QC()." << endl;
         return false;
       }
     } else {
@@ -186,6 +242,7 @@ bool sam_read::init(context &ctx) {
     }
 
   } else if(strcmp(ctx.aligner, "UNKNOWN") == 0) {
+    //todo 使用unknown的时候，与BISMARK比较可能多出一些结果，需要排查一下原因。
     read_WC = DIRECTION_UNKNOWN;
   } else {
     cout << "Only BSMAP, BISMARK and UNKNOWN are supported." << endl;
@@ -240,7 +297,7 @@ bool sam_read::haplo_type() {
         hap_met += '0';
       } else {
         hap_met += nucleobases;
-        cout << hap_met << endl;
+        //cout << hap_met << endl;
         QC = false;
       }
     } else if (read_WC == DIRECTION_MINUS) {
@@ -365,18 +422,6 @@ HT_s paired_end_merge(sam_read &samF, sam_read &samR) {
   return merged_HT;
 }
 
-//struct CmpByKeyLength {
-//  bool operator()(const string &k1, const string &k2) const {
-//    istringstream isk1(k1);
-//    istringstream isk2(k2);
-//    uint32_t k1uint;
-//    uint32_t k2uint;
-//    isk1 >> k1uint;
-//    isk2 >> k1uint;
-//    return k1uint < k2uint;
-//  }
-//};
-
 struct cmp
 {
   bool operator()(const pair<string,u_int32_t> &p1,const pair<string,u_int32_t> &p2)
@@ -484,6 +529,9 @@ inline context::~context() {
   if(aln) {
     bam_destroy1(aln);
   }
+  if(idx_cpg) {
+    tbx_destroy(idx_cpg);
+  }
 }
 
 inline void context::init_ctx() {
@@ -492,10 +540,10 @@ inline void context::init_ctx() {
   fp_cpg = NULL;
   hdr_bam = NULL; // -i bam文件头部的指针
   aln = NULL;
-  fn_bam = NULL;
+
   fn_cpg = NULL;
   bam_path = NULL;     // -i option
-  cpg_path = NULL;     // -c option
+  fn_cpg = NULL;   // -c option
   output_path = NULL;  // -o option
   aligner = NULL;      // -a option
   bed_file = NULL;     // -b option
@@ -517,7 +565,7 @@ bool open_bam_file(context &ctx) {
 }
 
 bool open_cpg_file(context &ctx) {
-  ctx.fp_cpg = hts_open(ctx.cpg_path, "r");
+  ctx.fp_cpg = hts_open(ctx.fn_cpg, "r");
   if(ctx.fp_cpg == NULL) {
     return false;
   }
@@ -550,7 +598,7 @@ int main_convert(int argc, char *argv[]) {
         break;
 
       case 'c':
-        ctx.cpg_path = optarg;
+        ctx.fn_cpg = optarg;
         break;
 
       case 'r':
@@ -587,6 +635,7 @@ int main_convert(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
     ret = open_bam_file(ctx);
+
     if(!ret) {
       cout << "Fail to open bam file" << endl;
       return EXIT_FAILURE;
@@ -618,7 +667,6 @@ int main_convert(int argc, char *argv[]) {
       }
       string out_string = p.first.substr(0, p.first.size() - 1);
       out_string = out_string + '\t' + to_string(res_map[p.first]) + '\t' + direction;
-      //cout << out_string << endl;
       out_stream << out_string << endl;
 
     }

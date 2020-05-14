@@ -25,6 +25,8 @@ htslib/tbx.h
 -
 htslib/kseq.h
 -
+htslib/bgzf.h
+-
 unistd.h
 -
 getopt.h
@@ -49,4 +51,6 @@ string.h
 -
 convert.cpp
 /Users/butyuhao/Documents/GitHub/haptools/convert.cpp
+htslib/regidx.h
+-
 

@@ -10,6 +10,7 @@
 #include <htslib/sam.h>
 #include <htslib/tbx.h>
 #include <htslib/kseq.h>
+#include <htslib/bgzf.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
@@ -36,18 +37,18 @@ class context {
 
   htsFile *fp_bam;
   htsFile *fp_cpg;
+  tbx_t *idx_cpg;
   bam_hdr_t *hdr_bam;/* -i bam文件头部的指针 */
 
   bam1_t *aln;
   uint8_t *bam_aux_p;//bam文件辅助信息的指针
 
-  char *fn_bam;
-  char *fn_cpg;
+
   char *bam_path;   /* -i option */
   char *output_path;  /* -o option */
   char *aligner;      /* -a option */
   char *bed_file;     /* -b option */
-  char *cpg_path;      /* -c option */
+  char *fn_cpg;      /* -c option */
   char *region;       /* -r option */
 
   vector<uint32_t> cpg_pos;
