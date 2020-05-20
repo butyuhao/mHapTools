@@ -47,8 +47,9 @@ class context {
 
   //region
   string i_chr;
-  uint32_t i_start = -1;
-  uint32_t i_end = -1;
+  int i_tid;
+  hts_pos_t i_beg;
+  hts_pos_t i_end;
 
   map<string, u_int32_t > res_map_sort;
   vector<pair<string, u_int32_t>> vt;

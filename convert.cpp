@@ -16,60 +16,24 @@
 namespace std {
 
 bool context::parse_region() {
-  string_view arg_sv = string_view (region);
-  bool is_get_chr = false;
-  bool is_get_start = false;
-  bool is_get_end = false;
-  int i;
-  for (i = 0; i < arg_sv.size(); i++) {
-    if (arg_sv[i] == ':') {
-      //get the chr name
-      i_chr = string(arg_sv.substr(0, i));
-      is_get_chr = true;
-      break;
+  const char *reg = region;
+
+  int flags = 0;
+
+  while(*reg) {
+    reg = sam_parse_region(hdr_bam, reg, &i_tid, &i_beg, &i_end, flags);
+    if (!reg) {
+      fprintf(stderr, "Failed to parse region\n");
+      return false;
     }
   }
-  if (is_get_chr) {
-    for (i++; i < arg_sv.size(); i++) {
-      if (arg_sv[i] >= '0' && arg_sv[i] <= '9') {
-        //Initialize i_start
-        if (i_start == -1) {
-          i_start = 0;
-        }
-        i_start = i_start * 10 + (arg_sv[i] - '0');
-      } else if (arg_sv[i] == '-') {
-        is_get_start = true;
-        i_start += 1;
-        break;
-      } else {
-        return false;
-      }
-    }
-  }
-  if (is_get_start) {
-    for (i++; i < arg_sv.size(); i++) {
-      if (arg_sv[i] >= '0' && arg_sv[i] <= '9') {
-        //Initialize i_end
-        if (i_end == -1) {
-          i_end = 0;
-        }
-        i_end = i_end * 10 + (arg_sv[i] - '0');
-      } else {
-        return false;
-      }
-    }
-  }
-  if (i_end != -1) {
-    is_get_end = true;
-  }
-  if (is_get_end && is_get_start && is_get_chr) {
-    return true;
-  }
-  return false;
+  i_chr = hdr_bam->target_name[i_tid];
+
+  return true;
 }
 
 void context::print_region() {
-  cout << "Chr:" << i_chr << " Start:" << i_start << " End:" << i_end << endl;
+  cout << "Region pased result: " << hdr_bam->target_name[i_tid] << ":" << i_beg << "-" << i_end << endl;
 }
 
 static const char *opt_string = "i:a:b:c:r:o:";
@@ -90,8 +54,8 @@ void parse_cpg_line(context &ctx, uint32_t shift = 500) {
   uint32_t i_start;
   string_view cpg_line_sv = string_view(ctx.fp_cpg->line.s);
   //todo 现在限定了start的下限，避免减去500后溢出，之后应该确保所有输入都能被正确处理
-  if (ctx.i_start >= 500) {
-    i_start = ctx.i_start - shift;
+  if (ctx.i_beg >= 500) {
+    i_start = ctx.i_beg - shift;
   } else {
     i_start = 0;
   }
@@ -127,8 +91,8 @@ bool load_cpg_with_idx(context &ctx, uint32_t shift = 500) {
   //concat name of the tbi file
   uint32_t  i_start;
 
-  if (ctx.i_start >= 500) {
-    i_start = ctx.i_start - shift;
+  if (ctx.i_beg >= 500) {
+    i_start = ctx.i_beg - shift;
   } else {
     i_start = 0;
   }
@@ -140,8 +104,8 @@ bool load_cpg_with_idx(context &ctx, uint32_t shift = 500) {
   }
   //get the tbi index
   tbx_t *idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
-  int tid = tbx_name2id(idx_cpg, ctx.i_chr.c_str());
-  hts_itr_t *cpg_itr = tbx_itr_queryi(idx_cpg, tid, i_start, i_end);
+
+  hts_itr_t *cpg_itr = tbx_itr_queryi(idx_cpg, ctx.i_tid, i_start, i_end);
   kstring_t ksbuf = {0, 0, NULL};
   string_view cpg_line_sv;
   u_int32_t cpg_start = 0;
@@ -207,7 +171,7 @@ bool SamRead::init(context &ctx) {
   if (strcmp(ctx.i_chr.c_str(), read_chr) != 0) {
     return false;
   }
-  if (!((read_start >= ctx.i_start && read_start <= ctx.i_end) || (read_end > ctx.i_start && read_end <= ctx.i_end))) {
+  if (!((read_start >= ctx.i_beg && read_start <= ctx.i_end) || (read_end > ctx.i_beg && read_end <= ctx.i_end))) {
     return false;
   }
   read_qual = bam_get_qual(ctx.aln); //quality string
@@ -442,8 +406,7 @@ map<string, int> itor_sam(context &ctx) {
   vector<HT_s> res_l;
   static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
   ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
-  int chr = sam_hdr_name2tid(ctx.hdr_bam, ctx.i_chr.c_str());
-  hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, chr, ctx.i_start, ctx.i_end);
+  hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
   while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
     if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
         || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
@@ -609,10 +572,13 @@ int main_convert(int argc, char *argv[]) {
   }
 
   if (ctx.region) {
+    int ret;
+
+    ret = open_bam_file(ctx);
+
     if (test_mode) {
       cout << ctx.region << endl;
     }
-    bool ret;
     ret = ctx.parse_region();
     if (test_mode) {
       ctx.print_region();
@@ -623,7 +589,7 @@ int main_convert(int argc, char *argv[]) {
       ctx.print_region();
       return EXIT_FAILURE;
     }
-    ret = open_bam_file(ctx);
+
 
     if (!ret) {
       cout << "Fail to open bam file" << endl;
