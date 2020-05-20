@@ -4,47 +4,39 @@
 
 #ifndef BAM2HAP__CONVERT_H_
 #define BAM2HAP__CONVERT_H_
-#include <vector>
-#include <string_view>
-#include <htslib/hts.h>
-#include <htslib/sam.h>
-#include <htslib/tbx.h>
-#include <htslib/kseq.h>
-#include <htslib/bgzf.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <string>
-#include <getopt.h>
-#include <vector>
+
 #include <map>
-#include<fstream>
+#include <vector>
+#include <htslib/hts.h>
+#include <htslib/tbx.h>
+#include <htslib/sam.h>
 
 #define test_mode true
 
-using namespace std;
+class Context;
 
+namespace std {
 
-uint8_t _base[16] = {0,65,67,0,71,0,0,0,84,0,0,0,0,0,0,78};
+const uint8_t kbase[16] = {0, 65, 67, 0, 71, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 78};
 
 class context {
  public:
   context () {};
   ~context();
-  void init_ctx();
+
   bool parse_region();
   void print_region();
 
   htsFile *fp_bam;
   htsFile *fp_cpg;
   tbx_t *idx_cpg;
-  bam_hdr_t *hdr_bam;/* -i bam文件头部的指针 */
-
+  hts_idx_t *idx_bam;
+  bam_hdr_t *hdr_bam;
   bam1_t *aln;
-  uint8_t *bam_aux_p;//bam文件辅助信息的指针
+  uint8_t *bam_aux_p;
 
-
-  char *bam_path;   /* -i option */
+  // options
+  char *fn_bam;   /* -i option */
   char *output_path;  /* -o option */
   char *aligner;      /* -a option */
   char *bed_file;     /* -b option */
@@ -60,7 +52,6 @@ class context {
 
   map<string, u_int32_t > res_map_sort;
   vector<pair<string, u_int32_t>> vt;
-
 
 };
 
@@ -82,15 +73,15 @@ struct HT_s {
   int8_t WC;
 };
 
-enum direction {
+enum Direction {
   DIRECTION_PLUS = 0,
   DIRECTION_MINUS,
-  DIRECTION_UNKNOWN
+  DIRECTION_UNKNOWN,
 };
 
-class sam_read {
+class SamRead {
  public:
-  sam_read() {}
+  SamRead() {}
   bool init(context &ctx);
   bool haplo_type();
   bool _get_bismark_std();
@@ -126,6 +117,7 @@ class sam_read {
   HT_s HT = HT_s();
   HT_s merged_HT = HT_s();
 
-
 };
+} // namespace std
+
 #endif //BAM2HAP__CONVERT_H_
