@@ -49,6 +49,4 @@ string.h
 -
 convert.cpp
 /Users/butyuhao/Documents/GitHub/haptools/convert.cpp
-htslib/regidx.h
--
 

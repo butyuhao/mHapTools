@@ -33,7 +33,7 @@ bool context::parse_region() {
 }
 
 void context::print_region() {
-  cout << "Region pased result: " << hdr_bam->target_name[i_tid] << ":" << i_beg << "-" << i_end << endl;
+  cout << "Region parsed result: " << hdr_bam->target_name[i_tid] << ":" << i_beg << "-" << i_end << endl;
 }
 
 static const char *opt_string = "i:a:b:c:r:o:";
@@ -167,13 +167,7 @@ bool SamRead::init(context &ctx) {
   read_chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //checked
   read_start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
   read_end = read_start + read_len - 1;
-  //判断read在用户指定的范围内
-  if (strcmp(ctx.i_chr.c_str(), read_chr) != 0) {
-    return false;
-  }
-  if (!((read_start >= ctx.i_beg && read_start <= ctx.i_end) || (read_end > ctx.i_beg && read_end <= ctx.i_end))) {
-    return false;
-  }
+
   read_qual = bam_get_qual(ctx.aln); //quality string
   read_name = bam_get_qname(ctx.aln);
   flag = ctx.aln->core.flag; //
@@ -189,30 +183,31 @@ bool SamRead::init(context &ctx) {
     ret = _get_bismark_std();
 
     if (!ret) {
-      cout << "Error:_get_bismark_std()." << endl;
+      hts_log_trace("_get_bismark_std(): fail to get bismark std.");
       return false;
     }
 
     if (_get_XM_tag(ctx)) {
       ret = _get_bismark_QC(ctx);
       if (!ret) {
-        //cout << "ERROR:_get_bismark_QC()." << endl;
+        hts_log_trace("_get_bismark_QC(): fail to get bismark QC.");
         return false;
       }
     } else {
-      cout << "Error:XM tag is required in SAM." << endl;
+      hts_log_trace("XM tag is required in SAM");
       return false;
     }
   } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
     if (!_get_ZS_tag(ctx)) {
+      hts_log_trace("_get_ZS_tag(): fail to get ZS tag");
       return false;
     }
 
   } else if(strcmp(ctx.aligner, "UNKNOWN") == 0) {
-    //todo 使用unknown的时候，与BISMARK比较可能多出一些结果，需要排查一下原因。
+    //TODO(butyuhao@foxmail.com) 使用unknown的时候，与BISMARK比较可能多出一些结果，需要排查一下原因。
     read_WC = DIRECTION_UNKNOWN;
   } else {
-    cout << "Only BSMAP, BISMARK and UNKNOWN are supported." << endl;
+    hts_log_error("Only BSMAP, BISMARK and UNKNOWN are supported.");
     return false;
   }
   return true;
@@ -316,6 +311,7 @@ bool SamRead::_get_ZS_tag(context &ctx) {
   }
   ZS_tag = bam_aux2Z(ctx.bam_aux_p);
   if (!ZS_tag) {
+    hts_log_error("has no ZS tag");
     return false;
   }
   if (*ZS_tag == '+') {
@@ -323,6 +319,7 @@ bool SamRead::_get_ZS_tag(context &ctx) {
   } else if (*ZS_tag == '-'){
     read_WC = DIRECTION_MINUS;
   } else {
+    hts_log_trace("Direction tag error");
     return false;
   }
   return true;
@@ -331,11 +328,13 @@ bool SamRead::_get_ZS_tag(context &ctx) {
 bool SamRead::_get_bismark_QC(context &ctx) {
   XM_tag = bam_aux2Z(ctx.bam_aux_p);
   if (!XM_tag) {
+    hts_log_error("has no XM tag");
     return false;
   }
   string_view XM_tag_sv  = string_view(XM_tag);
   for (auto c : XM_tag_sv) {
     if (c == 'X' || c == 'H' || c == 'U') {
+      hts_log_trace("XM tag QC check failed");
       return false;
     }
   }
@@ -404,19 +403,20 @@ map<string, int> itor_sam(context &ctx) {
   map<string, int> res_map;
   map<string, vector<SamRead>>::iterator iter;
   vector<HT_s> res_l;
+
   static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
   ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
   hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
   while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
     if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
         || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
-      //cout << "flag continue" << endl;
       continue;
     }
     SamRead sam_r = SamRead();
     int ret = sam_r.init(ctx);
-    //cout << "start:" << sam_r.read_start << " end:" << sam_r.read_end << endl;
+
     if (!ret) {
+      hts_log_trace("");
       continue;
     }
 
@@ -424,7 +424,6 @@ map<string, int> itor_sam(context &ctx) {
 
     sam_r.haplo_type();
     if (!sam_r.QC) {
-      //cout << "!QC" << endl;
       continue;
     }
 
@@ -448,19 +447,15 @@ map<string, int> itor_sam(context &ctx) {
         HT_s ht = paired_end_merge(samF, samR);
         res_l.push_back(ht);
         if (test_mode) {
-          //cout << "Merged:" << samF.read_name << " and " << samR.read_name << endl;
         }
       } else {
         for (int i = 0; i < sam_l.second.size(); i++) {
           res_l.push_back(sam_l.second[i].HT);
-          //cout << "overlap:";
-          //cout << sam_l.second[i].read_name << endl;
         }
       }
     } else {
       for (int i = 0; i < sam_l.second.size(); i++) {
         res_l.push_back(sam_l.second[i].HT);
-        //cout << "single" << sam_l.second[i].read_name << endl;
       }
     }
   }
@@ -575,34 +570,30 @@ int main_convert(int argc, char *argv[]) {
     int ret;
 
     ret = open_bam_file(ctx);
-
-    if (test_mode) {
-      cout << ctx.region << endl;
+    if (!ret) {
+      hts_log_error("open_bam_file():fail to open bam file");
+      return EXIT_FAILURE;
     }
+
     ret = ctx.parse_region();
-    if (test_mode) {
-      ctx.print_region();
-    }
-
     if (!ret) {
-      //fail to parse the query
-      ctx.print_region();
+      hts_log_error("parse_region():fail to parse region");
       return EXIT_FAILURE;
     }
-
-
-    if (!ret) {
-      cout << "Fail to open bam file" << endl;
-      return EXIT_FAILURE;
-    }
+    hts_log_info("parse_region(): %s:%lld-%lld", ctx.hdr_bam->target_name[ctx.i_tid], ctx.i_beg, ctx.i_end);
 
     ret = open_cpg_file(ctx);
     if (!ret) {
-      cout << "Fail to open cpg file" << endl;
+      hts_log_error("open_cpg_file():fail to open cpg file");
       return EXIT_FAILURE;
     }
 
-    get_cpg_pos(ctx);
+    ret = get_cpg_pos(ctx);
+    if (!ret) {
+      hts_log_error("get_cpg_pos():fail to get cpg pos");
+      return EXIT_FAILURE;
+    }
+
     map<string, int> res_map;
     res_map = itor_sam(ctx);
     string out_stream_name;
