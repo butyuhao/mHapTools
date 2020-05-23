@@ -525,7 +525,6 @@ bool open_cpg_file(context &ctx) {
   return true;
 }
 
-
 int main_convert(int argc, char *argv[]) {
 //TODO(butyuhao@foxmail.com): 增加检查option合法性的部分
 //TODO(butyuhao@foxmail.com): 增加日志
@@ -568,7 +567,7 @@ int main_convert(int argc, char *argv[]) {
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
   if (ctx.region) {
-    //在命令行中指定单个region
+
     int ret;
 
     ret = open_bam_file(ctx);
@@ -621,6 +620,20 @@ int main_convert(int argc, char *argv[]) {
 
     out_stream.close();
   } else if (ctx.fn_cpg && ctx.fn_bam){
+    int ret;
+
+    ret = open_bam_file(ctx);
+    if (!ret) {
+      hts_log_error("open_bam_file():fail to open bam file");
+      return EXIT_FAILURE;
+    }
+    ret = open_cpg_file(ctx);
+    if (!ret) {
+      hts_log_error("open_cpg_file():fail to open cpg file");
+      return EXIT_FAILURE;
+    }
+
+
 
   }
 
