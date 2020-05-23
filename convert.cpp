@@ -16,6 +16,7 @@
 namespace std {
 
 bool context::parse_region() {
+  //parse the -r chr:start-end
   const char *reg = region;
 
   int flags = 0;
@@ -138,7 +139,7 @@ bool load_cpg_with_idx(context &ctx, uint32_t shift = 500) {
 
 
 bool get_cpg_pos(context &ctx) {
-  //读取cpg文件，如果cpg的开始位点在用户指定的范围内，将其放到cpg_pos中
+
   int  ret;
   //cpg文件为XXX.gz,则对应文件为XXX.gz.tbi
   if (load_cpg_with_idx(ctx)) {
@@ -516,6 +517,7 @@ bool open_bam_file(context &ctx) {
 }
 
 bool open_cpg_file(context &ctx) {
+  //open the cpg file (.gz file)
   ctx.fp_cpg = hts_open(ctx.fn_cpg, "r");
   if (ctx.fp_cpg == NULL) {
     return false;
@@ -565,8 +567,8 @@ int main_convert(int argc, char *argv[]) {
     }
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
-
   if (ctx.region) {
+    //在命令行中指定单个region
     int ret;
 
     ret = open_bam_file(ctx);
@@ -618,7 +620,11 @@ int main_convert(int argc, char *argv[]) {
     }
 
     out_stream.close();
+  } else if (ctx.fn_cpg && ctx.fn_bam){
+
   }
+
+
 
   return EXIT_SUCCESS;
 }
