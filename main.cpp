@@ -16,5 +16,10 @@ int main(int argc, char *argv[]) {
 
   return ret;
 
-
+//  hFILE * f = hopen("out.hap", "a");
+//  for(int i = 0; i < 10000000000000; i++) {
+//    hputs("test text\n", f);
+//  }
+//  hclose(f);
+//
 }

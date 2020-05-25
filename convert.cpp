@@ -12,10 +12,11 @@
 #include <string_view>
 #include <htslib/kseq.h>
 #include <htslib/bgzf.h>
+#include <htslib/hfile.h>
 
 namespace std {
 
-bool context::parse_region() {
+bool Context::parse_region() {
   //parse the -r chr:start-end
   const char *reg = region;
 
@@ -33,7 +34,7 @@ bool context::parse_region() {
   return true;
 }
 
-void context::print_region() {
+void Context::print_region() {
   cout << "Region parsed result: " << hdr_bam->target_name[i_tid] << ":" << i_beg << "-" << i_end << endl;
 }
 
@@ -49,7 +50,7 @@ static const struct option long_opts[] = {
     { NULL, no_argument, NULL, 0 }
 };
 
-void parse_cpg_line(context &ctx, uint32_t shift = 500) {
+void parse_cpg_line(Context &ctx, uint32_t shift = 500) {
   //匹配返回start位置，不匹配返回-1
   int tab_cnt = 0;
   uint32_t i_start;
@@ -88,32 +89,27 @@ void parse_cpg_line(context &ctx, uint32_t shift = 500) {
   }
 }
 
-bool load_cpg_with_idx(context &ctx, uint32_t shift = 500) {
+bool load_cpg(Context &ctx, int tid, uint32_t beg, uint32_t end, uint32_t shift = 500) {
   //concat name of the tbi file
-  uint32_t  i_start;
+  ctx.cpg_pos.clear();
 
-  if (ctx.i_beg >= 500) {
-    i_start = ctx.i_beg - shift;
-  } else {
-    i_start = 0;
+  uint32_t  i_beg;
+
+  i_beg = beg - shift;
+  if (i_beg < 0) {
+    i_beg = 0;
   }
-  uint32_t i_end = ctx.i_end + shift;
 
-  string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
-  if (cpg_idx_fn.size() == 0) {
-    return false;
-  }
-  //get the tbi index
-  tbx_t *idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
+  uint32_t i_end = end + shift;
 
-  hts_itr_t *cpg_itr = tbx_itr_queryi(idx_cpg, ctx.i_tid, i_start, i_end);
+  ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, ctx.i_tid, i_beg, i_end);
   kstring_t ksbuf = {0, 0, NULL};
   string_view cpg_line_sv;
   u_int32_t cpg_start = 0;
   u_int32_t cpg_end = 0;
 
 
-  while(tbx_itr_next(ctx.fp_cpg, idx_cpg, cpg_itr, &ksbuf) >= 0) {
+  while(tbx_itr_next(ctx.fp_cpg, ctx.idx_cpg, ctx.cpg_itr, &ksbuf) >= 0) {
     cpg_line_sv = string_view(ksbuf.s);
     int i = 0;
     for (; i < cpg_line_sv.size(); i++) {
@@ -136,29 +132,7 @@ bool load_cpg_with_idx(context &ctx, uint32_t shift = 500) {
   return true;
 }
 
-
-
-bool get_cpg_pos(context &ctx) {
-
-  int  ret;
-  //cpg文件为XXX.gz,则对应文件为XXX.gz.tbi
-  if (load_cpg_with_idx(ctx)) {
-    //使用带有index的方法读取
-    return true;
-  } else {
-    //使用不带有index的方法读取
-    ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
-    parse_cpg_line(ctx);
-    while(ret >= 0) {
-      ret = hts_getline(ctx.fp_cpg, KS_SEP_LINE, &ctx.fp_cpg->line);
-      parse_cpg_line(ctx);
-    }
-  }
-
-  return true;
-}
-
-bool SamRead::init(context &ctx) {
+bool SamRead::init(Context &ctx) {
   bool ret;
 
   this->ctx = &ctx;
@@ -167,7 +141,7 @@ bool SamRead::init(context &ctx) {
 
   read_chr = ctx.hdr_bam->target_name[ctx.aln->core.tid] ; //checked
   read_start = ctx.aln->core.pos +1; //left most position of alignment in zero based coordianate (+1)
-  read_end = read_start + read_len - 1;
+  read_end = ctx.aln->core.pos + read_len;
 
   read_qual = bam_get_qual(ctx.aln); //quality string
   read_name = bam_get_qname(ctx.aln);
@@ -226,6 +200,7 @@ bool SamRead::haplo_type() {
       continue;
     }
     if (pos > read_end) {
+      //因为cpg位点是有序的，所以超过end就说明之后不可能再有在范围内的位点了。
       break;
     }
     if (read_WC == DIRECTION_PLUS || read_WC == DIRECTION_UNKNOWN) {
@@ -295,7 +270,7 @@ bool SamRead::_get_bismark_std() {
   return true;
 }
 
-bool SamRead::_get_XM_tag(context &ctx) {
+bool SamRead::_get_XM_tag(Context &ctx) {
 
   ctx.bam_aux_p = bam_aux_get(ctx.aln, "XM");
   if (!ctx.bam_aux_p) {
@@ -304,7 +279,7 @@ bool SamRead::_get_XM_tag(context &ctx) {
   return true;
 }
 
-bool SamRead::_get_ZS_tag(context &ctx) {
+bool SamRead::_get_ZS_tag(Context &ctx) {
 
   ctx.bam_aux_p = bam_aux_get(ctx.aln, "ZS");
   if (!ctx.bam_aux_p) {
@@ -326,7 +301,7 @@ bool SamRead::_get_ZS_tag(context &ctx) {
   return true;
 }
 
-bool SamRead::_get_bismark_QC(context &ctx) {
+bool SamRead::_get_bismark_QC(Context &ctx) {
   XM_tag = bam_aux2Z(ctx.bam_aux_p);
   if (!XM_tag) {
     hts_log_error("has no XM tag");
@@ -397,23 +372,48 @@ struct cmp
   }
 };
 
-map<string, int> itor_sam(context &ctx) {
-  //cout << "enter itor_sam()" << endl;
+bool region_to_parse(Context &ctx) {
+  /* Recognize the way the user specifies the region
+   * 1.use command line -r option to specify single region --> SINGLE_REGION
+   * 2.use bed file --> MULTI_REGION
+   * 3.not specify, process whole file --> WHOLE_FILE
+   * */
+  if (ctx.region) {
+    ctx.region_to_parse = SINGLE_REGION;
+  } else if (ctx.bed_file) {
+    ctx.region_to_parse = MULTI_REGION;
+  } else if (ctx.fn_cpg && ctx.fn_bam) {
+    ctx.region_to_parse = WHOLE_FILE;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+map<string, int> itor_sam(Context &ctx) {
 
   map<string, vector<SamRead>> sam_map;
   map<string, int> res_map;
   map<string, vector<SamRead>>::iterator iter;
   vector<HT_s> res_l;
 
+  //load tbi index outside the load_cpg()
+  string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
+  ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
+
+  //load bai index
   static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
   ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
+
   hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
   while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
     if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
         || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
       continue;
     }
+
     SamRead sam_r = SamRead();
+
     int ret = sam_r.init(ctx);
 
     if (!ret) {
@@ -422,6 +422,8 @@ map<string, int> itor_sam(context &ctx) {
     }
 
     string qname = string(sam_r.read_name);
+
+    load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
 
     sam_r.haplo_type();
     if (!sam_r.QC) {
@@ -440,6 +442,7 @@ map<string, int> itor_sam(context &ctx) {
       sam_map[qname] = v;
     }
   }
+
   for (auto sam_l :  sam_map) {
     if (sam_l.second.size() == 2) {
       SamRead samF = sam_l.second[0];
@@ -482,7 +485,7 @@ map<string, int> itor_sam(context &ctx) {
 }
 
 
-inline context::~context() {
+inline Context::~Context() {
   //to_do明确一下哪些指针需要被关掉。
   if (fp_bam) {
     hts_close(fp_bam);
@@ -496,9 +499,24 @@ inline context::~context() {
   if (idx_cpg) {
     tbx_destroy(idx_cpg);
   }
+  if (idx_bam) {
+    hts_idx_destroy(idx_bam);
+  }
+  if (cpg_itr) {
+    hts_itr_destroy(cpg_itr);
+  }
+  if (sam_itr) {
+    hts_itr_destroy(sam_itr);
+  }
+  if (hdr_bam) {
+    bam_hdr_destroy(hdr_bam);
+  }
+  if (bam_aux_p) {
+
+  }
 }
 
-bool open_bam_file(context &ctx) {
+bool open_bam_file(Context &ctx) {
 
   ctx.fp_bam = hts_open(ctx.fn_bam, "r");
   ctx.hdr_bam = sam_hdr_read(ctx.fp_bam); //read header
@@ -516,7 +534,7 @@ bool open_bam_file(context &ctx) {
   return true;
 }
 
-bool open_cpg_file(context &ctx) {
+bool open_cpg_file(Context &ctx) {
   //open the cpg file (.gz file)
   ctx.fp_cpg = hts_open(ctx.fn_cpg, "r");
   if (ctx.fp_cpg == NULL) {
@@ -529,7 +547,7 @@ int main_convert(int argc, char *argv[]) {
 //TODO(butyuhao@foxmail.com): 增加检查option合法性的部分
 //TODO(butyuhao@foxmail.com): 增加日志
 
-  context ctx = context();
+  Context ctx = Context();
 
   int long_index;
 
@@ -566,7 +584,6 @@ int main_convert(int argc, char *argv[]) {
     }
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
-  if (ctx.region) {
 
     int ret;
 
@@ -576,7 +593,13 @@ int main_convert(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
 
-    ret = ctx.parse_region();
+    ret = region_to_parse(ctx);
+    if (!ret) {
+      hts_log_error("region_to_parse()");
+    }
+    if (ctx.region_to_parse == SINGLE_REGION) {
+      ret = ctx.parse_region();
+    }
     if (!ret) {
       hts_log_error("parse_region():fail to parse region");
       return EXIT_FAILURE;
@@ -586,12 +609,6 @@ int main_convert(int argc, char *argv[]) {
     ret = open_cpg_file(ctx);
     if (!ret) {
       hts_log_error("open_cpg_file():fail to open cpg file");
-      return EXIT_FAILURE;
-    }
-
-    ret = get_cpg_pos(ctx);
-    if (!ret) {
-      hts_log_error("get_cpg_pos():fail to get cpg pos");
       return EXIT_FAILURE;
     }
 
@@ -619,25 +636,6 @@ int main_convert(int argc, char *argv[]) {
     }
 
     out_stream.close();
-  } else if (ctx.fn_cpg && ctx.fn_bam){
-    int ret;
-
-    ret = open_bam_file(ctx);
-    if (!ret) {
-      hts_log_error("open_bam_file():fail to open bam file");
-      return EXIT_FAILURE;
-    }
-    ret = open_cpg_file(ctx);
-    if (!ret) {
-      hts_log_error("open_cpg_file():fail to open cpg file");
-      return EXIT_FAILURE;
-    }
-
-
-
-  }
-
-
 
   return EXIT_SUCCESS;
 }

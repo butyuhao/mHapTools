@@ -19,10 +19,10 @@ namespace std {
 
 const uint8_t kbase[16] = {0, 65, 67, 0, 71, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 78};
 
-class context {
+class Context {
  public:
-  context () {};
-  ~context();
+  Context () {};
+  ~Context();
 
   bool parse_region();
   void print_region();
@@ -31,9 +31,13 @@ class context {
   htsFile *fp_cpg;
   tbx_t *idx_cpg;
   hts_idx_t *idx_bam;
+  hts_itr_t *cpg_itr;
+  hts_itr_t *sam_itr;
   bam_hdr_t *hdr_bam;
   bam1_t *aln;
   uint8_t *bam_aux_p;
+
+
 
   // options
   char *fn_bam;   /* -i option */
@@ -53,6 +57,8 @@ class context {
 
   map<string, u_int32_t > res_map_sort;
   vector<pair<string, u_int32_t>> vt;
+
+  int region_to_parse;
 
 };
 
@@ -80,15 +86,21 @@ enum Direction {
   DIRECTION_UNKNOWN,
 };
 
+enum RegionToParse {
+  SINGLE_REGION = 0,
+  MULTI_REGION,
+  WHOLE_FILE,
+};
+
 class SamRead {
  public:
   SamRead() {}
-  bool init(context &ctx);
+  bool init(Context &ctx);
   bool haplo_type();
   bool _get_bismark_std();
-  bool _get_XM_tag(context &ctx);
-  bool _get_ZS_tag(context &ctx);
-  bool _get_bismark_QC(context &ctxainain);
+  bool _get_XM_tag(Context &ctx);
+  bool _get_ZS_tag(Context &ctx);
+  bool _get_bismark_QC(Context &ctxainain);
 
   char *XM_tag = NULL;
   char *ZS_tag = NULL;
@@ -108,7 +120,7 @@ class SamRead {
   uint32_t read_len = 0; //length of the read.
   uint8_t *read_qual = NULL; //quality string
 
-  context *ctx = NULL;
+  Context *ctx = NULL;
 
   string _hap_seq = "";
   vector<int8_t> _hap_qual;
