@@ -13,6 +13,7 @@
 #include <htslib/kseq.h>
 #include <htslib/bgzf.h>
 #include <htslib/hfile.h>
+#include <htslib/regidx.h>
 
 namespace std {
 
@@ -380,7 +381,7 @@ bool region_to_parse(Context &ctx) {
    * */
   if (ctx.region) {
     ctx.region_to_parse = SINGLE_REGION;
-  } else if (ctx.bed_file) {
+  } else if (ctx.fn_bed) {
     ctx.region_to_parse = MULTI_REGION;
   } else if (ctx.fn_cpg && ctx.fn_bam) {
     ctx.region_to_parse = WHOLE_FILE;
@@ -401,47 +402,152 @@ map<string, int> itor_sam(Context &ctx) {
   string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
   ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
 
-  //load bai index
-  static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
-  ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
 
-  hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
-  while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
-    if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
-        || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
-      continue;
+  if (ctx.region_to_parse == SINGLE_REGION) {
+
+    //load bai index
+    static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
+    ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
+
+    hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
+
+    while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
+      if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
+          || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
+        continue;
+      }
+
+      SamRead sam_r = SamRead();
+
+      int ret = sam_r.init(ctx);
+
+      if (!ret) {
+        hts_log_trace("");
+        continue;
+      }
+
+      string qname = string(sam_r.read_name);
+
+      load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
+
+      sam_r.haplo_type();
+      if (!sam_r.QC) {
+        continue;
+      }
+
+      iter = sam_map.find(qname);
+      if (iter == sam_map.end()) {
+        vector<SamRead> v;
+        v.push_back(sam_r);
+        sam_map[qname] = v;
+      } else {
+        vector<SamRead> v;
+        v = sam_map[qname];
+        v.push_back(sam_r);
+        sam_map[qname] = v;
+      }
     }
+  } else if (ctx.region_to_parse == WHOLE_FILE) {
+    while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) >= 0) {
+      if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
+          || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
+        continue;
+      }
 
-    SamRead sam_r = SamRead();
+      SamRead sam_r = SamRead();
 
-    int ret = sam_r.init(ctx);
+      int ret = sam_r.init(ctx);
 
-    if (!ret) {
-      hts_log_trace("");
-      continue;
+      if (!ret) {
+        hts_log_trace("");
+        continue;
+      }
+
+      string qname = string(sam_r.read_name);
+
+      load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
+
+      sam_r.haplo_type();
+      if (!sam_r.QC) {
+        continue;
+      }
+
+      iter = sam_map.find(qname);
+      if (iter == sam_map.end()) {
+        vector<SamRead> v;
+        v.push_back(sam_r);
+        sam_map[qname] = v;
+      } else {
+        vector<SamRead> v;
+        v = sam_map[qname];
+        v.push_back(sam_r);
+        sam_map[qname] = v;
+      }
     }
+  } else if (ctx.region_to_parse == MULTI_REGION) {
+    regidx_t *idx = regidx_init(ctx.fn_bed,NULL,NULL,0,NULL);
+    regitr_t *itr = regitr_init(idx);
 
-    string qname = string(sam_r.read_name);
+    //load bai index
+    static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
+    ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
 
-    load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
+    while ( regitr_loop(itr) ) {
+      int tid = bam_name2id(ctx.hdr_bam, itr->seq);
 
-    sam_r.haplo_type();
-    if (!sam_r.QC) {
-      continue;
+      if (tid == -1 || tid == -2) {
+        hts_log_trace("tid not found");
+        continue;
+      }
+      hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, tid, itr->beg+1, itr->end+1);
+      if (sam_itr == NULL) {
+        hts_log_debug("%d:%lld-%lld", tid, itr->beg+1, itr->end+1);
+        continue;
+      }
+      while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
+        if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
+            || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
+          continue;
+        }
+
+        SamRead sam_r = SamRead();
+
+        int ret = sam_r.init(ctx);
+
+        if (!ret) {
+          hts_log_trace("");
+          continue;
+        }
+
+        string qname = string(sam_r.read_name);
+
+        load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
+
+        sam_r.haplo_type();
+        if (!sam_r.QC) {
+          continue;
+        }
+
+        iter = sam_map.find(qname);
+        if (iter == sam_map.end()) {
+          vector<SamRead> v;
+          v.push_back(sam_r);
+          sam_map[qname] = v;
+        } else {
+          vector<SamRead> v;
+          v = sam_map[qname];
+          v.push_back(sam_r);
+          sam_map[qname] = v;
+        }
+      }
     }
-
-    iter = sam_map.find(qname);
-    if (iter == sam_map.end()) {
-      vector<SamRead> v;
-      v.push_back(sam_r);
-      sam_map[qname] = v;
-    } else {
-      vector<SamRead> v;
-      v = sam_map[qname];
-      v.push_back(sam_r);
-      sam_map[qname] = v;
-    }
+    regidx_destroy(idx);
+    regitr_destroy(itr);
+  } else {
+    hts_log_error("region_error");
+    exit(1);
   }
+
 
   for (auto sam_l :  sam_map) {
     if (sam_l.second.size() == 2) {
@@ -563,7 +669,7 @@ int main_convert(int argc, char *argv[]) {
         break;
       }
       case 'b': {
-        cout << optarg << endl;
+        ctx.fn_bed = optarg;
         break;
       }
       case 'c': {

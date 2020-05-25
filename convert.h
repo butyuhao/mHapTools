@@ -36,6 +36,7 @@ class Context {
   bam_hdr_t *hdr_bam;
   bam1_t *aln;
   uint8_t *bam_aux_p;
+  hts_reglist_t *reg_list;
 
 
 
@@ -43,7 +44,7 @@ class Context {
   char *fn_bam;   /* -i option */
   char *output_path;  /* -o option */
   char *aligner;      /* -a option */
-  char *bed_file;     /* -b option */
+  char *fn_bed;     /* -b option */
   char *fn_cpg;      /* -c option */
   char *region;       /* -r option */
 

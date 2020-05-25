@@ -6,7 +6,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  hts_set_log_level(HTS_LOG_WARNING);
+  hts_set_log_level(HTS_LOG_TRACE);
 
   if (argc < 2) {
     cout << "See usage" << endl;
@@ -16,10 +16,4 @@ int main(int argc, char *argv[]) {
 
   return ret;
 
-//  hFILE * f = hopen("out.hap", "a");
-//  for(int i = 0; i < 10000000000000; i++) {
-//    hputs("test text\n", f);
-//  }
-//  hclose(f);
-//
 }
