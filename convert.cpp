@@ -9,6 +9,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <unordered_map>
 #include <string_view>
 #include <htslib/kseq.h>
 #include <htslib/bgzf.h>
@@ -90,20 +91,22 @@ void parse_cpg_line(Context &ctx, uint32_t shift = 500) {
   }
 }
 
-bool load_cpg(Context &ctx, int tid, uint32_t beg, uint32_t end, uint32_t shift = 500) {
+bool load_cpg(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
   //concat name of the tbi file
   ctx.cpg_pos.clear();
 
   uint32_t  i_beg;
 
   i_beg = beg - shift;
+
   if (i_beg < 0) {
     i_beg = 0;
   }
 
   uint32_t i_end = end + shift;
 
-  ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, ctx.i_tid, i_beg, i_end);
+  int tbx_tid = tbx_name2id(ctx.idx_cpg, chr);
+  ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, tbx_tid, i_beg, i_end);
   kstring_t ksbuf = {0, 0, NULL};
   string_view cpg_line_sv;
   u_int32_t cpg_start = 0;
@@ -213,10 +216,6 @@ bool SamRead::haplo_type() {
       continue;
     }
     cpg.push_back(pos);
-    if (r_pos > read_len) {
-      cout << "r_pos > len" << endl;
-      continue;
-    }
     hap_seq += seq[r_pos];
     hap_qual.push_back(read_qual[r_pos]);
   }
@@ -365,13 +364,13 @@ HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
   return merged_HT;
 }
 
-struct cmp
-{
-  bool operator()(const pair<string,u_int32_t> &p1,const pair<string,u_int32_t> &p2)
-  {
-    return p1.second < p2.second;
-  }
-};
+//struct cmp
+//{
+//  bool operator()(const pair<string,u_int32_t> &p1,const pair<string,u_int32_t> &p2)
+//  {
+//    return p1.second < p2.second;
+//  }
+//};
 
 bool region_to_parse(Context &ctx) {
   /* Recognize the way the user specifies the region
@@ -391,12 +390,20 @@ bool region_to_parse(Context &ctx) {
   return true;
 }
 
-map<string, int> itor_sam(Context &ctx) {
+bool comp(const HT_s &a, const HT_s &b)
+{
+  if (strcmp(a.h_chr, b.h_chr) == 0) {
+    return a.h_start < b.h_start;
+  } else {
+    return strcmp(a.h_chr, b.h_chr) < 0;
+  }
+}
+
+vector<HT_s> itor_sam(Context &ctx) {
 
   map<string, vector<SamRead>> sam_map;
-  map<string, int> res_map;
   map<string, vector<SamRead>>::iterator iter;
-  vector<HT_s> res_l;
+  vector<HT_s> HT_vec;
 
   //load tbi index outside the load_cpg()
   string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
@@ -428,7 +435,7 @@ map<string, int> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
-      load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
+      load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
       sam_r.haplo_type();
       if (!sam_r.QC) {
@@ -465,7 +472,7 @@ map<string, int> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
-      load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
+      load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
       sam_r.haplo_type();
       if (!sam_r.QC) {
@@ -521,7 +528,7 @@ map<string, int> itor_sam(Context &ctx) {
 
         string qname = string(sam_r.read_name);
 
-        load_cpg(ctx, ctx.aln->core.tid, sam_r.read_start, sam_r.read_end);
+        load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
         sam_r.haplo_type();
         if (!sam_r.QC) {
@@ -548,46 +555,43 @@ map<string, int> itor_sam(Context &ctx) {
     exit(1);
   }
 
-
+  //merge
   for (auto sam_l :  sam_map) {
     if (sam_l.second.size() == 2) {
       SamRead samF = sam_l.second[0];
       SamRead samR = sam_l.second[1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
-        res_l.push_back(ht);
-        if (test_mode) {
-        }
+        HT_vec.push_back(ht);
       } else {
         for (int i = 0; i < sam_l.second.size(); i++) {
-          res_l.push_back(sam_l.second[i].HT);
+          HT_vec.push_back(sam_l.second[i].HT);
         }
       }
     } else {
       for (int i = 0; i < sam_l.second.size(); i++) {
-        res_l.push_back(sam_l.second[i].HT);
+        HT_vec.push_back(sam_l.second[i].HT);
       }
     }
   }
 
-  for (auto _ht: res_l) {
+  //sort
+  sort(HT_vec.begin(), HT_vec.end(), comp);
+
+  for (auto _ht: HT_vec) {
     string ht_id = _ht.to_str();
 
     map<string, int>::iterator res_map_itor;
-    ctx.res_map_sort[ht_id] = _ht.get_h_start();
-    res_map_itor = res_map.find(ht_id);
-    if (res_map_itor == res_map.end()){
-      res_map[ht_id] = 1;
+
+    res_map_itor = ctx.res_map.find(ht_id);
+    if (res_map_itor == ctx.res_map.end()){
+      ctx.res_map[ht_id] = 1;
     } else {
-      res_map[ht_id] += 1;
+      ctx.res_map[ht_id] += 1;
     }
   }
-  for (auto rms : ctx.res_map_sort) {
-    ctx.vt.push_back(pair<string, u_int32_t >(rms.first, rms.second));
-  }
-  sort(ctx.vt.begin(),ctx.vt.end(),cmp());
 
-  return res_map;
+  return HT_vec;
 }
 
 
@@ -647,6 +651,18 @@ bool open_cpg_file(Context &ctx) {
     return false;
   }
   return true;
+}
+
+inline void HT_s::get_WC_symbol() {
+  {
+    if (WC == DIRECTION_PLUS) {
+      WC_symbol = '+';
+    } else if (WC == DIRECTION_MINUS) {
+      WC_symbol = '-';
+    } else if (WC == DIRECTION_UNKNOWN) {
+      WC_symbol = '*';
+    }
+  }
 }
 
 int main_convert(int argc, char *argv[]) {
@@ -718,8 +734,8 @@ int main_convert(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
 
-    map<string, int> res_map;
-    res_map = itor_sam(ctx);
+    vector<HT_s> HT_vec;
+    HT_vec = itor_sam(ctx);
     string out_stream_name;
     if (ctx.output_path) {
       out_stream_name = ctx.output_path;
@@ -728,17 +744,19 @@ int main_convert(int argc, char *argv[]) {
     }
     ofstream out_stream(out_stream_name);
 
-    for (auto p: ctx.vt) {
-      char direction = '+';
-      if (p.first[p.first.size() - 1] == '1') {
-        direction = '-';
-      } else if (p.first[p.first.size() - 1] == DIRECTION_UNKNOWN + '0') {
-        direction = '*';
-      }
-      string out_string = p.first.substr(0, p.first.size() - 1);
-      out_string = out_string + '\t' + to_string(res_map[p.first]) + '\t' + direction;
-      out_stream << out_string << endl;
+    unordered_map<string, bool> is_overlap;
+    unordered_map<string, bool>::iterator itor;
 
+    for (auto ht : HT_vec) {
+      ht.get_WC_symbol();
+      string line = string(ht.h_chr) + '\t' + to_string(ht.h_start) + '\t' +
+          to_string(ht.h_end) + '\t' + ht.hap_met + '\t' +
+          to_string(ctx.res_map[ht.to_str()]) + '\t' + ht.WC_symbol;
+      itor = is_overlap.find(line);
+      if (itor == is_overlap.end()) {
+        out_stream << line << endl;
+      }
+      is_overlap[line] = true;
     }
 
     out_stream.close();

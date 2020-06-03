@@ -14,6 +14,7 @@
 #define test_mode true
 
 class Context;
+struct HT_s;
 
 namespace std {
 
@@ -57,6 +58,7 @@ class Context {
   hts_pos_t i_end;
 
   map<string, u_int32_t > res_map_sort;
+  map<string, int> res_map;
   vector<pair<string, u_int32_t>> vt;
 
   int region_to_parse;
@@ -67,6 +69,8 @@ struct HT_s {
   HT_s() {}
   HT_s (char *_h_chr, uint32_t _h_start, uint32_t _h_end, string &_hap_met, int _count, int8_t _WC)
       : h_chr(_h_chr), h_start(_h_start), h_end(_h_end), hap_met(_hap_met), count(_count), WC(_WC){}
+
+  void get_WC_symbol();
   string to_str() {
     return string(h_chr) + '\t' + to_string(h_start) + '\t' + to_string(h_end) + '\t' + hap_met + to_string(WC);
   }
@@ -78,7 +82,9 @@ struct HT_s {
   uint32_t h_end;
   string hap_met;
   int count;
+  char WC_symbol;
   int8_t WC;
+
 };
 
 enum Direction {
