@@ -63,6 +63,11 @@ class Context {
 
   int region_to_parse;
 
+  //parameters for testing
+  int time_n;
+  int time_total;
+
+
 };
 
 struct HT_s {

@@ -35,6 +35,8 @@ htslib/hfile.h
 -
 htslib/regidx.h
 -
+chrono
+-
 
 /Users/butyuhao/Documents/GitHub/haptools/convert.h
 map

@@ -15,6 +15,7 @@
 #include <htslib/bgzf.h>
 #include <htslib/hfile.h>
 #include <htslib/regidx.h>
+#include <chrono>
 
 namespace std {
 
@@ -410,8 +411,9 @@ vector<HT_s> itor_sam(Context &ctx) {
   ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
 
 
-  if (ctx.region_to_parse == SINGLE_REGION) {
 
+  if (ctx.region_to_parse == SINGLE_REGION) {
+    auto single_start = std::chrono::high_resolution_clock::now(); //stop_watch
     //load bai index
     static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
     ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
@@ -419,14 +421,20 @@ vector<HT_s> itor_sam(Context &ctx) {
     hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
 
     while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
+
       if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
           || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
         continue;
       }
 
+      auto init_start = std::chrono::high_resolution_clock::now(); //stop_watch
       SamRead sam_r = SamRead();
 
       int ret = sam_r.init(ctx);
+
+      auto init_stop = std::chrono::high_resolution_clock::now(); //stop_watch
+      auto init_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(init_stop - init_start);
+      std::cout << "INIT:" << init_microseconds.count() << "µs\n" << endl;
 
       if (!ret) {
         hts_log_trace("");
@@ -435,14 +443,44 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
+      auto load_start = std::chrono::high_resolution_clock::now(); //stop_watch
+
       load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
+      auto load_stop = std::chrono::high_resolution_clock::now(); //stop_watch
+      auto load_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(load_stop - load_start);
+      std::cout << "LOAD:" << load_microseconds.count() << "µs\n" << endl;
+
+      if (ctx.cpg_pos.size() != 0) {
+        cout << "cpg_read_speed_average:" <<  int(load_microseconds.count() / ctx.cpg_pos.size()) << endl;
+        ctx.time_total += int(load_microseconds.count() / ctx.cpg_pos.size());
+        ++ctx.time_n;
+      }
+
+
+
+
+      auto haplo_start = std::chrono::high_resolution_clock::now(); //stop_watch
       sam_r.haplo_type();
+      auto haplo_stop = std::chrono::high_resolution_clock::now(); //stop_watch
+      auto haplo_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(haplo_stop - haplo_start);
+      std::cout << "HAPLO:" << haplo_microseconds.count() << "µs\n" << endl;
+
+
       if (!sam_r.QC) {
         continue;
       }
 
+      auto find_start = std::chrono::high_resolution_clock::now(); //stop_watch
+
       iter = sam_map.find(qname);
+
+      auto find_stop = std::chrono::high_resolution_clock::now(); //stop_watch
+      auto find_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(find_stop - find_start);
+      std::cout << "FIND:" << find_microseconds.count() << "µs\n" << endl;
+
+      auto push_start = std::chrono::high_resolution_clock::now(); //stop_watch
+
       if (iter == sam_map.end()) {
         vector<SamRead> v;
         v.push_back(sam_r);
@@ -453,7 +491,18 @@ vector<HT_s> itor_sam(Context &ctx) {
         v.push_back(sam_r);
         sam_map[qname] = v;
       }
+
+      auto push_stop = std::chrono::high_resolution_clock::now(); //stop_watch
+      auto push_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(push_stop - push_start);
+      std::cout << "PUSH:" << push_microseconds.count() << "µs\n" << endl;
+
+
+      std::cout << "TOTAL:" << init_microseconds.count() + haplo_microseconds.count() + load_microseconds.count() + find_microseconds.count() + push_microseconds.count()<< "µs\n" << endl;
+
     }
+    auto single_stop = std::chrono::high_resolution_clock::now(); //stop_watch
+    auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(single_stop - single_start);
+    std::cout << "SINGLE_REGION:" << microseconds.count() << "µs\n" << endl;
   } else if (ctx.region_to_parse == WHOLE_FILE) {
     while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) >= 0) {
       if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
@@ -554,6 +603,10 @@ vector<HT_s> itor_sam(Context &ctx) {
     hts_log_error("region_error");
     exit(1);
   }
+
+
+
+
 
   //merge
   for (auto sam_l :  sam_map) {
@@ -736,6 +789,7 @@ int main_convert(int argc, char *argv[]) {
 
     vector<HT_s> HT_vec;
     HT_vec = itor_sam(ctx);
+    cout << "time_average" << ctx.time_total/ctx.time_n << endl;
     string out_stream_name;
     if (ctx.output_path) {
       out_stream_name = ctx.output_path;
