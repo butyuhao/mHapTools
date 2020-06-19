@@ -10,8 +10,7 @@
 #include <htslib/hts.h>
 #include <htslib/tbx.h>
 #include <htslib/sam.h>
-
-#define test_mode true
+#include <unordered_map>
 
 class Context;
 struct HT_s;
@@ -49,7 +48,8 @@ class Context {
   char *fn_cpg;      /* -c option */
   char *region;       /* -r option */
 
-  vector<uint32_t> cpg_pos;
+  vector<hts_pos_t> cpg_pos;
+  unordered_map<int, vector<hts_pos_t>> cpg_pos_map;
 
   //region
   string i_chr;
@@ -57,9 +57,9 @@ class Context {
   hts_pos_t i_beg;
   hts_pos_t i_end;
 
-  map<string, u_int32_t > res_map_sort;
+  map<string, hts_pos_t > res_map_sort;
   map<string, int> res_map;
-  vector<pair<string, u_int32_t>> vt;
+  vector<pair<string, hts_pos_t>> vt;
 
   int region_to_parse;
 
@@ -67,19 +67,19 @@ class Context {
 
 struct HT_s {
   HT_s() {}
-  HT_s (char *_h_chr, uint32_t _h_start, uint32_t _h_end, string &_hap_met, int _count, int8_t _WC)
+  HT_s (char *_h_chr, hts_pos_t _h_start, hts_pos_t _h_end, string &_hap_met, int _count, int8_t _WC)
       : h_chr(_h_chr), h_start(_h_start), h_end(_h_end), hap_met(_hap_met), count(_count), WC(_WC){}
 
   void get_WC_symbol();
   string to_str() {
     return string(h_chr) + '\t' + to_string(h_start) + '\t' + to_string(h_end) + '\t' + hap_met + to_string(WC);
   }
-  u_int32_t get_h_start() {
+  hts_pos_t get_h_start() {
     return h_start;
   }
   char *h_chr;
-  uint32_t h_start;
-  uint32_t h_end;
+  hts_pos_t h_start;
+  hts_pos_t h_end;
   string hap_met;
   int count;
   char WC_symbol;
@@ -122,16 +122,16 @@ class SamRead {
   vector<char> seq;//the sequence of the reads
 
   char *read_chr = NULL; //contig name (chromosome)
-  uint32_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
-  uint32_t read_end = 0;
-  uint32_t read_len = 0; //length of the read.
+  hts_pos_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
+  hts_pos_t read_end = 0;
+  hts_pos_t read_len = 0; //length of the read.
   uint8_t *read_qual = NULL; //quality string
 
   Context *ctx = NULL;
 
   string _hap_seq = "";
   vector<int8_t> _hap_qual;
-  vector<uint32_t> _cpg;
+  vector<hts_pos_t> _cpg;
   string _hap_met = "";
 
   HT_s HT = HT_s();

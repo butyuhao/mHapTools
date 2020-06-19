@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string>
 #include <fstream>
-#include <vector>
 #include <unordered_map>
+#include <iostream>
 #include <string_view>
 #include <htslib/kseq.h>
 #include <htslib/bgzf.h>
@@ -53,21 +53,21 @@ static const struct option long_opts[] = {
     { NULL, no_argument, NULL, 0 }
 };
 
-void parse_cpg_line(Context &ctx, uint32_t shift = 500) {
+void parse_cpg_line(Context &ctx, hts_pos_t shift = 500) {
   //匹配返回start位置，不匹配返回-1
   int tab_cnt = 0;
-  uint32_t i_start;
-  string_view cpg_line_sv = string_view(ctx.fp_cpg->line.s);
+  hts_pos_t i_start;
+  std::string_view cpg_line_sv = std::string_view(ctx.fp_cpg->line.s);
   //todo 现在限定了start的下限，避免减去500后溢出，之后应该确保所有输入都能被正确处理
   if (ctx.i_beg >= 500) {
     i_start = ctx.i_beg - shift;
   } else {
     i_start = 0;
   }
-  uint32_t i_end = ctx.i_end + shift;
+  hts_pos_t i_end = ctx.i_end + shift;
   int i = 0;
-  uint32_t cpg_start = 0;
-  uint32_t cpg_end = 0;
+  hts_pos_t cpg_start = 0;
+  hts_pos_t cpg_end = 0;
   for (; i < cpg_line_sv.size(); i++) {
     if (cpg_line_sv[i] == '\t') {
       //指定的ichr与当前读取到的cpg的ichr相同
@@ -92,11 +92,13 @@ void parse_cpg_line(Context &ctx, uint32_t shift = 500) {
   }
 }
 
-bool load_cpg(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
-  //concat name of the tbi file
+bool load_get_cpg_with_idx(Context &ctx, char *chr, hts_pos_t beg, hts_pos_t end, hts_pos_t shift = 500) {
+/*
+ * read cpg pos in range and put them to the ctx.cpg_pos
+ */
   ctx.cpg_pos.clear();
 
-  uint32_t  i_beg;
+  hts_pos_t i_beg;
 
   i_beg = beg - shift;
 
@@ -104,18 +106,18 @@ bool load_cpg(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shif
     i_beg = 0;
   }
 
-  uint32_t i_end = end + shift;
+  hts_pos_t i_end = end + shift;
 
   int tbx_tid = tbx_name2id(ctx.idx_cpg, chr);
   ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, tbx_tid, i_beg, i_end);
   kstring_t ksbuf = {0, 0, NULL};
-  string_view cpg_line_sv;
-  u_int32_t cpg_start = 0;
-  u_int32_t cpg_end = 0;
+  std::string_view cpg_line_sv;
+  hts_pos_t cpg_start = 0;
+  hts_pos_t cpg_end = 0;
 
 
   while(tbx_itr_next(ctx.fp_cpg, ctx.idx_cpg, ctx.cpg_itr, &ksbuf) >= 0) {
-    cpg_line_sv = string_view(ksbuf.s);
+    cpg_line_sv = std::string_view(ksbuf.s);
     int i = 0;
     for (; i < cpg_line_sv.size(); i++) {
       if (cpg_line_sv[i] == '\t') {
@@ -135,6 +137,90 @@ bool load_cpg(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shif
     }
   }
   return true;
+}
+
+bool load_cpg_no_idx(Context &ctx) {
+  kstring_t cpg_line = {0,0,NULL};
+  unordered_map<int, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+  while (hts_getline(ctx.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
+
+    char *p ,*q;
+    int tid;
+    hts_pos_t cpg_start;
+    p = q = cpg_line.s;
+    while(*q && *q != '\t') {
+      q++;
+    }
+    *q = '\0';
+    tid = bam_name2id(ctx.hdr_bam, p);
+    *q = '\t';
+    p = q + 1;
+    q = p;
+    while(*q && *q != '\t') {
+      q++;
+    }
+    *q = '\0';
+    cpg_start = atoll(p);
+
+    cpg_pos_map_itor = ctx.cpg_pos_map.find(tid);
+
+    if (cpg_pos_map_itor == ctx.cpg_pos_map.end()) {
+      vector<hts_pos_t> v;
+      v.push_back(cpg_start);
+      ctx.cpg_pos_map[tid] = v;
+    } else {
+      ctx.cpg_pos_map[tid].push_back(cpg_start);
+    }
+
+  }
+  return true;
+}
+
+int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos)//二分查找求下界
+//找到cpg_pos这个数字在v中的下标
+
+{
+  int low = 0, high = v.size() - 1;
+  while(low < high)
+  {
+    int mid = low + (high - low)/2;
+    if(v[mid] >= cpg_pos) high = mid;
+    else low = mid + 1;
+  }
+  return low;
+}
+
+bool get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts_pos_t shift = 500) {
+  ctx.cpg_pos.clear();
+
+  hts_pos_t  i_beg;
+
+  i_beg = beg - shift;
+
+  if (i_beg < 0) {
+    i_beg = 0;
+  }
+
+  hts_pos_t i_end = end + shift;
+
+  int tid = bam_name2id(ctx.hdr_bam, chr);
+
+  int pos = _lower_bound(ctx.cpg_pos_map[tid], i_beg);
+
+  unordered_map<int, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+
+  cpg_pos_map_itor = ctx.cpg_pos_map.find(tid);
+
+  if (cpg_pos_map_itor != ctx.cpg_pos_map.end()) {
+    while (pos < ctx.cpg_pos_map[tid].size()) {
+      if (ctx.cpg_pos_map[tid][pos] >= i_beg && ctx.cpg_pos_map[tid][pos] <= i_end) {
+        ctx.cpg_pos.push_back(ctx.cpg_pos_map[tid][pos]);
+        pos++;
+      } else {
+        break;
+      }
+    }
+  }
 }
 
 bool SamRead::init(Context &ctx) {
@@ -194,11 +280,11 @@ bool SamRead::init(Context &ctx) {
 }
 
 bool SamRead::haplo_type() {
-  uint32_t r_pos;
-  vector<uint32_t> cpg;
+  hts_pos_t r_pos;
+  vector<hts_pos_t> cpg;
   vector<int8_t> hap_qual;
   string hap_seq = "";
-  uint32_t pos;
+  hts_pos_t pos;
   for (int i = 0; i < ctx->cpg_pos.size(); i++) {
     pos = ctx->cpg_pos[i];
     if (pos < read_start) {
@@ -308,7 +394,7 @@ bool SamRead::_get_bismark_QC(Context &ctx) {
     hts_log_error("has no XM tag");
     return false;
   }
-  string_view XM_tag_sv  = string_view(XM_tag);
+  std::string_view XM_tag_sv  = std::string_view(XM_tag);
   for (auto c : XM_tag_sv) {
     if (c == 'X' || c == 'H' || c == 'U') {
       hts_log_trace("XM tag QC check failed");
@@ -331,18 +417,18 @@ bool paired_end_check(SamRead &samF, SamRead &samR) {
 }
 
 HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
-  map<uint32_t, char> merged_seq;
-  map<uint32_t, int8_t> merged_qual;
-  map<uint32_t, char> merged_met;
-  map<uint32_t, char>::iterator merged_met_itor;
+  map<hts_pos_t, char> merged_seq;
+  map<hts_pos_t, int8_t> merged_qual;
+  map<hts_pos_t, char> merged_met;
+  map<hts_pos_t, char>::iterator merged_met_itor;
   for (int i = 0; i < samF._cpg.size(); i++) {
-    uint32_t pos = samF._cpg[i];
+    hts_pos_t pos = samF._cpg[i];
     merged_seq[pos] = samF._hap_seq[i];
     merged_qual[pos] = samF._hap_qual[i];
     merged_met[pos] = samF._hap_met[i];
   }
   for (int i = 0; i < samR._cpg.size(); i++) {
-    uint32_t pos = samR._cpg[i];
+    hts_pos_t pos = samR._cpg[i];
     merged_met_itor = merged_met.find(pos);
     if (merged_met_itor == merged_met.end() || samR._hap_qual[i] > merged_qual[pos]) {
       merged_seq[pos] = samR._hap_seq[i];
@@ -354,7 +440,7 @@ HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
   string hap_seq = "";
   string hap_met = "";
   merged_met_itor = merged_met.begin();
-  vector<uint32_t> cpg;
+  vector<hts_pos_t> cpg;
   while(merged_met_itor != merged_met.end()) {
     cpg.push_back(merged_met_itor->first);
     hap_seq += merged_seq[merged_met_itor->first];
@@ -364,14 +450,6 @@ HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
   HT_s merged_HT = HT_s(samF.read_chr, cpg[0], cpg[cpg.size() - 1], hap_met, 1, samF.read_WC);
   return merged_HT;
 }
-
-//struct cmp
-//{
-//  bool operator()(const pair<string,u_int32_t> &p1,const pair<string,u_int32_t> &p2)
-//  {
-//    return p1.second < p2.second;
-//  }
-//};
 
 bool region_to_parse(Context &ctx) {
   /* Recognize the way the user specifies the region
@@ -438,7 +516,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
-      load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+      load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
       sam_r.haplo_type();
 
@@ -479,7 +557,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
-      load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+      load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
       sam_r.haplo_type();
       if (!sam_r.QC) {
@@ -499,6 +577,7 @@ vector<HT_s> itor_sam(Context &ctx) {
       }
     }
   } else if (ctx.region_to_parse == MULTI_REGION) {
+    //load_cpg_no_idx(ctx);
     regidx_t *idx = regidx_init(ctx.fn_bed,NULL,NULL,0,NULL);
     regitr_t *itr = regitr_init(idx);
 
@@ -535,7 +614,9 @@ vector<HT_s> itor_sam(Context &ctx) {
 
         string qname = string(sam_r.read_name);
 
-        load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+        //get_cpg_no_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+
+        load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
         sam_r.haplo_type();
         if (!sam_r.QC) {
@@ -555,8 +636,12 @@ vector<HT_s> itor_sam(Context &ctx) {
         }
       }
     }
-    regidx_destroy(idx);
-    regitr_destroy(itr);
+    if (idx) {
+      regidx_destroy(idx);
+    }
+    if (itr) {
+      regitr_destroy(itr);
+    }
   } else {
     hts_log_error("region_error");
     exit(1);
