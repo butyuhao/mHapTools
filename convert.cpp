@@ -578,6 +578,7 @@ vector<HT_s> itor_sam(Context &ctx) {
     }
   } else if (ctx.region_to_parse == MULTI_REGION) {
     //load_cpg_no_idx(ctx);
+
     regidx_t *idx = regidx_init(ctx.fn_bed,NULL,NULL,0,NULL);
     regitr_t *itr = regitr_init(idx);
 
