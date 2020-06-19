@@ -9,7 +9,6 @@
 #include <string>
 #include <fstream>
 #include <vector>
-#include <unordered_map>
 #include <string_view>
 #include <htslib/kseq.h>
 #include <htslib/bgzf.h>
@@ -400,16 +399,102 @@ bool comp(const HT_s &a, const HT_s &b)
   }
 }
 
+bool load_cpg_no_idx(Context &ctx) {
+  kstring_t cpg_line = {0,0,NULL};
+  unordered_map<int, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+  while (hts_getline(ctx.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
+
+    char *p ,*q;
+    int tid;
+    hts_pos_t cpg_start;
+    p = q = cpg_line.s;
+    while(*q && *q != '\t') {
+      q++;
+    }
+    *q = '\0';
+    tid = bam_name2id(ctx.hdr_bam, p);
+    *q = '\t';
+    p = q + 1;
+    q = p;
+    while(*q && *q != '\t') {
+      q++;
+    }
+    *q = '\0';
+    cpg_start = atoll(p);
+
+    cpg_pos_map_itor = ctx.cpg_pos_map.find(tid);
+
+    if (cpg_pos_map_itor == ctx.cpg_pos_map.end()) {
+      vector<hts_pos_t> v;
+      v.push_back(cpg_start);
+      ctx.cpg_pos_map[tid] = v;
+    } else {
+      ctx.cpg_pos_map[tid].push_back(cpg_start);
+    }
+
+  }
+  return true;
+}
+
+int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos)//二分查找求下界
+//找到cpg_pos这个数字在v中的下标
+
+{
+  int low = 0, high = v.size() - 1;
+  while(low < high)
+  {
+    int mid = low + (high - low)/2;
+    if(v[mid] >= cpg_pos) high = mid;
+    else low = mid + 1;
+  }
+  return low;
+}
+
+bool get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts_pos_t shift = 500) {
+  ctx.cpg_pos.clear();
+
+  hts_pos_t  i_beg;
+
+  i_beg = beg - shift;
+
+  if (i_beg < 0) {
+    i_beg = 0;
+  }
+
+  hts_pos_t i_end = end + shift;
+
+  int tid = bam_name2id(ctx.hdr_bam, chr);
+
+  int pos = _lower_bound(ctx.cpg_pos_map[tid], i_beg);
+
+  unordered_map<int, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+
+  cpg_pos_map_itor = ctx.cpg_pos_map.find(tid);
+
+  if (cpg_pos_map_itor != ctx.cpg_pos_map.end()) {
+    while (pos < ctx.cpg_pos_map[tid].size()) {
+      if (ctx.cpg_pos_map[tid][pos] >= i_beg && ctx.cpg_pos_map[tid][pos] <= i_end) {
+        ctx.cpg_pos.push_back(ctx.cpg_pos_map[tid][pos]);
+        pos++;
+      } else {
+        break;
+      }
+    }
+  }
+}
+
 vector<HT_s> itor_sam(Context &ctx) {
 
   map<string, vector<SamRead>> sam_map;
   map<string, vector<SamRead>>::iterator iter;
   vector<HT_s> HT_vec;
 
-  //load tbi index outside the load_get_cpg_with_idx()
-  string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
-  ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
-
+  if (ctx.region_to_parse == SINGLE_REGION) {
+    //load tbi index outside the load_get_cpg_with_idx()
+    string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
+    ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
+    ctx.has_idx_cpg = true;
+  }
 
 
   if (ctx.region_to_parse == SINGLE_REGION) {
@@ -499,6 +584,7 @@ vector<HT_s> itor_sam(Context &ctx) {
       }
     }
   } else if (ctx.region_to_parse == MULTI_REGION) {
+    load_cpg_no_idx(ctx);
     regidx_t *idx = regidx_init(ctx.fn_bed,NULL,NULL,0,NULL);
     regitr_t *itr = regitr_init(idx);
 
@@ -535,7 +621,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
         string qname = string(sam_r.read_name);
 
-        load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+        get_cpg_no_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
         sam_r.haplo_type();
         if (!sam_r.QC) {
@@ -617,23 +703,23 @@ inline Context::~Context() {
   if (aln) {
     bam_destroy1(aln);
   }
-  if (idx_cpg) {
+
+  //当用到load_get_no_idx()的时候，生成以下两个指针
+  if (has_idx_cpg) {
     tbx_destroy(idx_cpg);
   }
+  if (has_idx_cpg) {
+    hts_itr_destroy(cpg_itr);
+  }
+
   if (idx_bam) {
     hts_idx_destroy(idx_bam);
-  }
-  if (cpg_itr) {
-    hts_itr_destroy(cpg_itr);
   }
   if (sam_itr) {
     hts_itr_destroy(sam_itr);
   }
   if (hdr_bam) {
     bam_hdr_destroy(hdr_bam);
-  }
-  if (bam_aux_p) {
-
   }
 }
 

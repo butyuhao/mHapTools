@@ -6,6 +6,7 @@
 #define BAM2HAP__CONVERT_H_
 
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <htslib/hts.h>
 #include <htslib/tbx.h>
@@ -31,6 +32,7 @@ class Context {
   htsFile *fp_bam;
   htsFile *fp_cpg;
   tbx_t *idx_cpg;
+  bool has_idx_cpg = false;
   hts_idx_t *idx_bam;
   hts_itr_t *cpg_itr;
   hts_itr_t *sam_itr;
@@ -50,6 +52,7 @@ class Context {
   char *region;       /* -r option */
 
   vector<uint32_t> cpg_pos;
+  unordered_map<int, vector<hts_pos_t>> cpg_pos_map;
 
   //region
   string i_chr;
@@ -122,8 +125,8 @@ class SamRead {
   vector<char> seq;//the sequence of the reads
 
   char *read_chr = NULL; //contig name (chromosome)
-  uint32_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
-  uint32_t read_end = 0;
+  hts_pos_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
+  hts_pos_t read_end = 0;
   uint32_t read_len = 0; //length of the read.
   uint8_t *read_qual = NULL; //quality string
 
