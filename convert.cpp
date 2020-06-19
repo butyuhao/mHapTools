@@ -485,10 +485,10 @@ vector<HT_s> itor_sam(Context &ctx) {
   vector<HT_s> HT_vec;
 
   //load tbi index outside the load_cpg()
-  string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
-  ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
-
-
+  if (ctx.region_to_parse == SINGLE_REGION) {
+    string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
+    ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
+  }
 
   if (ctx.region_to_parse == SINGLE_REGION) {
     auto single_start = std::chrono::high_resolution_clock::now(); //stop_watch
