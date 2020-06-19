@@ -92,7 +92,7 @@ void parse_cpg_line(Context &ctx, uint32_t shift = 500) {
   }
 }
 
-bool load_cpg(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
+bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
   //concat name of the tbi file
   ctx.cpg_pos.clear();
 
@@ -406,7 +406,7 @@ vector<HT_s> itor_sam(Context &ctx) {
   map<string, vector<SamRead>>::iterator iter;
   vector<HT_s> HT_vec;
 
-  //load tbi index outside the load_cpg()
+  //load tbi index outside the load_get_cpg_with_idx()
   string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
   ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
 
@@ -438,7 +438,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
-      load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+      load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
       sam_r.haplo_type();
 
@@ -479,7 +479,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
-      load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+      load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
       sam_r.haplo_type();
       if (!sam_r.QC) {
@@ -535,7 +535,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
         string qname = string(sam_r.read_name);
 
-        load_cpg(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+        load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
         sam_r.haplo_type();
         if (!sam_r.QC) {
