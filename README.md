@@ -1,4 +1,4 @@
-###Options
+### Options
 - **-i** path of the bam file
 - **-a** aligner [**BISMARK** | **BSMAP** | **UNKNOWN**]
 - **-b** path of the bed file
