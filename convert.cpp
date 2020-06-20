@@ -547,6 +547,7 @@ vector<HT_s> itor_sam(Context &ctx) {
     }
 
   } else if (ctx.region_to_parse == WHOLE_FILE) {
+    load_cpg_no_idx(ctx);
     while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) >= 0) {
       if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
           || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
@@ -564,7 +565,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       string qname = string(sam_r.read_name);
 
-      load_get_cpg_with_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
+      get_cpg_no_idx(ctx, sam_r.read_chr, sam_r.read_start, sam_r.read_end);
 
       sam_r.haplo_type();
       if (!sam_r.QC) {
