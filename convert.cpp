@@ -2,13 +2,13 @@
 // Created by Yuhao Dan on 2020/4/13.
 //
 #include "convert.h"
-#include <sstream>
 #include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <string>
 #include <fstream>
 #include <vector>
+#include <iostream>
 #include <string_view>
 #include <htslib/kseq.h>
 #include <htslib/bgzf.h>
