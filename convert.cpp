@@ -15,6 +15,7 @@
 #include <htslib/hfile.h>
 #include <htslib/regidx.h>
 #include <chrono>
+#include <algorithm>
 
 namespace std {
 
