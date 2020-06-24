@@ -9,7 +9,6 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
-#include <string_view>
 #include <htslib/kseq.h>
 #include <htslib/bgzf.h>
 #include <htslib/hfile.h>
@@ -53,45 +52,6 @@ static const struct option long_opts[] = {
     { NULL, no_argument, NULL, 0 }
 };
 
-void parse_cpg_line(Context &ctx, uint32_t shift = 500) {
-  //匹配返回start位置，不匹配返回-1
-  int tab_cnt = 0;
-  uint32_t i_start;
-  string_view cpg_line_sv = string_view(ctx.fp_cpg->line.s);
-  //todo 现在限定了start的下限，避免减去500后溢出，之后应该确保所有输入都能被正确处理
-  if (ctx.i_beg >= 500) {
-    i_start = ctx.i_beg - shift;
-  } else {
-    i_start = 0;
-  }
-  uint32_t i_end = ctx.i_end + shift;
-  int i = 0;
-  uint32_t cpg_start = 0;
-  uint32_t cpg_end = 0;
-  for (; i < cpg_line_sv.size(); i++) {
-    if (cpg_line_sv[i] == '\t') {
-      //指定的ichr与当前读取到的cpg的ichr相同
-      if (cpg_line_sv.substr(0, i).compare(ctx.i_chr) == 0) {
-        //将ichr部分从line中去除
-        cpg_line_sv = cpg_line_sv.substr(i + 1);
-        //curser清零
-        i = 0;
-        //找到原line中的第2个tab位置
-        for (; i < cpg_line_sv.size(); i++) {
-          if (cpg_line_sv[i] == '\t') {
-            cpg_start = atoi(string(cpg_line_sv.substr(0, i)).c_str());
-            cpg_end = atoi(string(cpg_line_sv.substr(i, cpg_line_sv.size() - i)).c_str());
-            //确保cpg位点在用户指定的范围内。
-            if (cpg_start >= i_start && cpg_end <= i_end) {
-              ctx.cpg_pos.push_back(cpg_start);
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
 bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
   //concat name of the tbi file
   ctx.cpg_pos.clear();
@@ -109,13 +69,13 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, 
   int tbx_tid = tbx_name2id(ctx.idx_cpg, chr);
   ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, tbx_tid, i_beg, i_end);
   kstring_t ksbuf = {0, 0, NULL};
-  string_view cpg_line_sv;
+  string cpg_line_sv;//todo:string_view
   u_int32_t cpg_start = 0;
   u_int32_t cpg_end = 0;
 
 
   while(tbx_itr_next(ctx.fp_cpg, ctx.idx_cpg, ctx.cpg_itr, &ksbuf) >= 0) {
-    cpg_line_sv = string_view(ksbuf.s);
+    cpg_line_sv = string(ksbuf.s); //todo:string_view
     int i = 0;
     for (; i < cpg_line_sv.size(); i++) {
       if (cpg_line_sv[i] == '\t') {
@@ -308,7 +268,7 @@ bool SamRead::_get_bismark_QC(Context &ctx) {
     hts_log_error("has no XM tag");
     return false;
   }
-  string_view XM_tag_sv  = string_view(XM_tag);
+  string XM_tag_sv  = string(XM_tag); //todo:string_view
   for (auto c : XM_tag_sv) {
     if (c == 'X' || c == 'H' || c == 'U') {
       hts_log_trace("XM tag QC check failed");
