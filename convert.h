@@ -105,6 +105,7 @@ enum RegionToParse {
 class SamRead {
  public:
   SamRead() {}
+  ~SamRead();
   bool init(Context &ctx);
   bool haplo_type();
   bool _get_bismark_std();
@@ -122,7 +123,7 @@ class SamRead {
   int read_map_quality = 0; //mapping quality
   uint32_t *read_cigar = NULL;
 
-  vector<char> seq;//the sequence of the reads
+  char *seq = NULL;//  vector<char> seq;//the sequence of the reads
 
   char *read_chr = NULL; //contig name (chromosome)
   hts_pos_t read_start = 0; //left most position of alignment in zero based coordianate (+1)

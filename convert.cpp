@@ -97,6 +97,12 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, 
   return true;
 }
 
+inline SamRead::~SamRead() {
+  if(seq) {
+    delete [] seq;
+  }
+}
+
 bool SamRead::init(Context &ctx) {
   bool ret;
 
@@ -116,9 +122,14 @@ bool SamRead::init(Context &ctx) {
   read_cigar = bam_get_cigar(ctx.aln);
   //get the seq pointer and put it into a vector
   uint8_t *seq_p = bam_get_seq(ctx.aln);
-  for (int i=0; i < read_len; ++i){
-    seq.push_back(kbase[bam_seqi(seq_p, i)]);
+  if (read_len == 0) {
+    return false;
   }
+  seq = new char[read_len];
+  for(int i = 0; i < read_len; i++) {
+    *(seq + i) = ;
+  }
+
   if (strcmp(ctx.aligner, "BISMARK") == 0) {
     ret = _get_bismark_std();
 
@@ -177,7 +188,7 @@ bool SamRead::haplo_type() {
       continue;
     }
     cpg.push_back(pos);
-    hap_seq += seq[r_pos];
+    hap_seq += *(seq + r_pos);
     hap_qual.push_back(read_qual[r_pos]);
   }
   if (cpg.size() == 0) {
