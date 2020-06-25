@@ -188,10 +188,17 @@ bool SamRead::haplo_type() {
     }
     cpg.push_back(pos);
 
-    //hap_seq += *(seq + int(r_pos));
+    hap_seq += seq[r_pos];
+
     hap_qual.push_back(read_qual[r_pos]);
 
   }
+
+  if (seq != NULL) {
+    delete [] seq;
+    seq = NULL;
+  }
+
   if (cpg.size() == 0) {
     QC = false;
   }
@@ -494,7 +501,6 @@ vector<HT_s> itor_sam(Context &ctx) {
         if (sam_r.seq != NULL) {
           delete [] sam_r.seq;
         }
-
         continue;
       }
 
