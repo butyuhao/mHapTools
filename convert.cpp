@@ -98,9 +98,6 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, 
 }
 
 inline SamRead::~SamRead() {
-  if(seq) {
-    delete [] seq;
-  }
 }
 
 bool SamRead::init(Context &ctx) {
@@ -124,10 +121,6 @@ bool SamRead::init(Context &ctx) {
   uint8_t *seq_p = bam_get_seq(ctx.aln);
   if (read_len == 0) {
     return false;
-  }
-  seq = new char[read_len];
-  for(int i = 0; i < read_len; i++) {
-    *(seq + i) = ;
   }
 
   if (strcmp(ctx.aligner, "BISMARK") == 0) {
@@ -161,6 +154,12 @@ bool SamRead::init(Context &ctx) {
     hts_log_error("Only BSMAP, BISMARK and UNKNOWN are supported.");
     return false;
   }
+
+  seq = new char[read_len];
+  for(int i = 0; i < read_len; i++) {
+    *(seq + i) = kbase[bam_seqi(seq_p, i)];
+  }
+
   return true;
 }
 
@@ -184,12 +183,14 @@ bool SamRead::haplo_type() {
     } else {
       r_pos = pos - read_start + 1;
     }
-    if (r_pos >= read_len) {
+    if (r_pos >= read_len || r_pos < 0) {
       continue;
     }
     cpg.push_back(pos);
-    hap_seq += *(seq + r_pos);
+
+    //hap_seq += *(seq + int(r_pos));
     hap_qual.push_back(read_qual[r_pos]);
+
   }
   if (cpg.size() == 0) {
     QC = false;
@@ -490,6 +491,10 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       if (!ret) {
         hts_log_trace("");
+        if (sam_r.seq != NULL) {
+          delete [] sam_r.seq;
+        }
+
         continue;
       }
 
