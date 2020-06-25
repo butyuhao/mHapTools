@@ -9,7 +9,14 @@ int main(int argc, char *argv[]) {
   hts_set_log_level(HTS_LOG_INFO);
 
   if (argc < 2) {
-    cout << "See usage" << endl;
+    cout << "See usage:" << endl;
+    cout << "-i path of the bam file" << endl;
+    cout << "-a aligner [BISMARK | BSMAP | UNKNOWN]" << endl;
+    cout << "-b path of the bed file" << endl;
+    cout << "-c path of the cpg file" << endl;
+    cout << "-r region" << endl;
+    cout << "-o output path" << endl;
+    cout << "-i path of the bam file" << endl;
     exit(1);
   }
   int ret = 0;
