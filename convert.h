@@ -23,7 +23,10 @@ const uint8_t kbase[16] = {0, 65, 67, 0, 71, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 78};
 
 class Context {
  public:
-  Context () {};
+  Context () :fp_bam(NULL), fp_cpg(NULL), idx_cpg(NULL), has_idx_cpg(false),
+              idx_bam(NULL), cpg_itr(NULL), sam_itr(NULL), hdr_bam(NULL),
+              aln(NULL), bam_aux_p(NULL), fn_bam(NULL), output_path(NULL),
+              aligner(NULL), fn_bed(NULL), fn_cpg(NULL), region(NULL){};
   ~Context();
 
   bool parse_region();
@@ -32,16 +35,13 @@ class Context {
   htsFile *fp_bam;
   htsFile *fp_cpg;
   tbx_t *idx_cpg;
-  bool has_idx_cpg = false;
+  bool has_idx_cpg;
   hts_idx_t *idx_bam;
   hts_itr_t *cpg_itr;
   hts_itr_t *sam_itr;
   bam_hdr_t *hdr_bam;
   bam1_t *aln;
   uint8_t *bam_aux_p;
-  hts_reglist_t *reg_list;
-
-
 
   // options
   char *fn_bam;   /* -i option */
@@ -60,9 +60,7 @@ class Context {
   hts_pos_t i_beg;
   hts_pos_t i_end;
 
-  map<string, u_int32_t > res_map_sort;
   map<string, int> res_map;
-  vector<pair<string, u_int32_t>> vt;
 
   int region_to_parse;
 
@@ -77,9 +75,7 @@ struct HT_s {
   string to_str() {
     return string(h_chr) + '\t' + to_string(h_start) + '\t' + to_string(h_end) + '\t' + hap_met + to_string(WC);
   }
-  u_int32_t get_h_start() {
-    return h_start;
-  }
+
   char *h_chr;
   uint32_t h_start;
   uint32_t h_end;

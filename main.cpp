@@ -6,7 +6,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  hts_set_log_level(HTS_LOG_INFO);
+  hts_set_log_level(HTS_LOG_TRACE);
 
   if (argc < 2) {
     cout << "See usage:" << endl;

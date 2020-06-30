@@ -360,10 +360,13 @@ bool region_to_parse(Context &ctx) {
    * */
   if (ctx.region) {
     ctx.region_to_parse = SINGLE_REGION;
+    hts_log_trace("SINGLE_REGION");
   } else if (ctx.fn_bed) {
     ctx.region_to_parse = MULTI_REGION;
+    hts_log_trace("MULTI_REGION");
   } else if (ctx.fn_cpg && ctx.fn_bam) {
     ctx.region_to_parse = WHOLE_FILE;
+    hts_log_trace("WHOLE_FILE");
   } else {
     return false;
   }
@@ -373,7 +376,13 @@ bool region_to_parse(Context &ctx) {
 bool comp(const HT_s &a, const HT_s &b)
 {
   if (strcmp(a.h_chr, b.h_chr) == 0) {
-    return a.h_start < b.h_start;
+    if (a.h_start != b.h_start) {
+      return a.h_start < b.h_start;
+    } else if (a.hap_met != b.hap_met) {
+      return strcmp(a.hap_met.c_str(), b.hap_met.c_str());
+    } else {
+      return a.WC != b.WC;
+    }
   } else {
     return strcmp(a.h_chr, b.h_chr) < 0;
   }
@@ -675,7 +684,6 @@ vector<HT_s> itor_sam(Context &ctx) {
   return HT_vec;
 }
 
-
 inline Context::~Context() {
   //to_do明确一下哪些指针需要被关掉。
   if (fp_bam) {
@@ -747,11 +755,14 @@ inline void HT_s::get_WC_symbol() {
 }
 
 int main_convert(int argc, char *argv[]) {
+  hts_log_trace("enter main_convert");
 //TODO(butyuhao@foxmail.com): 增加检查option合法性的部分
 //TODO(butyuhao@foxmail.com): 增加日志
 
+  hts_log_trace("create Context()");
   Context ctx = Context();
 
+  hts_log_trace("parse options");
   int long_index;
 
   int opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
@@ -790,25 +801,27 @@ int main_convert(int argc, char *argv[]) {
 
     int ret;
 
+    hts_log_trace("open_bam_file(ctx)");
     ret = open_bam_file(ctx);
     if (!ret) {
       hts_log_error("open_bam_file():fail to open bam file");
       return EXIT_FAILURE;
     }
-
+    hts_log_trace("region_to_parse(ctx)");
     ret = region_to_parse(ctx);
     if (!ret) {
       hts_log_error("region_to_parse()");
     }
     if (ctx.region_to_parse == SINGLE_REGION) {
       ret = ctx.parse_region();
+      hts_log_info("parse_region(): %s:%lld-%lld", ctx.hdr_bam->target_name[ctx.i_tid], ctx.i_beg, ctx.i_end);
     }
     if (!ret) {
       hts_log_error("parse_region():fail to parse region");
       return EXIT_FAILURE;
     }
-    hts_log_info("parse_region(): %s:%lld-%lld", ctx.hdr_bam->target_name[ctx.i_tid], ctx.i_beg, ctx.i_end);
 
+    hts_log_trace("open_cpg_file(ctx)");
     ret = open_cpg_file(ctx);
     if (!ret) {
       hts_log_error("open_cpg_file():fail to open cpg file");
@@ -816,7 +829,10 @@ int main_convert(int argc, char *argv[]) {
     }
 
     vector<HT_s> HT_vec;
+    hts_log_trace("itor_sam(ctx).");
     HT_vec = itor_sam(ctx);
+
+    hts_log_trace("Output.");
 
     string out_stream_name;
     if (ctx.output_path) {
