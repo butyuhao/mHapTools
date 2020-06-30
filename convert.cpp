@@ -378,10 +378,14 @@ bool comp(const HT_s &a, const HT_s &b)
   if (strcmp(a.h_chr, b.h_chr) == 0) {
     if (a.h_start != b.h_start) {
       return a.h_start < b.h_start;
+    } else if (a.h_end != b.h_end) {
+      return a.h_end < b.h_end;
     } else if (a.hap_met != b.hap_met) {
-      return strcmp(a.hap_met.c_str(), b.hap_met.c_str());
+      return a.hap_met < b.hap_met;
+    } else if (a.ht_count != b.ht_count){
+      return a.ht_count < b.ht_count;
     } else {
-      return a.WC != b.WC;
+      return a.WC < b.WC;
     }
   } else {
     return strcmp(a.h_chr, b.h_chr) < 0;
@@ -665,11 +669,9 @@ vector<HT_s> itor_sam(Context &ctx) {
     }
   }
 
-  //sort
-  sort(HT_vec.begin(), HT_vec.end(), comp);
-
-  for (auto _ht: HT_vec) {
-    string ht_id = _ht.to_str();
+  vector<HT_s>::iterator ht_itor;
+  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+    string ht_id = (*ht_itor).to_str();
 
     map<string, int>::iterator res_map_itor;
 
@@ -844,18 +846,24 @@ int main_convert(int argc, char *argv[]) {
 
     unordered_map<string, bool> is_overlap;
     unordered_map<string, bool>::iterator itor;
-
-    for (auto ht : HT_vec) {
-      ht.get_WC_symbol();
-      string line = string(ht.h_chr) + '\t' + to_string(ht.h_start) + '\t' +
-          to_string(ht.h_end) + '\t' + ht.hap_met + '\t' +
-          to_string(ctx.res_map[ht.to_str()]) + '\t' + ht.WC_symbol;
-      itor = is_overlap.find(line);
-      if (itor == is_overlap.end()) {
-        out_stream << line << endl;
-      }
-      is_overlap[line] = true;
+    vector<HT_s>::iterator ht_itor;
+    for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
+      (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
     }
+  //sort
+  sort(HT_vec.begin(), HT_vec.end(), comp);
+
+  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
+    (*ht_itor).get_WC_symbol();
+    string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
+        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
+        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
+    itor = is_overlap.find(line);
+    if (itor == is_overlap.end()) {
+      out_stream << line << '\n';
+    }
+    is_overlap[line] = true;
+  }
 
     out_stream.close();
 
