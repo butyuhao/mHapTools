@@ -36,10 +36,6 @@ bool Context::parse_region() {
   return true;
 }
 
-void Context::print_region() {
-  cout << "Region parsed result: " << hdr_bam->target_name[i_tid] << ":" << i_beg << "-" << i_end << endl;
-}
-
 bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
   //concat name of the tbi file
   ctx.cpg_pos.clear();
@@ -155,7 +151,7 @@ bool SamRead::haplo_type() {
   uint32_t r_pos;
   vector<uint32_t> cpg;
   vector<int8_t> hap_qual;
-  string hap_seq = "";
+  _hap_seq = "";
   uint32_t pos;
   for (int i = 0; i < ctx->cpg_pos.size(); i++) {
     pos = ctx->cpg_pos[i];
@@ -176,7 +172,7 @@ bool SamRead::haplo_type() {
     }
     cpg.push_back(pos);
 
-    hap_seq += seq[r_pos];
+    _hap_seq += seq[r_pos];
 
     hap_qual.push_back(read_qual[r_pos]);
 
@@ -190,36 +186,34 @@ bool SamRead::haplo_type() {
   if (cpg.size() == 0) {
     QC = false;
   }
-  _hap_seq = hap_seq;
   _hap_qual = hap_qual;
   _cpg = cpg;
-  string hap_met = "";
-  for (int i = 0; i < hap_seq.size(); i++) {
-    char nucleobases = hap_seq[i];
+  _hap_met = "";
+  for (int i = 0; i < _hap_seq.size(); i++) {
+    char nucleobases = _hap_seq[i];
     if (read_WC == DIRECTION_PLUS || read_WC == DIRECTION_UNKNOWN) {
       if (nucleobases == 'C') {
-        hap_met += '1';
+        _hap_met += '1';
       } else if (nucleobases == 'T') {
-        hap_met += '0';
+        _hap_met += '0';
       } else {
-        hap_met += nucleobases;
+        _hap_met += nucleobases;
         //cout << hap_met << endl;
         QC = false;
       }
     } else if (read_WC == DIRECTION_MINUS) {
       if (nucleobases == 'G') {
-        hap_met += '1';
+        _hap_met += '1';
       } else if (nucleobases == 'A') {
-        hap_met += '0';
+        _hap_met += '0';
       } else {
-        hap_met += nucleobases;
+        _hap_met += nucleobases;
         QC = false;
       }
     } else {
       cout << "Error! Strand undefined" << endl;
     }
   }
-  _hap_met = hap_met;
   if (_cpg.size() > 0) {
     HT = HT_s(read_chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, read_WC);
   }
@@ -633,10 +627,6 @@ vector<HT_s> itor_sam(Context &ctx) {
     exit(1);
   }
 
-
-
-
-
   //merge
   for (auto sam_l :  sam_map) {
     if (sam_l.second.size() == 2) {
@@ -744,6 +734,40 @@ inline void HT_s::get_WC_symbol() {
   }
 }
 
+void output_hap(Context &ctx, vector<HT_s> &HT_vec) {
+
+  string out_stream_name;
+  if (ctx.output_path) {
+    out_stream_name = ctx.output_path;
+  } else {
+    out_stream_name = "out.hap";
+  }
+  ofstream out_stream(out_stream_name);
+
+  unordered_map<string, bool> is_overlap;
+  unordered_map<string, bool>::iterator itor;
+  vector<HT_s>::iterator ht_itor;
+  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
+    (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
+  }
+  //sort
+  sort(HT_vec.begin(), HT_vec.end(), comp);
+
+  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
+    (*ht_itor).get_WC_symbol();
+    string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
+        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
+        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
+    itor = is_overlap.find(line);
+    if (itor == is_overlap.end()) {
+      out_stream << line << '\n';
+    }
+    is_overlap[line] = true;
+  }
+
+  out_stream.close();
+}
+
 int main_convert(int argc, char *argv[]) {
   hts_log_trace("enter main_convert");
 //TODO(butyuhao@foxmail.com): 增加检查option合法性的部分
@@ -835,38 +859,8 @@ int main_convert(int argc, char *argv[]) {
     hts_log_trace("itor_sam(ctx).");
     HT_vec = itor_sam(ctx);
 
-    hts_log_trace("Output");
-
-    string out_stream_name;
-    if (ctx.output_path) {
-      out_stream_name = ctx.output_path;
-    } else {
-      out_stream_name = "out.hap";
-    }
-    ofstream out_stream(out_stream_name);
-
-    unordered_map<string, bool> is_overlap;
-    unordered_map<string, bool>::iterator itor;
-    vector<HT_s>::iterator ht_itor;
-    for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-      (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
-    }
-  //sort
-  sort(HT_vec.begin(), HT_vec.end(), comp);
-
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-    (*ht_itor).get_WC_symbol();
-    string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
-        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
-        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
-    itor = is_overlap.find(line);
-    if (itor == is_overlap.end()) {
-      out_stream << line << '\n';
-    }
-    is_overlap[line] = true;
-  }
-
-    out_stream.close();
+    hts_log_trace("output_hap");
+    output_hap(ctx, HT_vec);
 
   return EXIT_SUCCESS;
 }

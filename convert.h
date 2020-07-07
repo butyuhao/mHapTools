@@ -30,7 +30,7 @@ class Context {
   ~Context();
 
   bool parse_region();
-  void print_region();
+
 
   htsFile *fp_bam;
   htsFile *fp_cpg;
