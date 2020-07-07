@@ -13,6 +13,6 @@ set(GCC_OMIT_FRAME_POINTER "-fno-omit-frame-pointer") #for test
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_OMIT_FRAME_POINTER}" ) #for test
 
-add_executable(haptools main.cpp)
+add_executable(haptools haptk.cpp)
 
 target_link_libraries(haptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.a)

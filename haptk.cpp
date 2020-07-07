@@ -21,14 +21,14 @@ int main(int argc, char *argv[]) {
   }
   int ret = 0;
 
-  time_t first, second;
-  first=time(NULL);
+  time_t start, stop;
+  start=time(NULL);
 
   if (strcmp(argv[1], "convert") == 0)    ret = main_convert(argc - 1, argv + 1);
 
-  second=time(NULL);
+  stop=time(NULL);
 
-  hts_log_info("The duration is: %f seconds", difftime(second,first));
+  hts_log_info("The duration is: %f seconds", difftime(start,stop));
 
   cout << "Process finished" << endl;
 

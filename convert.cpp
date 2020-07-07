@@ -40,18 +40,6 @@ void Context::print_region() {
   cout << "Region parsed result: " << hdr_bam->target_name[i_tid] << ":" << i_beg << "-" << i_end << endl;
 }
 
-static const char *opt_string = "i:a:b:c:r:o:";
-
-static const struct option long_opts[] = {
-    { "input", required_argument, NULL, 'i' },
-    { "aligner", optional_argument, NULL, 'a' },
-    { "bed_file", optional_argument, NULL, 'b' },
-    { "cpg_path", required_argument, NULL, 'c' },
-    { "region", optional_argument, NULL, 'r' },
-    { "output", optional_argument, NULL, 'o' },
-    { NULL, no_argument, NULL, 0 }
-};
-
 bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
   //concat name of the tbi file
   ctx.cpg_pos.clear();
@@ -765,7 +753,20 @@ int main_convert(int argc, char *argv[]) {
   Context ctx = Context();
 
   hts_log_trace("parse options");
+
   int long_index;
+
+  static const char *opt_string = "i:a:b:c:r:o:";
+
+  static const struct option long_opts[] = {
+      { "input", required_argument, NULL, 'i' },
+      { "aligner", optional_argument, NULL, 'a' },
+      { "bed_file", optional_argument, NULL, 'b' },
+      { "cpg_path", required_argument, NULL, 'c' },
+      { "region", optional_argument, NULL, 'r' },
+      { "output", optional_argument, NULL, 'o' },
+      { NULL, no_argument, NULL, 0 }
+  };
 
   int opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   while (opt != -1) {
@@ -834,7 +835,7 @@ int main_convert(int argc, char *argv[]) {
     hts_log_trace("itor_sam(ctx).");
     HT_vec = itor_sam(ctx);
 
-    hts_log_trace("Output.");
+    hts_log_trace("Output");
 
     string out_stream_name;
     if (ctx.output_path) {
