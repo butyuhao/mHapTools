@@ -115,19 +115,19 @@ bool SamRead::init(Context &ctx) {
       return false;
     }
 
-    if (_get_XM_tag(ctx)) {
+    if (_get_XM(ctx)) {
       ret = _get_bismark_QC(ctx);
       if (!ret) {
         hts_log_trace("_get_bismark_QC(): fail to get bismark QC.");
         return false;
       }
     } else {
-      hts_log_trace("XM tag is required in SAM");
+      hts_log_trace("XM string is required in SAM");
       return false;
     }
   } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
-    if (!_get_ZS_tag(ctx)) {
-      hts_log_trace("_get_ZS_tag(): fail to get ZS tag");
+    if (!_get_ZS(ctx)) {
+      hts_log_trace("_get_ZS(): fail to get ZS tag");
       return false;
     }
 
@@ -232,7 +232,7 @@ bool SamRead::_get_bismark_std() {
   return true;
 }
 
-bool SamRead::_get_XM_tag(Context &ctx) {
+bool SamRead::_get_XM(Context &ctx) {
 
   ctx.bam_aux_p = bam_aux_get(ctx.aln, "XM");
   if (!ctx.bam_aux_p) {
@@ -241,20 +241,20 @@ bool SamRead::_get_XM_tag(Context &ctx) {
   return true;
 }
 
-bool SamRead::_get_ZS_tag(Context &ctx) {
+bool SamRead::_get_ZS(Context &ctx) {
 
   ctx.bam_aux_p = bam_aux_get(ctx.aln, "ZS");
   if (!ctx.bam_aux_p) {
     return false;
   }
-  ZS_tag = bam_aux2Z(ctx.bam_aux_p);
-  if (!ZS_tag) {
-    hts_log_error("has no ZS tag");
+  ZS_string = bam_aux2Z(ctx.bam_aux_p);
+  if (!ZS_string) {
+    hts_log_error("has no ZS");
     return false;
   }
-  if (*ZS_tag == '+') {
+  if (*ZS_string == '+') {
     read_WC = DIRECTION_PLUS;
-  } else if (*ZS_tag == '-'){
+  } else if (*ZS_string == '-'){
     read_WC = DIRECTION_MINUS;
   } else {
     hts_log_trace("Direction tag error");
@@ -264,15 +264,15 @@ bool SamRead::_get_ZS_tag(Context &ctx) {
 }
 
 bool SamRead::_get_bismark_QC(Context &ctx) {
-  XM_tag = bam_aux2Z(ctx.bam_aux_p);
-  if (!XM_tag) {
-    hts_log_error("has no XM tag");
+  XM_string = bam_aux2Z(ctx.bam_aux_p);
+  if (!XM_string) {
+    hts_log_error("has no XM string");
     return false;
   }
-  string XM_tag_sv  = string(XM_tag); //todo:string_view
-  for (auto c : XM_tag_sv) {
+  string XM_tag_str  = string(XM_string); //todo:string_view
+  for (auto c : XM_tag_str) {
     if (c == 'X' || c == 'H' || c == 'U') {
-      hts_log_trace("XM tag QC check failed");
+      hts_log_trace("XM string QC check failed");
       return false;
     }
   }

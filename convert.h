@@ -105,12 +105,12 @@ class SamRead {
   bool init(Context &ctx);
   bool haplo_type();
   bool _get_bismark_std();
-  bool _get_XM_tag(Context &ctx);
-  bool _get_ZS_tag(Context &ctx);
+  bool _get_XM(Context &ctx);
+  bool _get_ZS(Context &ctx);
   bool _get_bismark_QC(Context &ctxainain);
 
-  char *XM_tag = NULL;
-  char *ZS_tag = NULL;
+  char *XM_string = NULL;
+  char *ZS_string = NULL;
   int read_WC = 0;
   bool QC = true;
 

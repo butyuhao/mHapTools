@@ -6,7 +6,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  hts_set_log_level(HTS_LOG_TRACE);
+  hts_set_log_level(HTS_LOG_INFO);
 
   if (argc < 2) {
     cout << "See usage:" << endl;
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 
   stop=time(NULL);
 
-  hts_log_info("The duration is: %f seconds", difftime(start,stop));
+  hts_log_info("The duration is: %f seconds", difftime(stop,start));
 
   cout << "Process finished" << endl;
 
