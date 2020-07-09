@@ -1,12 +1,19 @@
 #include <iostream>
 #include <string.h>
 #include "convert.cpp"
+#include "hap.cpp"
 #include <time.h>
 using namespace std;
 
 int main(int argc, char *argv[]) {
 
   hts_set_log_level(HTS_LOG_INFO);
+
+//  hapFile *hf = hap_open("/Users/butyuhao/Documents/GitHub/haptools/cmake-build-debug/hapout.hap", "rb");
+//  hap_line_t h_line_t{"", 0, 0 ,"", 0, HAP_DEFAULT_DIRECTION};
+//  while(hap_read(hf, &h_line_t) == 0) {
+//    h_line_t.print();
+//  };
 
   if (argc < 2) {
     cout << "See usage:" << endl;

@@ -54,8 +54,8 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, 
   ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, tbx_tid, i_beg, i_end);
   kstring_t ksbuf = {0, 0, NULL};
   string cpg_line_sv;//todo:string_view
-  u_int32_t cpg_start = 0;
-  u_int32_t cpg_end = 0;
+  hts_pos_t cpg_start = 0;
+  hts_pos_t cpg_end = 0;
 
 
   while(tbx_itr_next(ctx.fp_cpg, ctx.idx_cpg, ctx.cpg_itr, &ksbuf) >= 0) {
@@ -69,8 +69,8 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, 
         //找到原line中的第2个tab位置
         for (; i < cpg_line_sv.size(); i++) {
           if (cpg_line_sv[i] == '\t') {
-            cpg_start = atoi(string(cpg_line_sv.substr(0, i)).c_str());
-            cpg_end = atoi(string(cpg_line_sv.substr(i, cpg_line_sv.size() - i)).c_str());
+            cpg_start = atoll(string(cpg_line_sv.substr(0, i)).c_str());
+            cpg_end = atoll(string(cpg_line_sv.substr(i, cpg_line_sv.size() - i)).c_str());
             //确保cpg位点在用户指定的范围内。
             ctx.cpg_pos.push_back(cpg_start);
           }
@@ -771,7 +771,6 @@ void output_hap(Context &ctx, vector<HT_s> &HT_vec) {
 int main_convert(int argc, char *argv[]) {
   hts_log_trace("enter main_convert");
 //TODO(butyuhao@foxmail.com): 增加检查option合法性的部分
-//TODO(butyuhao@foxmail.com): 增加日志
 
   hts_log_trace("create Context()");
   Context ctx = Context();
