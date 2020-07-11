@@ -707,8 +707,8 @@ bool open_bam_file(Context &ctx) {
   if (ctx.aln == NULL) {
     return false;
   }
-  string fn_bam_idx = string(ctx.fn_bam) + ".bai";
-  ctx.idx_bam = sam_index_load2(ctx.fp_bam, ctx.fn_bam, fn_bam_idx.c_str());
+//  string fn_bam_idx = string(ctx.fn_bam) + ".bai";
+//  ctx.idx_bam = sam_index_load2(ctx.fp_bam, ctx.fn_bam, fn_bam_idx.c_str());
 
   return true;
 }
