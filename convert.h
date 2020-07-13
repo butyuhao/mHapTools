@@ -51,7 +51,7 @@ class Context {
   char *fn_cpg;      /* -c option */
   char *region;       /* -r option */
 
-  vector<uint32_t> cpg_pos;
+  vector<hts_pos_t> cpg_pos;
   unordered_map<int, vector<hts_pos_t>> cpg_pos_map;
 
   //region
@@ -68,7 +68,7 @@ class Context {
 
 struct HT_s {
   HT_s() {}
-  HT_s (char *_h_chr, uint32_t _h_start, uint32_t _h_end, string &_hap_met, int _count, int8_t _WC)
+  HT_s (char *_h_chr, hts_pos_t _h_start, hts_pos_t _h_end, string &_hap_met, int _count, int8_t _WC)
       : h_chr(_h_chr), h_start(_h_start), h_end(_h_end), hap_met(_hap_met), count(_count), WC(_WC), ht_count(0){}
 
   void get_WC_symbol();
@@ -77,8 +77,8 @@ struct HT_s {
   }
   int ht_count;
   char *h_chr;
-  uint32_t h_start;
-  uint32_t h_end;
+  hts_pos_t h_start;
+  hts_pos_t h_end;
   string hap_met;
   int count;
   char WC_symbol;
@@ -124,14 +124,14 @@ class SamRead {
   char *read_chr = NULL; //contig name (chromosome)
   hts_pos_t read_start = 0; //left most position of alignment in zero based coordianate (+1)
   hts_pos_t read_end = 0;
-  uint32_t read_len = 0; //length of the read.
+  hts_pos_t read_len = 0; //length of the read.
   uint8_t *read_qual = NULL; //quality string
 
   Context *ctx = NULL;
 
   string _hap_seq = "";
   vector<int8_t> _hap_qual;
-  vector<uint32_t> _cpg;
+  vector<hts_pos_t> _cpg;
   string _hap_met = "";
 
   HT_s HT = HT_s();

@@ -36,11 +36,11 @@ bool Context::parse_region() {
   return true;
 }
 
-bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, uint32_t shift = 500) {
+bool load_get_cpg_with_idx(Context &ctx, char *chr, hts_pos_t beg, hts_pos_t end, hts_pos_t shift = 500) {
   //concat name of the tbi file
   ctx.cpg_pos.clear();
 
-  uint32_t  i_beg;
+  hts_pos_t  i_beg;
 
   i_beg = beg - shift;
 
@@ -48,14 +48,14 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, 
     i_beg = 0;
   }
 
-  uint32_t i_end = end + shift;
+  hts_pos_t i_end = end + shift;
 
   int tbx_tid = tbx_name2id(ctx.idx_cpg, chr);
   ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, tbx_tid, i_beg, i_end);
   kstring_t ksbuf = {0, 0, NULL};
   string cpg_line_sv;//todo:string_view
-  u_int32_t cpg_start = 0;
-  u_int32_t cpg_end = 0;
+  hts_pos_t cpg_start = 0;
+  hts_pos_t cpg_end = 0;
 
 
   while(tbx_itr_next(ctx.fp_cpg, ctx.idx_cpg, ctx.cpg_itr, &ksbuf) >= 0) {
@@ -69,8 +69,8 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, uint32_t beg, uint32_t end, 
         //找到原line中的第2个tab位置
         for (; i < cpg_line_sv.size(); i++) {
           if (cpg_line_sv[i] == '\t') {
-            cpg_start = atoi(string(cpg_line_sv.substr(0, i)).c_str());
-            cpg_end = atoi(string(cpg_line_sv.substr(i, cpg_line_sv.size() - i)).c_str());
+            cpg_start = atoll(string(cpg_line_sv.substr(0, i)).c_str());
+            cpg_end = atoll(string(cpg_line_sv.substr(i, cpg_line_sv.size() - i)).c_str());
             //确保cpg位点在用户指定的范围内。
             ctx.cpg_pos.push_back(cpg_start);
           }
@@ -118,7 +118,6 @@ bool SamRead::init(Context &ctx) {
     if (_get_XM(ctx)) {
       ret = _get_bismark_QC(ctx);
       if (!ret) {
-        hts_log_trace("_get_bismark_QC(): fail to get bismark QC.");
         return false;
       }
     } else {
@@ -127,7 +126,7 @@ bool SamRead::init(Context &ctx) {
     }
   } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
     if (!_get_ZS(ctx)) {
-      hts_log_trace("_get_ZS(): fail to get ZS tag");
+      hts_log_trace("_get_ZS(): fail to get ZS str");
       return false;
     }
 
@@ -148,11 +147,11 @@ bool SamRead::init(Context &ctx) {
 }
 
 bool SamRead::haplo_type() {
-  uint32_t r_pos;
-  vector<uint32_t> cpg;
+  hts_pos_t r_pos;
+  vector<hts_pos_t> cpg;
   vector<int8_t> hap_qual;
   _hap_seq = "";
-  uint32_t pos;
+  hts_pos_t pos;
   for (int i = 0; i < ctx->cpg_pos.size(); i++) {
     pos = ctx->cpg_pos[i];
     if (pos < read_start) {
@@ -257,7 +256,7 @@ bool SamRead::_get_ZS(Context &ctx) {
   } else if (*ZS_string == '-'){
     read_WC = DIRECTION_MINUS;
   } else {
-    hts_log_trace("Direction tag error");
+    hts_log_trace("Direction str error");
     return false;
   }
   return true;
@@ -269,10 +268,9 @@ bool SamRead::_get_bismark_QC(Context &ctx) {
     hts_log_error("has no XM string");
     return false;
   }
-  string XM_tag_str  = string(XM_string); //todo:string_view
-  for (auto c : XM_tag_str) {
+  string XM_str  = string(XM_string); //todo:string_view
+  for (auto c : XM_str) {
     if (c == 'X' || c == 'H' || c == 'U') {
-      hts_log_trace("XM string QC check failed");
       return false;
     }
   }
@@ -292,18 +290,18 @@ bool paired_end_check(SamRead &samF, SamRead &samR) {
 }
 
 HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
-  map<uint32_t, char> merged_seq;
-  map<uint32_t, int8_t> merged_qual;
-  map<uint32_t, char> merged_met;
-  map<uint32_t, char>::iterator merged_met_itor;
+  map<hts_pos_t, char> merged_seq;
+  map<hts_pos_t, int8_t> merged_qual;
+  map<hts_pos_t, char> merged_met;
+  map<hts_pos_t, char>::iterator merged_met_itor;
   for (int i = 0; i < samF._cpg.size(); i++) {
-    uint32_t pos = samF._cpg[i];
+    hts_pos_t pos = samF._cpg[i];
     merged_seq[pos] = samF._hap_seq[i];
     merged_qual[pos] = samF._hap_qual[i];
     merged_met[pos] = samF._hap_met[i];
   }
   for (int i = 0; i < samR._cpg.size(); i++) {
-    uint32_t pos = samR._cpg[i];
+    hts_pos_t pos = samR._cpg[i];
     merged_met_itor = merged_met.find(pos);
     if (merged_met_itor == merged_met.end() || samR._hap_qual[i] > merged_qual[pos]) {
       merged_seq[pos] = samR._hap_seq[i];
@@ -315,7 +313,7 @@ HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
   string hap_seq = "";
   string hap_met = "";
   merged_met_itor = merged_met.begin();
-  vector<uint32_t> cpg;
+  vector<hts_pos_t> cpg;
   while(merged_met_itor != merged_met.end()) {
     cpg.push_back(merged_met_itor->first);
     hap_seq += merged_seq[merged_met_itor->first];
@@ -325,14 +323,6 @@ HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
   HT_s merged_HT = HT_s(samF.read_chr, cpg[0], cpg[cpg.size() - 1], hap_met, 1, samF.read_WC);
   return merged_HT;
 }
-
-//struct cmp
-//{
-//  bool operator()(const pair<string,u_int32_t> &p1,const pair<string,u_int32_t> &p2)
-//  {
-//    return p1.second < p2.second;
-//  }
-//};
 
 bool region_to_parse(Context &ctx) {
   /* Recognize the way the user specifies the region
@@ -425,7 +415,7 @@ int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos)//二分查找求下�
   return low;
 }
 
-bool get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts_pos_t shift = 500) {
+void get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts_pos_t shift = 500) {
   ctx.cpg_pos.clear();
 
   hts_pos_t  i_beg;
@@ -707,8 +697,6 @@ bool open_bam_file(Context &ctx) {
   if (ctx.aln == NULL) {
     return false;
   }
-  string fn_bam_idx = string(ctx.fn_bam) + ".bai";
-  ctx.idx_bam = sam_index_load2(ctx.fp_bam, ctx.fn_bam, fn_bam_idx.c_str());
 
   return true;
 }
