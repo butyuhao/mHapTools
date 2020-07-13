@@ -5,13 +5,13 @@ set(CMAKE_CXX_STANDARD 14)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CMAKE_SOURCE_DIR}/htslib-1.10.2 -lz -lm -lbz2 -llzma -lcurl" CACHE STRING "Set C++ Compiler Flags" FORCE)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0") #for test
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0") #for test
-
-set(GCC_OMIT_FRAME_POINTER "-fno-omit-frame-pointer") #for test
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_OMIT_FRAME_POINTER}" ) #for test
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0") #for test
+#
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0") #for test
+#
+#set(GCC_OMIT_FRAME_POINTER "-fno-omit-frame-pointer") #for test
+#
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_OMIT_FRAME_POINTER}" ) #for test
 
 add_executable(haptools haptk.cpp)
 
