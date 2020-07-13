@@ -757,14 +757,13 @@ void output_hap(Context &ctx, vector<HT_s> &HT_vec) {
 }
 
 int main_convert(int argc, char *argv[]) {
-  hts_log_trace("enter main_convert");
+  hts_log_info("enter main_convert");
 //TODO(butyuhao@foxmail.com): 增加检查option合法性的部分
-//TODO(butyuhao@foxmail.com): 增加日志
 
-  hts_log_trace("create Context()");
+  hts_log_info("create Context()");
   Context ctx = Context();
 
-  hts_log_trace("parse options");
+  hts_log_info("parse options");
 
   int long_index;
 
@@ -816,13 +815,13 @@ int main_convert(int argc, char *argv[]) {
 
     int ret;
 
-    hts_log_trace("open_bam_file(ctx)");
+    hts_log_info("open_bam_file(ctx)");
     ret = open_bam_file(ctx);
     if (!ret) {
       hts_log_error("open_bam_file():fail to open bam file");
       return EXIT_FAILURE;
     }
-    hts_log_trace("region_to_parse(ctx)");
+    hts_log_info("region_to_parse(ctx)");
     ret = region_to_parse(ctx);
     if (!ret) {
       hts_log_error("region_to_parse()");
@@ -836,7 +835,7 @@ int main_convert(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
 
-    hts_log_trace("open_cpg_file(ctx)");
+    hts_log_info("open_cpg_file(ctx)");
     ret = open_cpg_file(ctx);
     if (!ret) {
       hts_log_error("open_cpg_file():fail to open cpg file");
@@ -844,10 +843,10 @@ int main_convert(int argc, char *argv[]) {
     }
 
     vector<HT_s> HT_vec;
-    hts_log_trace("itor_sam(ctx).");
+    hts_log_info("itor_sam(ctx).");
     HT_vec = itor_sam(ctx);
 
-    hts_log_trace("output_hap");
+    hts_log_info("output_hap");
     output_hap(ctx, HT_vec);
 
   return EXIT_SUCCESS;
