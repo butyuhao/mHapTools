@@ -8,3 +8,4 @@ b.sh
 bismark_test/hg38_CpG.gz
 bismark_test/hg38_CpG.gz.tbi
 /build
+.DS_Store
