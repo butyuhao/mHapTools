@@ -8,11 +8,10 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <string>
 #include <htslib/hts.h>
 #include <htslib/tbx.h>
 #include <htslib/sam.h>
-
-#define test_mode true
 
 class Context;
 struct HT_s;

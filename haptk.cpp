@@ -8,14 +8,6 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  hapFile *fp = hap_open("/Users/butyuhao/Documents/GitHub/haptools/out.hap", "r");
-  
-  hap_line_t h_line_t = {" ", 0, 0, " ", 0, HAP_DEFAULT_DIRECTION};
-  
-  while(hap_read(fp, &h_line_t) == 0) {
-    h_line_t.print();
-  }
-
   hts_set_log_level(HTS_LOG_TRACE);
 
   if (argc < 2) {

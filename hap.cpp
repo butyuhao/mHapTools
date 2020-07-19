@@ -1,15 +1,19 @@
 #include <string>
 #include <stdbool.h>
 #include <iostream>
+#include <vector>
+#include <unordered_map>
 #include "hap.h"
 namespace std {
-typedef struct hap_line_t{
+
+typedef struct hap_t{
   string chr;
   hap_pos_t chr_beg;
   hap_pos_t chr_end;
   string hap_str;
   int hap_count;
   char hap_direction;
+  vector<hap_pos_t> *cpg_pos;//存储cpg位置;
 
   void print() {
     cout << chr << '\t' << chr_beg << '\t' << chr_end << '\t' << hap_str
@@ -24,13 +28,13 @@ typedef struct hap_line_t{
     }
   }
 
-} hap_line_t;
+} hap_t;
 
 hapFile* hap_open(const char *filename, const char *mode) {
   return fopen(filename, mode);
 }
 
-void parse_hap_line(char *line, int buf_len, hap_line_t *h_line_t) {
+void parse_hap_line(char *line, int buf_len, hap_t *h_line_t) {
   char *p, *q;
   p = q = line;
 
@@ -65,7 +69,7 @@ void parse_hap_line(char *line, int buf_len, hap_line_t *h_line_t) {
 
 };
 
-int hap_read(hapFile *const fp, hap_line_t *h_line_t) {
+int hap_read(hapFile *const fp, hap_t *h_line_t) {
   // Returns 0 on success,
   //        -1 on EOF,
   static char buf [HAP_BUF_SIZE];
@@ -74,10 +78,17 @@ int hap_read(hapFile *const fp, hap_line_t *h_line_t) {
   } else {
     return -1;
   }
-  cout << buf << endl;
   int buf_len = strlen(buf);
+
+  if (buf_len == 1) {
+    return -1;
+  }
+
   buf[buf_len - 1] = '\0';
+
   parse_hap_line(buf, buf_len, h_line_t);
+
+  buf[buf_len - 1] = ' ';
 
   return 0;
 }
@@ -87,6 +98,16 @@ int hap_close(hapFile *fp) {
     fclose(fp);
   }
   return 0;
+}
+
+bool hap_paired_end_merge(hap_t hap1,hap_t hap2) {
+  
+  return true;
+}
+
+bool hap_is_overlap(hap_t hap1, hap_t hap2) {
+  
+  return true;
 }
 
 }// namespace std

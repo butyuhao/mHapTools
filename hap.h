@@ -4,10 +4,13 @@
 
 #ifndef HAPTOOLS__HAP_H_
 #define HAPTOOLS__HAP_H_
+
 #define hapFile FILE
 #define HAP_BUF_SIZE 2048
 #define HAP_LINE_DELIM_TAB '\t'
 #define HAP_DEFAULT_DIRECTION '-'
+#define HAP_NULL_STRING ""
+#define CPG_BUF_SIZE 200
 typedef int64_t hap_pos_t;
 
 
