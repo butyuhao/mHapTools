@@ -13,7 +13,7 @@ typedef struct hap_t{
   string hap_str;
   int hap_count;
   char hap_direction;
-  vector<hap_pos_t> *cpg_pos;//存储cpg位置;
+  vector<hap_pos_t> cpg_pos;//存储cpg位置;
 
   void print() {
     cout << chr << '\t' << chr_beg << '\t' << chr_end << '\t' << hap_str

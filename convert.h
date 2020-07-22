@@ -86,9 +86,9 @@ struct HT_s {
 };
 
 enum Direction {
-  DIRECTION_PLUS = 0,
+  DIRECTION_UNKNOWN = 0,
+  DIRECTION_PLUS,
   DIRECTION_MINUS,
-  DIRECTION_UNKNOWN,
 };
 
 enum RegionToParse {

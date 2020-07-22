@@ -345,7 +345,7 @@ bool region_to_parse(Context &ctx) {
   return true;
 }
 
-bool comp(const HT_s &a, const HT_s &b)
+bool comp_HT_vec(const HT_s &a, const HT_s &b)
 {
   if (strcmp(a.h_chr, b.h_chr) == 0) {
     if (a.h_start != b.h_start) {
@@ -739,7 +739,7 @@ void output_hap(Context &ctx, vector<HT_s> &HT_vec) {
     (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
   }
   //sort
-  sort(HT_vec.begin(), HT_vec.end(), comp);
+  sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
 
   for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
     (*ht_itor).get_WC_symbol();
