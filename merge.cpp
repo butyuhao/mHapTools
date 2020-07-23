@@ -1,13 +1,13 @@
 #include <iostream>
-#include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <algorithm>
-#include <map>
 #include <htslib/kseq.h>
 #include <htslib/sam.h>
 #include "hap.cpp"
 #include "merge.h"
+#include <fstream>
+#include <unordered_map>
 
 namespace std {
 
@@ -217,17 +217,32 @@ bool comp_hap(const hap_t &a, const hap_t &b)
   }
 }
 
-map<hap_pos_t, char> get_cpg_hap_str_map(vector<hap_pos_t> &cpg_pos, string &hap_str) {
-  if (cpg_pos.size() != hap_str.size()) {
-    cout << cpg_pos.size() << endl;
-    cout << hap_str.size() << endl;
-    hts_log_error("cpg pos length and hap str length don't match");
+void saving_merged_hap(ContextMerge &ctx_merge, vector<hap_t> &merge_result) {
+
+  string out_stream_name;
+  if (ctx_merge.fn_out) {
+    out_stream_name = ctx_merge.fn_out;
+  } else {
+    out_stream_name = "out.hap";
   }
-  map<hap_pos_t, char> cpg_hap_str_map;
-  for(int i = 0; i < cpg_pos.size(); i++) {
-    cpg_hap_str_map[cpg_pos[i]] = hap_str[i];
+  ofstream out_stream(out_stream_name);
+
+  unordered_map<string, bool> is_overlap;
+  unordered_map<string, bool>::iterator itor;
+  vector<hap_t>::iterator ht_itor;
+
+  for (ht_itor = merge_result.begin(); ht_itor != merge_result.end(); ht_itor++) {
+    string line = (*ht_itor).chr + '\t' + to_string((*ht_itor).chr_beg) + '\t' +
+        to_string((*ht_itor).chr_end) + '\t' + (*ht_itor).hap_str + '\t' +
+        to_string((*ht_itor).hap_count) + '\t' + (*ht_itor).hap_direction;
+    itor = is_overlap.find(line);
+    if (itor == is_overlap.end()) {
+      out_stream << line << '\n';
+    }
+    is_overlap[line] = true;
   }
-  return cpg_hap_str_map;
+
+  out_stream.close();
 }
 
 int main_merge(int argc, char *argv[]) {
@@ -275,7 +290,7 @@ int main_merge(int argc, char *argv[]) {
     hts_log_error("opt error");
     return 1;
   }
-
+  cout << "loading cpg positions..." << endl;
   load_chr_cpg(ctx_merge);
 
   hapFile *fp_hap1 = hap_open(ctx_merge.fn_hap1, "rb");
@@ -284,69 +299,10 @@ int main_merge(int argc, char *argv[]) {
   hap_t hap_t_1 = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
   hap_t hap_t_2 = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
 
-//    //test
-//
-//    //get_cpg_pos
-//
-//  vector<hap_pos_t> mock_cpg_pos_1;
-//  mock_cpg_pos_1.push_back(714010);
-//  mock_cpg_pos_1.push_back(714012);
-//  mock_cpg_pos_1.push_back(714021);
-//  mock_cpg_pos_1.push_back(714024);
-//  mock_cpg_pos_1.push_back(714030);
-//  mock_cpg_pos_1.push_back(714049);
-//  mock_cpg_pos_1.push_back(714052);
-//  mock_cpg_pos_1.push_back(714060);
-//  mock_cpg_pos_1.push_back(714071);
-//  mock_cpg_pos_1.push_back(714076);
-//  mock_cpg_pos_1.push_back(714083);
-//
-//  vector<hap_pos_t> mock_cpg_pos_2;
-//  mock_cpg_pos_1.push_back(714021);
-//  mock_cpg_pos_1.push_back(714024);
-//  mock_cpg_pos_1.push_back(714030);
-//  mock_cpg_pos_1.push_back(714049);
-//  mock_cpg_pos_1.push_back(714052);
-//  mock_cpg_pos_1.push_back(714060);
-//  mock_cpg_pos_1.push_back(714071);
-//  mock_cpg_pos_1.push_back(714076);
-//  mock_cpg_pos_1.push_back(714083);
-//  mock_cpg_pos_1.push_back(714096);
-//
-//
-//  hap_t mock_hap_1;
-//  mock_hap_1.chr = string("1");
-//  mock_hap_1.chr_beg = 714010;
-//  mock_hap_1.chr_end = 714083;
-//  mock_hap_1.hap_str = string("00000000000");
-//  mock_hap_1.hap_direction = '-';
-//
-//  hap_t mock_hap_2;
-//  mock_hap_2.chr = string("1");
-//  mock_hap_2.chr_beg = 714021;
-//  mock_hap_2.chr_end = 714096;
-//  mock_hap_2.hap_str = string("0000000000");
-//  mock_hap_2.hap_direction = '-';
-//
-//  hap_t m_result;
-//
-//
-//  int overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b;
-//
-//  if (is_overlap(mock_cpg_pos_1, mock_cpg_pos_2, mock_hap_1,
-//      mock_hap_2, &overlap_beg_a, &overlap_beg_b, &overlap_end_a, &overlap_end_b)) {
-//    cout << overlap_beg_a << endl;
-//    cout << overlap_beg_b << endl;
-//    cout << overlap_end_a << endl;
-//    cout << overlap_end_b << endl;
-//    m_result = merge(mock_hap_1, mock_hap_2, overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b);
-//  }
-//  m_result.print();
-//while(1);
-//  //test
-
   vector<hap_t> merge_result_vec;
   vector<hap_t> hap_to_merge;
+
+  cout << "loading hap files..." << endl;
 
   while(hap_read(fp_hap1, &hap_t_1) == 0) {
     hap_to_merge.push_back(hap_t_1);
@@ -356,6 +312,7 @@ int main_merge(int argc, char *argv[]) {
   }
 
   //sort
+  cout << "sorting..." << endl;
   sort(hap_to_merge.begin(), hap_to_merge.end(), comp_hap);
 
   int i = 1;
@@ -364,6 +321,7 @@ int main_merge(int argc, char *argv[]) {
   hap_t hap_a = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
   hap_t hap_b = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
   hap_t merge_result;
+  cout << "processing..." << endl;
   if (hap_to_merge.size() == 0) {
     hts_log_error("hap files are empty");
   } else if (hap_to_merge.size() == 1) {
@@ -375,59 +333,32 @@ int main_merge(int argc, char *argv[]) {
     while(i < hap_to_merge.size()) {
       hap_a = hap_b;
       hap_b = hap_to_merge[i];
-      cout << "start" << endl;
-      hap_a.print();
-      hap_b.print();
-      //cout << "end print" << endl;
 
-      cout << "get cpg" << endl;
       cpg_pos_a.clear();
       cpg_pos_b.clear();
       cpg_pos_a = get_cpg(ctx_merge, hap_a);
       cpg_pos_b = get_cpg(ctx_merge, hap_b);
-      cout << "cpg_a" << endl;
-      for (auto c : cpg_pos_a) {
-        cout << c << endl;
-      }
-      cout << "cpg_b" << endl;
-      for (auto c : cpg_pos_b) {
-        cout << c << endl;
-      }
-      cout << "end cpg" << endl;
 
       if (is_identity(hap_a, hap_b)) {
-        //identity
-        //cout << "identity" << endl;
+
         hap_b.hap_count += hap_a.hap_count;
 
       } else if (is_overlap(cpg_pos_a, cpg_pos_b, hap_a, hap_b,
           &overlap_beg_a, &overlap_beg_b, &overlap_end_a, &overlap_end_b)) {
-        //overlap
-        //cout << "overlap" << endl;
-        merge_result = merge(hap_a, hap_b, overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b);
-        //test
-        vector<hap_pos_t> test_vec;
-        test_vec = get_cpg(ctx_merge, merge_result);
-        if (test_vec.size() != merge_result.hap_str.size()) {
-          cout << "hap_a---" << endl;
-          hap_a.print();
-          cout << "hap_b---" << endl;
-          hap_b.print();
-          cout << "merge_result---" << endl;
-          merge_result.print();
-        }
 
-        //test end
+        merge_result = merge(hap_a, hap_b, overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b);
+
         hap_b = merge_result;
       } else {
-        //cout << "others" << endl;
         merge_result_vec.push_back(hap_a);
       }
       i++;
     }
-    //cout << "saving" << endl;
     merge_result_vec.push_back(hap_b);
   }
+  cout << "saving..." << endl;
+  saving_merged_hap(ctx_merge, merge_result_vec);
+
   return 0;
 }
 }//namespace std

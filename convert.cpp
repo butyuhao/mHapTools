@@ -722,7 +722,7 @@ inline void HT_s::get_WC_symbol() {
   }
 }
 
-void output_hap(Context &ctx, vector<HT_s> &HT_vec) {
+void saving_hap(Context &ctx, vector<HT_s> &HT_vec) {
 
   string out_stream_name;
   if (ctx.output_path) {
@@ -846,8 +846,8 @@ int main_convert(int argc, char *argv[]) {
     hts_log_info("itor_sam(ctx).");
     HT_vec = itor_sam(ctx);
 
-    hts_log_info("output_hap");
-    output_hap(ctx, HT_vec);
+    hts_log_info("saving hap");
+    saving_hap(ctx, HT_vec);
 
   return EXIT_SUCCESS;
 }
