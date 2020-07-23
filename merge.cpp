@@ -17,30 +17,33 @@ vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
   /*
    * get cpg pos for a hap read and store to hap_t
    */
-  vector<hap_pos_t>_cpg_pos;
+  vector<hap_pos_t>_cpg_pos(hap_read.hap_str.size(), 0);
 
   int pos = _lower_bound(ctx_merge.cpg_pos_map[hap_read.chr], hap_read.chr_beg);
 
   unordered_map<string, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
 
   cpg_pos_map_itor = ctx_merge.cpg_pos_map.find(hap_read.chr);
-  cout << "get cpg while" << endl;
 
+  int i = 0;
   if (cpg_pos_map_itor != ctx_merge.cpg_pos_map.end()) {
     while (pos < ctx_merge.cpg_pos_map[hap_read.chr].size() && cpg_pos_map_itor != ctx_merge.cpg_pos_map.end()) {
 
       if (ctx_merge.cpg_pos_map[hap_read.chr][pos] >= hap_read.chr_beg &&
       ctx_merge.cpg_pos_map[hap_read.chr][pos] <= hap_read.chr_end) {
-
-        _cpg_pos.push_back(ctx_merge.cpg_pos_map[hap_read.chr][pos]);
-
+        if (i < hap_read.hap_str.size()) {
+          _cpg_pos[i] = ctx_merge.cpg_pos_map[hap_read.chr][pos];
+        } else {
+          _cpg_pos.push_back(ctx_merge.cpg_pos_map[hap_read.chr][pos]);
+          hts_log_error("length of cpg pos vec and hap str doesn't match");
+        }
+        i++;
         pos++;
       } else {
         break;
       }
     }
   }
-  cout << "get cpg end" << endl;
 
   return _cpg_pos;
 }
@@ -100,7 +103,6 @@ bool is_identity(hap_t &hap_a, hap_t &hap_b) {
 
 hap_t merge(hap_t &hap_t_1, hap_t &hap_t_2, int &overlap_beg_a,
     int &overlap_beg_b, int &overlap_end_a, int &overlap_end_b) {
-  cout << "merge" << endl;
   if (hap_t_1.chr_beg <= hap_t_2.chr_beg && hap_t_1.chr_end >= hap_t_2.chr_end) {
     return hap_t_1;
   }
@@ -111,12 +113,12 @@ hap_t merge(hap_t &hap_t_1, hap_t &hap_t_2, int &overlap_beg_a,
   string hap_str = "";
   if (hap_t_1.chr_beg <= hap_t_2.chr_beg) {
     hap_merge.chr_beg = hap_t_1.chr_beg;
-    if (!(overlap_beg_a == overlap_beg_b == 0)) {
+    if (!(overlap_beg_a == 0 && overlap_beg_b == 0)) {
       hap_str += hap_t_1.hap_str.substr(0, overlap_beg_a);
     }
   } else {
     hap_merge.chr_beg = hap_t_2.chr_beg;
-    if (!(overlap_beg_a == overlap_beg_b == 0)) {
+    if (!(overlap_beg_a == 0 && overlap_beg_b == 0)) {
     hap_str += hap_t_2.hap_str.substr(0, overlap_beg_b);
     }
   }
@@ -125,16 +127,16 @@ hap_t merge(hap_t &hap_t_1, hap_t &hap_t_2, int &overlap_beg_a,
 
   if (hap_t_1.chr_end <= hap_t_2.chr_end) {
     hap_merge.chr_end = hap_t_2.chr_end;
-    if (!(overlap_end_a == overlap_end_b
-        == hap_t_1.hap_str.size() - 1 == hap_t_2.hap_str.size() - 1)) {
+    if (!(overlap_end_a == hap_t_1.hap_str.size() - 1 &&
+        overlap_end_b == hap_t_2.hap_str.size() - 1)) {
 
       hap_str += hap_t_2.hap_str.substr(overlap_end_b + 1);
 
     }
   } else {
     hap_merge.chr_end = hap_t_1.chr_end;
-    if (!(overlap_end_a == overlap_end_b
-        == hap_t_1.hap_str.size() - 1 == hap_t_2.hap_str.size() - 1)) {
+    if (!(overlap_end_a == hap_t_1.hap_str.size() - 1 &&
+          overlap_end_b == hap_t_2.hap_str.size() - 1)) {
 
       hap_str += hap_t_1.hap_str.substr(overlap_end_a + 1);
 
@@ -142,8 +144,8 @@ hap_t merge(hap_t &hap_t_1, hap_t &hap_t_2, int &overlap_beg_a,
   }
   hap_merge.chr = hap_t_1.chr;
   hap_merge.hap_str = hap_str;
+  hap_merge.hap_count = 1;
   hap_merge.hap_direction = hap_t_1.hap_direction;
-  cout << "end merge" << endl;
   return hap_merge;
 }
 
@@ -287,25 +289,44 @@ int main_merge(int argc, char *argv[]) {
 //    //get_cpg_pos
 //
 //  vector<hap_pos_t> mock_cpg_pos_1;
-//  mock_cpg_pos_1.push_back(15513);
-//  mock_cpg_pos_1.push_back(15526);
+//  mock_cpg_pos_1.push_back(714010);
+//  mock_cpg_pos_1.push_back(714012);
+//  mock_cpg_pos_1.push_back(714021);
+//  mock_cpg_pos_1.push_back(714024);
+//  mock_cpg_pos_1.push_back(714030);
+//  mock_cpg_pos_1.push_back(714049);
+//  mock_cpg_pos_1.push_back(714052);
+//  mock_cpg_pos_1.push_back(714060);
+//  mock_cpg_pos_1.push_back(714071);
+//  mock_cpg_pos_1.push_back(714076);
+//  mock_cpg_pos_1.push_back(714083);
 //
 //  vector<hap_pos_t> mock_cpg_pos_2;
-//  mock_cpg_pos_2.push_back(15643);
+//  mock_cpg_pos_1.push_back(714021);
+//  mock_cpg_pos_1.push_back(714024);
+//  mock_cpg_pos_1.push_back(714030);
+//  mock_cpg_pos_1.push_back(714049);
+//  mock_cpg_pos_1.push_back(714052);
+//  mock_cpg_pos_1.push_back(714060);
+//  mock_cpg_pos_1.push_back(714071);
+//  mock_cpg_pos_1.push_back(714076);
+//  mock_cpg_pos_1.push_back(714083);
+//  mock_cpg_pos_1.push_back(714096);
+//
 //
 //  hap_t mock_hap_1;
 //  mock_hap_1.chr = string("1");
-//  mock_hap_1.chr_beg = 1851184;
-//  mock_hap_1.chr_end = 1851264;
-//  mock_hap_1.hap_str = string("11");
-//  mock_hap_1.hap_direction = '+';
+//  mock_hap_1.chr_beg = 714010;
+//  mock_hap_1.chr_end = 714083;
+//  mock_hap_1.hap_str = string("00000000000");
+//  mock_hap_1.hap_direction = '-';
 //
 //  hap_t mock_hap_2;
 //  mock_hap_2.chr = string("1");
-//  mock_hap_2.chr_beg = 1851201;
-//  mock_hap_2.chr_end = 1851283;
-//  mock_hap_2.hap_str = string("0");
-//  mock_hap_2.hap_direction = '+';
+//  mock_hap_2.chr_beg = 714021;
+//  mock_hap_2.chr_end = 714096;
+//  mock_hap_2.hap_str = string("0000000000");
+//  mock_hap_2.hap_direction = '-';
 //
 //  hap_t m_result;
 //
@@ -316,6 +337,8 @@ int main_merge(int argc, char *argv[]) {
 //      mock_hap_2, &overlap_beg_a, &overlap_beg_b, &overlap_end_a, &overlap_end_b)) {
 //    cout << overlap_beg_a << endl;
 //    cout << overlap_beg_b << endl;
+//    cout << overlap_end_a << endl;
+//    cout << overlap_end_b << endl;
 //    m_result = merge(mock_hap_1, mock_hap_2, overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b);
 //  }
 //  m_result.print();
@@ -355,41 +378,56 @@ int main_merge(int argc, char *argv[]) {
       cout << "start" << endl;
       hap_a.print();
       hap_b.print();
-      cout << "end print" << endl;
+      //cout << "end print" << endl;
 
       cout << "get cpg" << endl;
       cpg_pos_a.clear();
       cpg_pos_b.clear();
       cpg_pos_a = get_cpg(ctx_merge, hap_a);
       cpg_pos_b = get_cpg(ctx_merge, hap_b);
+      cout << "cpg_a" << endl;
+      for (auto c : cpg_pos_a) {
+        cout << c << endl;
+      }
+      cout << "cpg_b" << endl;
+      for (auto c : cpg_pos_b) {
+        cout << c << endl;
+      }
       cout << "end cpg" << endl;
 
       if (is_identity(hap_a, hap_b)) {
         //identity
-        cout << "identity" << endl;
+        //cout << "identity" << endl;
         hap_b.hap_count += hap_a.hap_count;
 
       } else if (is_overlap(cpg_pos_a, cpg_pos_b, hap_a, hap_b,
           &overlap_beg_a, &overlap_beg_b, &overlap_end_a, &overlap_end_b)) {
         //overlap
-        cout << "overlap" << endl;
+        //cout << "overlap" << endl;
         merge_result = merge(hap_a, hap_b, overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b);
+        //test
+        vector<hap_pos_t> test_vec;
+        test_vec = get_cpg(ctx_merge, merge_result);
+        if (test_vec.size() != merge_result.hap_str.size()) {
+          cout << "hap_a---" << endl;
+          hap_a.print();
+          cout << "hap_b---" << endl;
+          hap_b.print();
+          cout << "merge_result---" << endl;
+          merge_result.print();
+        }
+
+        //test end
         hap_b = merge_result;
       } else {
-        cout << "others" << endl;
+        //cout << "others" << endl;
         merge_result_vec.push_back(hap_a);
       }
       i++;
     }
-    cout << "saving" << endl;
+    //cout << "saving" << endl;
     merge_result_vec.push_back(hap_b);
   }
-
-for(auto h : merge_result_vec) {
-  h.print();
-}
-
-
   return 0;
 }
 }//namespace std
