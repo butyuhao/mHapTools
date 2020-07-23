@@ -69,8 +69,11 @@ bool is_overlap(vector<hap_pos_t> &cpg_pos_1, vector<hap_pos_t> &cpg_pos_2,
       }
     }
   }
-  if (*overlap_beg1 == cpg_pos_1.size() && *overlap_beg2 == cpg_pos_2.size() ||
-      (*overlap_beg1 == -1 || *overlap_beg2 == -1)) {
+  if (*overlap_beg1 == cpg_pos_1.size() && *overlap_beg2 == cpg_pos_2.size()) {
+    //can't find same cpg pos in both hap strings
+    return false;
+  }
+  if ((*overlap_beg1 == -1 || *overlap_beg2 == -1)) {
     //can't find same cpg pos in both hap strings
     return false;
   }
