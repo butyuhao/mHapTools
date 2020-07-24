@@ -193,7 +193,7 @@ bool load_chr_cpg(ContextMerge &ctx_merge) {
     }
   }
 
-  return true;
+  return 0;
 }
 
 bool merge_opt_check(ContextMerge &ctx_merge) {
