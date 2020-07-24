@@ -2,10 +2,9 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <algorithm>
-#include <htslib/kseq.h>
-#include <htslib/sam.h>
-#include "hap.cpp"
-#include "merge.h"
+#include "./htslib-1.10.2/htslib/kseq.h"
+#include "./htslib-1.10.2/htslib/sam.h"
+#include "./include/merge.h"
 #include <fstream>
 #include <unordered_map>
 
@@ -157,6 +156,9 @@ bool load_chr_cpg(ContextMerge &ctx_merge) {
    * load all the cpg pos to ctx_merge
    */
   ctx_merge.fp_cpg = hts_open(ctx_merge.fn_cpg, "r");
+  if (ctx_merge.fp_cpg == NULL) {
+    return 1;
+  }
   kstring_t cpg_line = {0,0,NULL};
   unordered_map<string, vector<hts_pos_t> >::iterator cpg_pos_map_itor;
   while (hts_getline(ctx_merge.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
@@ -194,8 +196,9 @@ bool load_chr_cpg(ContextMerge &ctx_merge) {
   return true;
 }
 
-  bool opt_check(ContextMerge &ctx_merge) {
+bool merge_opt_check(ContextMerge &ctx_merge) {
   if (ctx_merge.fn_hap2 == NULL || ctx_merge.fn_hap1 == NULL || ctx_merge.fn_out == NULL) {
+    hts_log_error("opt error");
     return false;
   }
   return true;
@@ -248,6 +251,18 @@ void saving_merged_hap(ContextMerge &ctx_merge, vector<hap_t> &merge_result) {
   out_stream.close();
 }
 
+ContextMerge::~ContextMerge() {
+  if (fp_hap1) {
+    hap_close(fp_hap1);
+  }
+  if (fp_hap2) {
+    hap_close(fp_hap2);
+  }
+  if (fp_cpg) {
+    hts_close(fp_cpg);
+  }
+}
+
 int main_merge(int argc, char *argv[]) {
 
   ContextMerge ctx_merge = ContextMerge();
@@ -289,15 +304,30 @@ int main_merge(int argc, char *argv[]) {
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
 
-  if (!opt_check(ctx_merge)) {
+  if (!merge_opt_check(ctx_merge)) {
     hts_log_error("opt error");
     return 1;
   }
-  cout << "loading cpg positions..." << endl;
-  load_chr_cpg(ctx_merge);
 
-  hapFile *fp_hap1 = hap_open(ctx_merge.fn_hap1, "rb");
-  hapFile *fp_hap2 = hap_open(ctx_merge.fn_hap2, "rb");
+  ctx_merge.fp_hap1 = hap_open(ctx_merge.fn_hap1, "rb");
+  ctx_merge.fp_hap2 = hap_open(ctx_merge.fn_hap2, "rb");
+
+  if (ctx_merge.fp_hap1 == NULL) {
+    hts_log_error("Fail to open hap file1.");
+    return 0;
+  }
+
+  if (ctx_merge.fp_hap2 == NULL) {
+    hts_log_error("Fail to open hap file2.");
+    return 0;
+  }
+  int ret = 0;
+  cout << "Loading cpg positions..." << endl;
+  ret = load_chr_cpg(ctx_merge);
+
+  if (ret == 1) {
+    return 1;
+  }
 
   hap_t hap_t_1 = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
   hap_t hap_t_2 = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
@@ -305,17 +335,17 @@ int main_merge(int argc, char *argv[]) {
   vector<hap_t> merge_result_vec;
   vector<hap_t> hap_to_merge;
 
-  cout << "loading hap files..." << endl;
+  cout << "Loading hap files..." << endl;
 
-  while(hap_read(fp_hap1, &hap_t_1) == 0) {
+  while(hap_read(ctx_merge.fp_hap1, &hap_t_1) == 0) {
     hap_to_merge.push_back(hap_t_1);
   }
-  while(hap_read(fp_hap2, &hap_t_2) == 0) {
+  while(hap_read(ctx_merge.fp_hap2, &hap_t_2) == 0) {
     hap_to_merge.push_back(hap_t_2);
   }
 
   //sort
-  cout << "sorting..." << endl;
+  cout << "Sorting..." << endl;
   sort(hap_to_merge.begin(), hap_to_merge.end(), comp_hap);
 
   int i = 1;
@@ -324,7 +354,7 @@ int main_merge(int argc, char *argv[]) {
   hap_t hap_a = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
   hap_t hap_b = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
   hap_t merge_result;
-  cout << "processing..." << endl;
+  cout << "Processing..." << endl;
   if (hap_to_merge.size() == 0) {
     hts_log_error("hap files are empty");
   } else if (hap_to_merge.size() == 1) {
@@ -353,7 +383,7 @@ int main_merge(int argc, char *argv[]) {
     }
     merge_result_vec.push_back(hap_b);
   }
-  cout << "saving..." << endl;
+  cout << "Saving..." << endl;
   saving_merged_hap(ctx_merge, merge_result_vec);
 
   return 0;

@@ -9,9 +9,9 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
-#include <htslib/hts.h>
-#include <htslib/tbx.h>
-#include <htslib/sam.h>
+#include "../htslib-1.10.2/htslib/hts.h"
+#include "../htslib-1.10.2/htslib/tbx.h"
+#include "../htslib-1.10.2/htslib/sam.h"
 
 class Context;
 struct HT_s;
@@ -29,7 +29,6 @@ class Context {
   ~Context();
 
   bool parse_region();
-
 
   htsFile *fp_bam;
   htsFile *fp_cpg;
@@ -140,6 +139,9 @@ class SamRead {
   HT_s merged_HT = HT_s();
 
 };
+
+int main_convert(int argc, char *argv[]);
+
 } // namespace std
 
 #endif //BAM2HAP__CONVERT_H_

@@ -1,34 +1,10 @@
 #include <string>
 #include <stdbool.h>
 #include <iostream>
-#include <vector>
 #include <unordered_map>
-#include "hap.h"
+#include <cstring>
+#include "./include/hap.h"
 namespace std {
-
-typedef struct hap_t{
-  string chr;
-  hap_pos_t chr_beg;
-  hap_pos_t chr_end;
-  string hap_str;
-  int hap_count;
-  char hap_direction;
-  vector<hap_pos_t> cpg_pos;//存储cpg位置;
-
-  void print() {
-    cout << chr << '\t' << chr_beg << '\t' << chr_end << '\t' << hap_str
-    << '\t' << hap_count << '\t' << hap_direction << endl;
-  }
-
-  bool is_valid() {
-    if (hap_direction == '+' || hap_direction == '-') {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-} hap_t;
 
 hapFile* hap_open(const char *filename, const char *mode) {
   return fopen(filename, mode);

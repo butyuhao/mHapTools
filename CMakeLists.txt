@@ -3,11 +3,16 @@ project(haptools)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CMAKE_SOURCE_DIR}/htslib-1.10.2 " CACHE STRING "Set C++ Compiler Flags" FORCE)
+INCLUDE_DIRECTORIES(
+        include
+        htslib-1.10.2/include
+)
 
-include_directories(.)
+AUX_SOURCE_DIRECTORY(
+        ${CMAKE_SOURCE_DIR} DIR_SRCS
+)
 
-add_executable(haptools haptk.cpp )
+add_executable(haptools haptk.cpp convert.cpp hap.cpp merge.cpp)
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0") #for test
 #

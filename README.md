@@ -1,10 +1,29 @@
+### Command
+
+* convert 
+
+Convert SAM/BAM file to hap file.
+
+* merge
+
+Merge two hap files.
+
 ### Options
-- **-i** path of the sam/bam file
-- **-a** aligner [**BISMARK** | **BSMAP** | **UNKNOWN**]
-- **-b** path of the bed file
-- **-c** path of the cpg file
-- **-r** region **chr1:2000-200000**
-- **-o** output path
+
+#### convert
+
+- **-i** input file, SAM/BAM format, should be sorted by samtools.
+- **-a** aligner. [**BISMARK** | **BSMAP** | **UNKNOWN**(default)]
+- **-b** bed file of query regions.
+- **-c** path of the cpg file.
+- **-r** region. **chr1:2000-200000**
+- **-o** output path.
+
+#### merge
+
+* **-i** input file, hap format
+* **-c** path of the cpg file.
+* **-o** output path.
 
 ### Build example
 

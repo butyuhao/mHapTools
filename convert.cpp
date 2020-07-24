@@ -1,7 +1,7 @@
 //
 // Created by Yuhao Dan on 2020/4/13.
 //
-#include "convert.h"
+#include "./include/convert.h"
 #include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
@@ -9,10 +9,10 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
-#include <htslib/kseq.h>
-#include <htslib/bgzf.h>
-#include <htslib/hfile.h>
-#include <htslib/regidx.h>
+#include "./htslib-1.10.2/htslib/kseq.h"
+#include "./htslib-1.10.2/htslib/bgzf.h"
+#include "./htslib-1.10.2/htslib/hfile.h"
+#include "./htslib-1.10.2/htslib/regidx.h"
 #include <chrono>
 #include <algorithm>
 
@@ -215,6 +215,13 @@ bool SamRead::haplo_type() {
   }
   if (_cpg.size() > 0) {
     HT = HT_s(read_chr, _cpg[0], _cpg[_cpg.size() - 1], _hap_met, 1, read_WC);
+  }
+  return true;
+}
+
+bool convert_opt_check(Context &ctx) {
+  if (ctx.fn_bam == NULL || ctx.aligner == NULL || ctx.fn_cpg == NULL) {
+    return false;
   }
   return true;
 }
@@ -461,6 +468,7 @@ vector<HT_s> itor_sam(Context &ctx) {
     ctx.has_idx_cpg = true;
   }
 
+  uint64_t cnt = 0;
 
   if (ctx.region_to_parse == SINGLE_REGION) {
     auto single_start = std::chrono::high_resolution_clock::now(); //stop_watch
@@ -471,6 +479,11 @@ vector<HT_s> itor_sam(Context &ctx) {
     hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
 
     while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
+
+      ++cnt;
+      if (cnt % 1000000 == 0) {
+        cout << cnt << " reads processed." << endl;
+      }
 
       if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
           || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
@@ -516,7 +529,14 @@ vector<HT_s> itor_sam(Context &ctx) {
 
   } else if (ctx.region_to_parse == WHOLE_FILE) {
     load_cpg_no_idx(ctx);
+
     while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) >= 0) {
+
+      ++cnt;
+      if (cnt % 1000000 == 0) {
+        cout << cnt << " reads processed." << endl;
+      }
+
       if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
           || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
         continue;
@@ -574,6 +594,12 @@ vector<HT_s> itor_sam(Context &ctx) {
         continue;
       }
       while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
+
+        ++cnt;
+        if (cnt % 1000000 == 0) {
+          cout << cnt << " reads processed." << endl;
+        }
+
         if (ctx.aln->core.flag & BAM_FQCFAIL || ctx.aln->core.flag & BAM_FUNMAP || ctx.aln->core.flag & BAM_FDUP
             || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
           continue;
@@ -813,7 +839,17 @@ int main_convert(int argc, char *argv[]) {
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
 
-    int ret;
+  if (ctx.aligner == NULL) {
+    string aligner_opt = string("UNKNOWN");
+    ctx.aligner = const_cast<char *>(aligner_opt.c_str());
+  }
+
+  int ret;
+
+  if (!convert_opt_check(ctx)) {
+    hts_log_error("opt error");
+    return 1;
+  }
 
     hts_log_info("open_bam_file(ctx)");
     ret = open_bam_file(ctx);
@@ -843,10 +879,13 @@ int main_convert(int argc, char *argv[]) {
     }
 
     vector<HT_s> HT_vec;
+
     hts_log_info("itor_sam(ctx).");
+    cout << "Start processing..." << endl;
     HT_vec = itor_sam(ctx);
 
     hts_log_info("saving hap");
+    cout << "Saving..." << endl;
     saving_hap(ctx, HT_vec);
 
   return EXIT_SUCCESS;
