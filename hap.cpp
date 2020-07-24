@@ -100,15 +100,6 @@ int hap_close(hapFile *fp) {
   return 0;
 }
 
-bool hap_paired_end_merge(hap_t hap1,hap_t hap2) {
-  
-  return true;
-}
-
-bool hap_is_overlap(hap_t hap1, hap_t hap2) {
-  
-  return true;
-}
 
 }// namespace std
 

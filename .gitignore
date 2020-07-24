@@ -11,3 +11,4 @@ bismark_test/hg38_CpG.gz.tbi
 .DS_Store
 .DS_Store
 *.hap
+/htslib-1.10.2/

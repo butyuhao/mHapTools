@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 2.6)
 project(haptools)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -17,7 +17,7 @@ add_executable(haptools haptk.cpp )
 #
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_OMIT_FRAME_POINTER}" ) #for test
 
-set(SOURCE_FILES convert.cpp)
+#set(SOURCE_FILES hap.cpp)
 
 target_link_libraries(haptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.a)
 

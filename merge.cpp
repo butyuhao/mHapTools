@@ -21,7 +21,7 @@ vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
 
   int pos = _lower_bound(ctx_merge.cpg_pos_map[hap_read.chr], hap_read.chr_beg);
 
-  unordered_map<string, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+  unordered_map<string, vector<hts_pos_t> >::iterator cpg_pos_map_itor;
 
   cpg_pos_map_itor = ctx_merge.cpg_pos_map.find(hap_read.chr);
 
@@ -48,6 +48,53 @@ vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
   return _cpg_pos;
 }
 
+bool is_overlap(vector<hap_pos_t> &cpg_pos_1, vector<hap_pos_t> &cpg_pos_2,
+    hap_t &hap_1, hap_t &hap_2, int *overlap_beg1, int *overlap_beg2,
+    int *overlap_end1, int *overlap_end2) {
+  if (hap_1.chr != hap_2.chr || hap_1.hap_direction != hap_2.hap_direction) {
+    return false;
+  }
+  if (cpg_pos_1.size() != hap_1.hap_str.size() || cpg_pos_2.size() != hap_2.hap_str.size()) {
+    hts_log_error("length of cpg pos vec and hap str doesn't match");
+  }
+  bool break_flag = false;
+  *overlap_beg1 = -1;
+  *overlap_beg2 = -1;
+  for(int i1 = 0; (i1 < cpg_pos_1.size()) && break_flag == false; i1++) {
+    for(int i2 = 0; (i2 < cpg_pos_2.size()) && break_flag == false; i2++) {
+      if(cpg_pos_1[i1] == cpg_pos_2[i2]) {
+        *overlap_beg1 = i1;
+        *overlap_beg2 = i2;
+        break_flag = true;
+      }
+    }
+  }
+  if (*overlap_beg1 == cpg_pos_1.size() && *overlap_beg2 == cpg_pos_2.size()) {
+    //can't find same cpg pos in both hap strings
+    return false;
+  }
+  if ((*overlap_beg1 == -1 || *overlap_beg2 == -1)) {
+    //can't find same cpg pos in both hap strings
+    return false;
+  }
+  int i1 = *overlap_beg1;
+  int i2 = *overlap_beg2;
+  while(i1 < cpg_pos_1.size() && i2 < cpg_pos_2.size()) {
+    if (cpg_pos_1[i1] != cpg_pos_2[i2]) {
+      return false;
+    }
+    if (hap_1.hap_str[i1] != hap_2.hap_str[i2]) {
+      return false;
+    }
+    ++i1;
+    ++i2;
+  }
+  *overlap_end1 = i1 - 1;
+  *overlap_end2 = i2 - 1;
+  return true;
+}
+
+
 bool is_identity(hap_t &hap_a, hap_t &hap_b) {
   if (hap_a.chr == hap_b.chr && hap_a.chr_beg == hap_b.chr_beg &&
       hap_a.chr_end == hap_b.chr_end && hap_a.hap_str == hap_b.hap_str &&
@@ -57,13 +104,61 @@ bool is_identity(hap_t &hap_a, hap_t &hap_b) {
   return false;
 }
 
+hap_t merge(hap_t &hap_t_1, hap_t &hap_t_2, int &overlap_beg_a,
+    int &overlap_beg_b, int &overlap_end_a, int &overlap_end_b) {
+  if (hap_t_1.chr_beg <= hap_t_2.chr_beg && hap_t_1.chr_end >= hap_t_2.chr_end) {
+    return hap_t_1;
+  }
+  if (hap_t_1.chr_beg >= hap_t_2.chr_beg && hap_t_1.chr_end <= hap_t_2.chr_end) {
+    return hap_t_2;
+  }
+  hap_t hap_merge;
+  string hap_str = "";
+  if (hap_t_1.chr_beg <= hap_t_2.chr_beg) {
+    hap_merge.chr_beg = hap_t_1.chr_beg;
+    if (!(overlap_beg_a == 0 && overlap_beg_b == 0)) {
+      hap_str += hap_t_1.hap_str.substr(0, overlap_beg_a);
+    }
+  } else {
+    hap_merge.chr_beg = hap_t_2.chr_beg;
+    if (!(overlap_beg_a == 0 && overlap_beg_b == 0)) {
+    hap_str += hap_t_2.hap_str.substr(0, overlap_beg_b);
+    }
+  }
+
+  hap_str += hap_t_1.hap_str.substr(overlap_beg_a, overlap_end_a - overlap_beg_a + 1);
+
+  if (hap_t_1.chr_end <= hap_t_2.chr_end) {
+    hap_merge.chr_end = hap_t_2.chr_end;
+    if (!(overlap_end_a == hap_t_1.hap_str.size() - 1 &&
+        overlap_end_b == hap_t_2.hap_str.size() - 1)) {
+
+      hap_str += hap_t_2.hap_str.substr(overlap_end_b + 1);
+
+    }
+  } else {
+    hap_merge.chr_end = hap_t_1.chr_end;
+    if (!(overlap_end_a == hap_t_1.hap_str.size() - 1 &&
+          overlap_end_b == hap_t_2.hap_str.size() - 1)) {
+
+      hap_str += hap_t_1.hap_str.substr(overlap_end_a + 1);
+
+    }
+  }
+  hap_merge.chr = hap_t_1.chr;
+  hap_merge.hap_str = hap_str;
+  hap_merge.hap_count = 1;
+  hap_merge.hap_direction = hap_t_1.hap_direction;
+  return hap_merge;
+}
+
 bool load_chr_cpg(ContextMerge &ctx_merge) {
   /*
    * load all the cpg pos to ctx_merge
    */
   ctx_merge.fp_cpg = hts_open(ctx_merge.fn_cpg, "r");
   kstring_t cpg_line = {0,0,NULL};
-  unordered_map<string, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+  unordered_map<string, vector<hts_pos_t> >::iterator cpg_pos_map_itor;
   while (hts_getline(ctx_merge.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
 
     char *p ,*q;
@@ -99,7 +194,7 @@ bool load_chr_cpg(ContextMerge &ctx_merge) {
   return true;
 }
 
-bool opt_check(ContextMerge &ctx_merge) {
+  bool opt_check(ContextMerge &ctx_merge) {
   if (ctx_merge.fn_hap2 == NULL || ctx_merge.fn_hap1 == NULL || ctx_merge.fn_out == NULL) {
     return false;
   }

@@ -366,7 +366,7 @@ bool comp_HT_vec(const HT_s &a, const HT_s &b)
 
 bool load_cpg_no_idx(Context &ctx) {
   kstring_t cpg_line = {0,0,NULL};
-  unordered_map<int, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+  unordered_map<int, vector<hts_pos_t> >::iterator cpg_pos_map_itor;
   while (hts_getline(ctx.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
 
     char *p ,*q;
@@ -432,7 +432,7 @@ void get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts
 
   int pos = _lower_bound(ctx.cpg_pos_map[tid], i_beg);
 
-  unordered_map<int, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
+  unordered_map<int, vector<hts_pos_t> >::iterator cpg_pos_map_itor;
 
   cpg_pos_map_itor = ctx.cpg_pos_map.find(tid);
 
@@ -450,8 +450,8 @@ void get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts
 
 vector<HT_s> itor_sam(Context &ctx) {
 
-  map<string, vector<SamRead>> sam_map;
-  map<string, vector<SamRead>>::iterator iter;
+  map<string, vector<SamRead> > sam_map;
+  map<string, vector<SamRead> >::iterator iter;
   vector<HT_s> HT_vec;
 
   if (ctx.region_to_parse == SINGLE_REGION) {
