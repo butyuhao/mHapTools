@@ -12,7 +12,7 @@ AUX_SOURCE_DIRECTORY(
         ${CMAKE_SOURCE_DIR} DIR_SRCS
 )
 
-add_executable(haptools haptk.cpp convert.cpp hap.cpp merge.cpp)
+add_executable(haptools haptk.cpp convert.cpp hap.cpp merge.cpp beta.cpp)
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0") #for test
 #
