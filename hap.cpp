@@ -1,6 +1,3 @@
-#include <string>
-#include <stdbool.h>
-#include <iostream>
 #include <unordered_map>
 #include <cstring>
 #include "./include/hap.h"

@@ -11,6 +11,8 @@
 #define HAP_DEFAULT_DIRECTION '-'
 #define HAP_NULL_STRING ""
 #include <vector>
+#include <string>
+#include <iostream>
 typedef int64_t hap_pos_t;
 
 namespace std {

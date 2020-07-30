@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 INCLUDE_DIRECTORIES(
         include
-        htslib-1.10.2/include
+        ./htslib-1.10.2/htslib/
 )
 
 AUX_SOURCE_DIRECTORY(
