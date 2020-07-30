@@ -53,13 +53,13 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, hts_pos_t beg, hts_pos_t end
   int tbx_tid = tbx_name2id(ctx.idx_cpg, chr);
   ctx.cpg_itr = tbx_itr_queryi(ctx.idx_cpg, tbx_tid, i_beg, i_end);
   kstring_t ksbuf = {0, 0, NULL};
-  string cpg_line_sv;//todo:string_view
+  string cpg_line_sv;
   hts_pos_t cpg_start = 0;
   hts_pos_t cpg_end = 0;
 
 
   while(tbx_itr_next(ctx.fp_cpg, ctx.idx_cpg, ctx.cpg_itr, &ksbuf) >= 0) {
-    cpg_line_sv = string(ksbuf.s); //todo:string_view
+    cpg_line_sv = string(ksbuf.s);
     int i = 0;
     for (; i < cpg_line_sv.size(); i++) {
       if (cpg_line_sv[i] == '\t') {
