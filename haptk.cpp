@@ -38,6 +38,16 @@ int main(int argc, char *argv[]) {
 
     cout << "    optional:" << endl;
     cout << "    -o  <str>   output filename, out.hap is the default output filename." << endl;
+
+    cout << "Command: beta" << endl;
+    cout << "Usage:   haptools beta  [options] -i in.hap -c hg38_CpG.gz [-o beta.txt -s]" << endl;
+    cout << "    required:" << endl;
+    cout << "    -i  <str>   input file, hap format" << endl;
+    cout << "    -c  <str>   CpG file, gz format." << endl;
+
+    cout << "    optional:" << endl;
+    cout << "    -o  <str>   output path. (default: beta.txt)" << endl;
+    cout << "    -s  <bool>  if specified, the results are grouped by the direction of hap reads." << endl;
     exit(1);
   }
   int ret = 0;

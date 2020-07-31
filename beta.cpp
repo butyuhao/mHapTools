@@ -90,7 +90,7 @@ bool load_cpg_init_beta_map(ContextBeta &ctx_beta) {
 
 bool saving_beta(ContextBeta &ctx_beta) {
   string out_stream_name;
-  if (ctx_beta.fn_out) {
+  if (ctx_beta.fn_out != NULL) {
     out_stream_name = ctx_beta.fn_out;
   } else {
     out_stream_name = "beta.txt";
@@ -125,6 +125,7 @@ bool saving_beta(ContextBeta &ctx_beta) {
         }
       }
     }
+  out_stream.close();
   return 0;
 }
 
@@ -256,6 +257,7 @@ int main_beta(int argc, char *argv[]) {
       }
       case 'c': {
         ctx_beta.fn_cpg = optarg;
+        break;
       }
       case 'o': {
         ctx_beta.fn_out = optarg;

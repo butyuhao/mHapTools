@@ -15,15 +15,22 @@ Merge two hap files.
 - **-i** input file, SAM/BAM format, should be sorted by samtools.
 - **-a** aligner. [**BISMARK** | **BSMAP** | **UNKNOWN**(default)]
 - **-b** bed file of query regions.
-- **-c** path of the cpg file.
+- **-c** CpG file, gz format.
 - **-r** region. **chr1:2000-200000**
-- **-o** output path.
+- **-o** output path. (default: out.hap)
 
 #### merge
 
-* **-i** input file, hap format
-* **-c** path of the cpg file.
-* **-o** output path.
+* **-i** input file, hap format.
+* **-c** CpG file, gz format.
+* **-o** output path. (default: out.hap)
+
+#### beta
+
+* -i input file, hap format
+* -c CpG file, gz format.
+* -o output path. (default: beta.txt)
+* -s if specified, the results are grouped by the direction of hap reads.
 
 ### Build example
 
