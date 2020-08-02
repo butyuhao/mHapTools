@@ -257,10 +257,6 @@ bool convert_opt_check(Context &ctx) {
   if (ctx.fn_bam == NULL || ctx.fn_cpg == NULL) {
     return false;
   }
-  if (ctx.stranded && ctx.non_directional) {
-    hts_log_error("--stranded and --non_directional can not be specified together.");
-    return false;
-  }
   return true;
 }
 
@@ -782,7 +778,6 @@ void saving_hap(Context &ctx, vector<HT_s> &HT_vec) {
     }
     is_overlap[line] = true;
   }
-
   out_stream.close();
 }
 
@@ -797,7 +792,7 @@ int main_convert(int argc, char *argv[]) {
 
   int long_index;
 
-  static const char *opt_string = "i:b:c:r:o:sn";
+  static const char *opt_string = "i:b:c:r:o:n";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
@@ -805,7 +800,6 @@ int main_convert(int argc, char *argv[]) {
       { "cpg_path", required_argument, NULL, 'c' },
       { "region", optional_argument, NULL, 'r' },
       { "output", optional_argument, NULL, 'o' },
-      { "stranded", optional_argument, NULL, 's' },
       { "non-directional", optional_argument, NULL, 'n' },
       { NULL, no_argument, NULL, 0 }
   };
@@ -831,10 +825,6 @@ int main_convert(int argc, char *argv[]) {
       }
       case 'o': {
         ctx.output_path = optarg;
-        break;
-      }
-      case 's': {
-        ctx.stranded = true;
         break;
       }
       case 'n': {
