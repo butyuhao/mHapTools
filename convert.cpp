@@ -106,37 +106,71 @@ bool SamRead::init(Context &ctx) {
   if (read_len == 0) {
     return false;
   }
-
-  if (strcmp(ctx.aligner, "BISMARK") == 0) {
-    ret = _get_bismark_std();
-
+  //quality check
+  if (_get_XM(ctx)) {
+    ret = _get_bismark_QC(ctx);
     if (!ret) {
-      hts_log_trace("_get_bismark_std(): fail to get bismark std.");
       return false;
     }
-
-    if (_get_XM(ctx)) {
-      ret = _get_bismark_QC(ctx);
-      if (!ret) {
-        return false;
-      }
-    } else {
-      hts_log_trace("XM string is required in SAM");
-      return false;
-    }
-  } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
-    if (!_get_ZS(ctx)) {
-      hts_log_trace("_get_ZS(): fail to get ZS str");
-      return false;
-    }
-
-  } else if(strcmp(ctx.aligner, "UNKNOWN") == 0) {
-    //TODO(butyuhao@foxmail.com) 使用unknown的时候，与BISMARK比较可能多出一些结果，需要排查一下原因。
+  }
+  //get direction
+  if (ctx.non_directional) {
     read_WC = DIRECTION_UNKNOWN;
   } else {
-    hts_log_error("Only BSMAP, BISMARK and UNKNOWN are supported.");
-    return false;
+    if (ctx.aln->core.flag & BAM_FPAIRED && ctx.aln->core.flag & BAM_FPROPER_PAIR) {
+      if (ctx.aln->core.flag & BAM_FREAD1) {
+        if (ctx.aln->core.flag & BAM_FREVERSE) {
+          read_WC = DIRECTION_MINUS;
+        } else if (ctx.aln->core.flag & BAM_FMREVERSE) {
+          read_WC = DIRECTION_PLUS;
+        }
+      } else if (ctx.aln->core.flag & BAM_FREAD2 ) {
+        if (ctx.aln->core.flag & BAM_FREVERSE) {
+          read_WC = DIRECTION_PLUS;
+        } else if (ctx.aln->core.flag & BAM_FMREVERSE) {
+          read_WC = DIRECTION_MINUS;
+        }
+      }
+    } else if (!(ctx.aln->core.flag & BAM_FPAIRED) && !(ctx.aln->core.flag & BAM_FPROPER_PAIR)){
+      if (ctx.aln->core.flag & BAM_FREVERSE) {
+        read_WC = DIRECTION_MINUS;
+      } else {
+        read_WC = DIRECTION_PLUS;
+      }
+    } else {
+      return false;
+    }
   }
+
+//  if (strcmp(ctx.aligner, "BISMARK") == 0) {
+//    ret = _get_bismark_std();
+//
+//    if (!ret) {
+//      hts_log_trace("_get_bismark_std(): fail to get bismark std.");
+//      return false;
+//    }
+//
+//    if (_get_XM(ctx)) {
+//      ret = _get_bismark_QC(ctx);
+//      if (!ret) {
+//        return false;
+//      }
+//    } else {
+//      hts_log_trace("XM string is required in SAM");
+//      return false;
+//    }
+//  } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
+//    if (!_get_ZS(ctx)) {
+//      hts_log_trace("_get_ZS(): fail to get ZS str");
+//      return false;
+//    }
+//  } else if(strcmp(ctx.aligner, "UNKNOWN") == 0) {
+//    //TODO(butyuhao@foxmail.com) 使用unknown的时候，与BISMARK比较可能多出一些结果，需要排查一下原因。
+//    read_WC = DIRECTION_UNKNOWN;
+//  } else {
+//    hts_log_error("Only BSMAP, BISMARK and UNKNOWN are supported.");
+//    return false;
+//  }
 
   seq = new char[read_len];
   for(int i = 0; i < read_len; i++) {
@@ -793,7 +827,7 @@ int main_convert(int argc, char *argv[]) {
 
   int long_index;
 
-  static const char *opt_string = "i:a:b:c:r:o:";
+  static const char *opt_string = "i:a:b:c:r:o:sn";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
@@ -802,6 +836,8 @@ int main_convert(int argc, char *argv[]) {
       { "cpg_path", required_argument, NULL, 'c' },
       { "region", optional_argument, NULL, 'r' },
       { "output", optional_argument, NULL, 'o' },
+      { "stranded", optional_argument, NULL, 's' },
+      { "non-directional", optional_argument, NULL, 'n' },
       { NULL, no_argument, NULL, 0 }
   };
 
@@ -830,6 +866,14 @@ int main_convert(int argc, char *argv[]) {
       }
       case 'o': {
         ctx.output_path = optarg;
+        break;
+      }
+      case 's': {
+        ctx.stranded = true;
+        break;
+      }
+      case 'n': {
+        ctx.non_directional = true;
         break;
       }
       default: {
