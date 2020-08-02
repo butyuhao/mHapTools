@@ -25,8 +25,8 @@ class Context {
   Context () :fp_bam(NULL), fp_cpg(NULL), idx_cpg(NULL), has_idx_cpg(false),
               idx_bam(NULL), cpg_itr(NULL), sam_itr(NULL), hdr_bam(NULL),
               aln(NULL), bam_aux_p(NULL), fn_bam(NULL), output_path(NULL),
-              aligner(NULL), fn_bed(NULL), fn_cpg(NULL), region(NULL),
-              stranded(false), non_directional(false){};
+              fn_bed(NULL), fn_cpg(NULL), region(NULL),stranded(false),
+              non_directional(false){};
   ~Context();
 
   bool parse_region();
@@ -45,7 +45,6 @@ class Context {
   // options
   char *fn_bam;   /* -i option */
   char *output_path;  /* -o option */
-  char *aligner;      /* -a option */
   char *fn_bed;     /* -b option */
   char *fn_cpg;      /* -c option */
   char *region;       /* -r option */

@@ -254,7 +254,11 @@ bool SamRead::haplo_type() {
 }
 
 bool convert_opt_check(Context &ctx) {
-  if (ctx.fn_bam == NULL || ctx.aligner == NULL || ctx.fn_cpg == NULL) {
+  if (ctx.fn_bam == NULL || ctx.fn_cpg == NULL) {
+    return false;
+  }
+  if (ctx.stranded && ctx.non_directional) {
+    hts_log_error("--stranded and --non_directional can not be specified together.");
     return false;
   }
   return true;
@@ -793,11 +797,10 @@ int main_convert(int argc, char *argv[]) {
 
   int long_index;
 
-  static const char *opt_string = "i:a:b:c:r:o:sn";
+  static const char *opt_string = "i:b:c:r:o:sn";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
-      { "aligner", optional_argument, NULL, 'a' },
       { "bed_file", optional_argument, NULL, 'b' },
       { "cpg_path", required_argument, NULL, 'c' },
       { "region", optional_argument, NULL, 'r' },
@@ -812,10 +815,6 @@ int main_convert(int argc, char *argv[]) {
     switch (opt) {
       case 'i': {
         ctx.fn_bam = optarg;
-        break;
-      }
-      case 'a': {
-        ctx.aligner = optarg;
         break;
       }
       case 'b': {
@@ -847,11 +846,6 @@ int main_convert(int argc, char *argv[]) {
       }
     }
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
-  }
-
-  if (ctx.aligner == NULL) {
-    string aligner_opt = string("UNKNOWN");
-    ctx.aligner = const_cast<char *>(aligner_opt.c_str());
   }
 
   int ret;
