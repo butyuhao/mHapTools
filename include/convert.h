@@ -108,9 +108,7 @@ class SamRead {
   ~SamRead();
   bool init(Context &ctx);
   bool haplo_type();
-  bool _get_bismark_std();
   bool _get_XM(Context &ctx);
-  bool _get_ZS(Context &ctx);
   bool _get_bismark_QC(Context &ctxainain);
 
   char *XM_string;

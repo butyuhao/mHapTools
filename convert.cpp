@@ -231,7 +231,6 @@ bool SamRead::haplo_type() {
         _hap_met += '0';
       } else {
         _hap_met += nucleobases;
-        //cout << hap_met << endl;
         QC = false;
       }
     } else if (read_WC == DIRECTION_MINUS) {
@@ -244,7 +243,8 @@ bool SamRead::haplo_type() {
         QC = false;
       }
     } else {
-      cout << "Error! Strand undefined" << endl;
+      hts_log_info("Strand undefined");
+      QC = false;
     }
   }
   if (_cpg.size() > 0) {
@@ -260,44 +260,10 @@ bool convert_opt_check(Context &ctx) {
   return true;
 }
 
-bool SamRead::_get_bismark_std() {
-  if (ctx->aln->core.flag == 99 || ctx->aln->core.flag == 147) {
-    read_WC = DIRECTION_PLUS;
-  } else if (ctx->aln->core.flag == 83 || ctx->aln->core.flag == 163) {
-    read_WC = DIRECTION_MINUS;
-  } else {
-    cout << "sam_read::_get_bismark_std() Unknown flag" << endl;
-    return false;
-  }
-  return true;
-}
-
 bool SamRead::_get_XM(Context &ctx) {
 
   ctx.bam_aux_p = bam_aux_get(ctx.aln, "XM");
   if (!ctx.bam_aux_p) {
-    return false;
-  }
-  return true;
-}
-
-bool SamRead::_get_ZS(Context &ctx) {
-
-  ctx.bam_aux_p = bam_aux_get(ctx.aln, "ZS");
-  if (!ctx.bam_aux_p) {
-    return false;
-  }
-  ZS_string = bam_aux2Z(ctx.bam_aux_p);
-  if (!ZS_string) {
-    hts_log_error("has no ZS");
-    return false;
-  }
-  if (*ZS_string == '+') {
-    read_WC = DIRECTION_PLUS;
-  } else if (*ZS_string == '-'){
-    read_WC = DIRECTION_MINUS;
-  } else {
-    hts_log_trace("Direction str error");
     return false;
   }
   return true;
