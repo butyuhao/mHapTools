@@ -4,6 +4,7 @@
 #include "./include/merge.h"
 #include "./include/convert.h"
 #include "./include/beta.h"
+#include "./include/summary.h"
 
 
 using namespace std;
@@ -60,8 +61,10 @@ int main(int argc, char *argv[]) {
 
   } else if (strcmp(argv[1], "merge") == 0) {
     ret = main_merge(argc - 1, argv + 1);
-  }  else if (strcmp(argv[1], "beta") == 0) {
+  } else if (strcmp(argv[1], "beta") == 0) {
     ret = main_beta(argc - 1, argv + 1);
+  } else if (strcmp(argv[1], "summary") == 0) {
+    ret = main_summary(argc - 1, argv + 1);
   } else if (strcmp(argv[1], "help") == 0) {
     goto help;
   } else if (strcmp(argv[1], "--help") == 0) {
