@@ -5,8 +5,10 @@
 #ifndef HAPTOOLS__SUMMARY_H_
 #define HAPTOOLS__SUMMARY_H_
 
-#include "hap.h"
 #include <string>
+#include <map>
+#include "../htslib-1.10.2/htslib/hts.h"
+#include "hap.h"
 
 namespace std {
 
@@ -17,6 +19,13 @@ typedef struct region_t {
 }region_t;
 
 typedef struct summary_t {
+  int is_empty() {
+    if (n_reads == 0 && m_base == 0 && t_base == 0 && n_reads_k4 == 0 && n_dr == 0 &&
+        n_reads_r == 0 && m_base_r == 0 && t_base_r == 0 && n_reads_k4_r == 0 && n_dr_r == 0) {
+      return 1;
+    }
+    return 0;
+  }
   // unstranded or direction +
   hap_pos_t n_reads;
   hap_pos_t m_base;
@@ -39,15 +48,18 @@ class ContextSummary {
   ~ContextSummary();
 
   char *fn_hap;
+  char *fn_cpg;
   char *fn_bed;
   char *fn_out;
+  char *region;
   hapFile *fp_hap;
+  htsFile *fp_cpg;
   FILE *fp_bed;
   bool stranded;
-  char *region;
+  bool genome_wide = false;
 
   vector<string> summary_result;
-
+  map<string, map<hap_pos_t, summary_t> > genome_wide_map;
 };
 int main_summary(int argc, char *argv[]);
 }

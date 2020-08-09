@@ -42,7 +42,6 @@ class ContextBeta {
   map<string, map<hap_pos_t, beta_t> > beta_map;
   unordered_map<string, vector<hts_pos_t> > cpg_pos_map;
 
-
 };
 
 }// namespace std

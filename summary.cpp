@@ -5,9 +5,8 @@
 #include <fstream>
 #include "./include/summary.h"
 #include "./include/hap.h"
-#include "../htslib-1.10.2/htslib/hts.h"
 #include "../htslib-1.10.2/htslib/regidx.h"
-
+#include "../htslib-1.10.2/htslib/kseq.h"
 
 namespace std {
 
@@ -21,8 +20,14 @@ ContextSummary::~ContextSummary() {
 }
 
 int summary_opt_check(ContextSummary &ctx_sum) {
-  if (ctx_sum.fn_bed == NULL && ctx_sum.region == NULL) {
-    return 1;
+  if (ctx_sum.genome_wide) {
+    if (ctx_sum.fn_cpg == NULL) {
+      return 1;
+    }
+  } else {
+    if (ctx_sum.fn_bed == NULL && ctx_sum.region == NULL) {
+      return 1;
+    }
   }
   return 0;
 }
@@ -208,20 +213,248 @@ void saving_summary(ContextSummary &ctx_sum) {
   out_stream.close();
 }
 
+inline int parse_cpg_line(char *cpg_line, string *chr, hts_pos_t *beg, hts_pos_t *end) {
+  if (cpg_line == NULL || chr == NULL || beg == NULL || end == NULL) {
+    return 1;
+  }
+  char *p ,*q;
+  p = q = cpg_line;
+
+  while(*q && *q != '\t') {
+    q++;
+  }
+  *q = '\0';
+  *chr = string(p);
+  *q = '\t';
+  p = q + 1;
+  q = p;
+  while(*q && *q != '\t') {
+    q++;
+  }
+  *q = '\0';
+  *beg = atoll(p);
+  *q = '\t';
+  p = q + 1;
+  *end = atoll(p);
+  return 0;
+}
+
+int load_cpg_init_map(ContextSummary &ctx_sum) {
+  int ret = 0;
+  map<string, map<hap_pos_t, summary_t> >::iterator chr_itor;
+  map<hap_pos_t, summary_t>::iterator cpg_itor;
+  ctx_sum.fp_cpg = hts_open(ctx_sum.fn_cpg, "r");
+  if (ctx_sum.fp_cpg == NULL) {
+    hts_log_error("Fail to open CpG file.");
+    return 1;
+  }
+  kstring_t cpg_line = {0,0,NULL};
+
+  while (hts_getline(ctx_sum.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
+    string chr;
+    hts_pos_t beg;
+    hts_pos_t end;
+    ret = parse_cpg_line(cpg_line.s, &chr, &beg, &end);
+    if (ret == 1) {
+      hts_log_error("Error: parse_cpg_line()");
+      return 1;
+    }
+    //load genome_summary_map
+    chr_itor = ctx_sum.genome_wide_map.find(chr);
+    if (chr_itor == ctx_sum.genome_wide_map.end()) {
+      map<hap_pos_t, summary_t> summary_t_map;
+      summary_t sum_t  = {0,0,0,0,0,0,0,0,0,0};
+      summary_t_map[beg] = sum_t;
+      ctx_sum.genome_wide_map[chr] = summary_t_map;
+    } else {
+      cpg_itor = ctx_sum.genome_wide_map[chr].find(beg);
+      if (cpg_itor == ctx_sum.genome_wide_map[chr].end()) {
+        summary_t sum_t  = {0,0,0,0,0,0,0,0,0,0};
+        ctx_sum.genome_wide_map[chr][beg] = sum_t;
+      }
+    }
+  }
+  return 0;
+}
+
+int saving_genome_wide(ContextSummary &ctx_sum) {
+  string out_stream_name;
+  if (ctx_sum.fn_out != NULL) {
+    out_stream_name = ctx_sum.fn_out;
+  } else {
+    out_stream_name = string(ctx_sum.fn_hap) + "_summary_genome_wide.txt";
+  }
+  ofstream out_stream(out_stream_name);
+
+  map<string, map<hap_pos_t, summary_t> >::iterator chr_itor;
+  map<hap_pos_t, summary_t>::iterator cpg_itor;
+  for (chr_itor = ctx_sum.genome_wide_map.begin(); chr_itor != ctx_sum.genome_wide_map.end(); chr_itor++) {
+    for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
+      if (!cpg_itor->second.is_empty()) {
+        if (ctx_sum.stranded) {
+          out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
+              '\t' + to_string(cpg_itor->first + 1) + '\t' + '+' + '\t' + to_string(cpg_itor->second.n_reads)
+              + '\t' + to_string(cpg_itor->second.m_base) + '\t' + to_string(cpg_itor->second.t_base) + '\t' +
+              to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) << endl;
+
+          out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
+              '\t' + to_string(cpg_itor->first + 1) + '\t' + '-' + '\t' + to_string(cpg_itor->second.n_reads_r)
+              + '\t' + to_string(cpg_itor->second.m_base_r) + '\t' + to_string(cpg_itor->second.t_base_r) + '\t' +
+              to_string(cpg_itor->second.n_reads_k4_r) + '\t' + to_string(cpg_itor->second.n_dr_r) << endl;
+        } else {
+          out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
+              '\t' + to_string(cpg_itor->first + 1) + '\t' + '*' + '\t' + to_string(cpg_itor->second.n_reads)
+              + '\t' + to_string(cpg_itor->second.m_base) + '\t' + to_string(cpg_itor->second.t_base) + '\t' +
+              to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) << endl;
+        }
+      }
+    }
+  }
+  out_stream.close();
+  return 0;
+}
+
+int process_genome_wide(ContextSummary &ctx_sum) {
+  ctx_sum.fp_hap = hap_open(ctx_sum.fn_hap, "r");
+  if (ctx_sum.fp_hap == NULL) {
+    hts_log_error("Fail to open hap file");
+    return 1;
+  }
+  hap_t hap_line_t = hap_t {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
+  while(hap_read(ctx_sum.fp_hap, &hap_line_t) == 0) {
+    hap_pos_t cur_m_base = 0;
+    hap_pos_t cur_t_base = 0;
+    map<string, map<hap_pos_t, summary_t> >::iterator chr_itor;
+    map<hap_pos_t, summary_t>::iterator cpg_itor;
+    chr_itor = ctx_sum.genome_wide_map.find(hap_line_t.chr);
+    if (chr_itor == ctx_sum.genome_wide_map.end()) {
+      hts_log_error("Can not find chr: %s, CpG file and hap file are not match.", hap_line_t.chr.c_str());
+      return 1;
+    }
+    cpg_itor = ctx_sum.genome_wide_map[hap_line_t.chr].find(hap_line_t.chr_beg);
+    if (cpg_itor == ctx_sum.genome_wide_map[hap_line_t.chr].end()) {
+      hts_log_error("Can not find CpG begin point %lld, CpG file and hap file are not match.", hap_line_t.chr_beg);
+      return 1;
+    }
+    summary_t cur_sum_t = summary_t {0,0,0,0,0,0,0,0,0,0};
+    if (ctx_sum.stranded) {
+      if (hap_line_t.hap_direction == '+') {
+        ++cur_sum_t.n_reads;
+        cur_sum_t.t_base += hap_line_t.hap_str.size();
+        cur_t_base = hap_line_t.hap_str.size();
+        for (auto b : hap_line_t.hap_str) {
+          if (b == '1') {
+            ++cur_sum_t.m_base;
+            ++cur_m_base;
+          }
+        }
+        if (cur_m_base >= 4) {
+          ++cur_sum_t.n_reads_k4;
+        }
+        if (cur_m_base > 0 && cur_t_base != cur_m_base) {
+          ++cur_sum_t.n_dr;
+        }
+      } else if (hap_line_t.hap_direction == '-') {
+        ++cur_sum_t.n_reads_r;
+        cur_sum_t.t_base_r += hap_line_t.hap_str.size();
+        cur_t_base = hap_line_t.hap_str.size();
+        for (auto b : hap_line_t.hap_str) {
+          if (b == '1') {
+            ++cur_sum_t.m_base_r;
+            ++cur_m_base;
+          }
+        }
+        if (cur_m_base >= 4) {
+          ++cur_sum_t.n_reads_k4_r;
+        }
+        if (cur_m_base > 0 && cur_t_base != cur_m_base) {
+          ++cur_sum_t.n_dr_r;
+        }
+      } else {
+        hts_log_error("Contain unknown direction info.");
+        return 1;
+      }
+    } else {
+      ++cur_sum_t.n_reads;
+      cur_sum_t.t_base += hap_line_t.hap_str.size();
+      cur_t_base = hap_line_t.hap_str.size();
+      for (auto b : hap_line_t.hap_str) {
+        if (b == '1') {
+          ++cur_sum_t.m_base;
+          ++cur_m_base;
+        }
+      }
+      if (cur_m_base >= 4) {
+        ++cur_sum_t.n_reads_k4;
+      }
+      if (cur_m_base > 0 && cur_t_base != cur_m_base) {
+        ++cur_sum_t.n_dr;
+      }
+    }
+
+    for (int i = 0;
+    cpg_itor != ctx_sum.genome_wide_map[hap_line_t.chr].end() &&
+    i < hap_line_t.hap_str.size(); cpg_itor++, i++) {
+
+      cpg_itor->second.n_reads += cur_sum_t.n_reads;
+      cpg_itor->second.m_base += cur_sum_t.m_base;
+      cpg_itor->second.t_base += cur_sum_t.t_base;
+      cpg_itor->second.n_reads_k4 += cur_sum_t.n_reads_k4;
+      cpg_itor->second.n_dr += cur_sum_t.n_dr;
+
+      if (ctx_sum.stranded) {
+        cpg_itor->second.n_reads_r += cur_sum_t.n_reads_r;
+        cpg_itor->second.m_base_r += cur_sum_t.m_base_r;
+        cpg_itor->second.t_base_r += cur_sum_t.t_base_r;
+        cpg_itor->second.n_reads_k4_r += cur_sum_t.n_reads_k4_r;
+        cpg_itor->second.n_dr_r += cur_sum_t.n_dr_r;
+      }
+      //sanity check
+      if (i == hap_line_t.hap_str.size() - 1) {
+        if (cpg_itor->first != hap_line_t.chr_end) {
+          hts_log_error("CpG file and hap file do not match.");
+          return 1;
+        }
+      }
+    }
+  }
+  hap_close(ctx_sum.fp_hap);
+  return 0;
+}
+
+
+int get_genome_wide(ContextSummary &ctx_sum) {
+  int ret = 0;
+  cout << "Loading CpG positions..." << endl;
+  ret = load_cpg_init_map(ctx_sum);
+  if (ret == 1) {
+    return 1;
+  }
+  cout << "Processing..." << endl;
+  ret = process_genome_wide(ctx_sum);
+  if (ret == 1) {
+    return 1;
+  }
+
+  return 0;
+}
+
 int main_summary(int argc, char *argv[]) {
 
   ContextSummary ctx_sum = ContextSummary();
 
   int long_index;
 
-  static const char *opt_string = "i:o:b:sr:";
+  static const char *opt_string = "i:o:b:sr:gc:";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
       { "output", optional_argument, NULL, 'o' },
+      { "cpg", optional_argument, NULL, 'c' },
       { "bed", optional_argument, NULL, 'b' },
       { "stranded", optional_argument, NULL, 's' },
       { "region", optional_argument, NULL, 'r' },
+      { "genome-wide", optional_argument, NULL, 'g' },
       { NULL, no_argument, NULL, 0 }
   };
 
@@ -240,12 +473,20 @@ int main_summary(int argc, char *argv[]) {
         ctx_sum.fn_bed = optarg;
         break;
       }
+      case 'c': {
+        ctx_sum.fn_cpg = optarg;
+        break;
+      }
       case 's': {
         ctx_sum.stranded = true;
         break;
       }
       case 'r': {
         ctx_sum.region = optarg;
+        break;
+      }
+      case 'g': {
+        ctx_sum.genome_wide = true;
         break;
       }
       default: {
@@ -263,15 +504,27 @@ int main_summary(int argc, char *argv[]) {
     return 1;
   }
 
-  cout << "Processing..." << endl;
-  ret = get_summary(ctx_sum);
-
-  if (ret == 1) {
-    hts_log_error("Get summary error.");
+  if (ctx_sum.genome_wide == false) {
+    cout << "Processing..." << endl;
+    ret = get_summary(ctx_sum);
+    if (ret == 1) {
+      hts_log_error("Get summary error.");
+    }
+    cout << "Saving..." << endl;
+    saving_summary(ctx_sum);
+  } else {
+    ret = get_genome_wide(ctx_sum);
+    if (ret == 1) {
+      hts_log_error("Error: get_genome_wide()");
+      return 1;
+    }
+    cout << "Saving..." << endl;
+    ret = saving_genome_wide(ctx_sum);
+    if (ret == 1) {
+      hts_log_error("Error: saving_genome_wide()");
+      return 1;
+    }
   }
-  cout << "Saving..." << endl;
-  saving_summary(ctx_sum);
-
   return 0;
 }
 }//namespace std
