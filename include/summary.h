@@ -46,6 +46,8 @@ class ContextSummary {
   bool stranded;
   char *region;
 
+  vector<string> summary_result;
+
 };
 int main_summary(int argc, char *argv[]);
 }

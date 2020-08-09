@@ -42,6 +42,8 @@ typedef struct hap_t{
 } hap_t;
 
 hapFile* hap_open(const char *filename, const char *mode);
+// Returns 0 on success,
+//        -1 on EOF,
 int hap_read(hapFile *const fp, hap_t *h_line_t);
 int hap_close(hapFile *fp);
 }

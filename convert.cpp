@@ -796,8 +796,8 @@ int main_convert(int argc, char *argv[]) {
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
-      { "bed_file", optional_argument, NULL, 'b' },
-      { "cpg_path", required_argument, NULL, 'c' },
+      { "bed", optional_argument, NULL, 'b' },
+      { "cpg", required_argument, NULL, 'c' },
       { "region", optional_argument, NULL, 'r' },
       { "output", optional_argument, NULL, 'o' },
       { "non-directional", optional_argument, NULL, 'n' },

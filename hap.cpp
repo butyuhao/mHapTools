@@ -34,10 +34,8 @@ void parse_hap_line(char *line, int buf_len, hap_t *h_line_t) {
   while(*q != HAP_LINE_DELIM_TAB && (q - line) < buf_len - 1) {q++;}
   (*q) = '\0';
   h_line_t->hap_count = atoi(p);
-  q = p = q + 1;
+  p = q + 1;
 
-  while(*q != HAP_LINE_DELIM_TAB && (q - line) < buf_len - 1) {q++;}
-  p = q - 1;
   h_line_t->hap_direction = *p;
 
 };
@@ -57,11 +55,14 @@ int hap_read(hapFile *const fp, hap_t *h_line_t) {
     return -1;
   }
 
-  buf[buf_len - 1] = '\0';
+  if (buf[buf_len] == '\n') {
+    buf[buf_len - 1] = '\0';
+  } else {
+    //in case the last line does not have \n
+    buf[buf_len] = '\0';
+  }
 
   parse_hap_line(buf, buf_len, h_line_t);
-
-  buf[buf_len - 1] = ' ';
 
   return 0;
 }
