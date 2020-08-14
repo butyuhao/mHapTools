@@ -27,19 +27,32 @@ Merge two hap files.
 
 #### beta
 
-* -i input file, hap format
-* -c CpG file, gz format.
-* -o output path. (default: beta.txt)
-* -s if specified, the results are grouped by the direction of hap reads.
+* **-i** input file, hap format
+* **-c** CpG file, gz format.
+* **-o** output path. (default: beta.txt)
+* **-s** if specified, the results are grouped by the direction of hap reads.
+* **-b** bed file of query regions.
+
+#### summary
+
+* **-i** input file, hap format
+* **-c** CpG file, gz format.
+* **-b** bed file of query regions.
+* **-r** query region, e.g. chr1:2000-20000.
+* **-o** output path.
+* **-s** if specified, the results are grouped by the direction of hap reads.
+* **-g** genome-wide result.
 
 ### Build example
 
 ```bash
-mkdir build
-cd build
-cmake ..
+cd haptools
+cd htslib-1.10.2
+./configure --prefix=`pwd`
 make
-./haptools convert -i /XXX/XXX.bam -c /XXX/XXX.gz -r X:2000-20000 -a BISMARK -o out.hap 
+make install
+cd ..
+g++ -o haptools  convert.cpp hap.cpp haptk.cpp merge.cpp beta.cpp summary.cpp -L ./htslib-1.10.2/ -lhts -std=c++11
 ```
 
 ### Index File

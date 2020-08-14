@@ -5,8 +5,8 @@
 #include <map>
 #include <fstream>
 #include "./include/beta.h"
-#include "../htslib-1.10.2/htslib/kseq.h"
-#include "../htslib-1.10.2/htslib/hts.h"
+#include "./htslib-1.10.2/htslib/kseq.h"
+#include "./htslib-1.10.2/htslib/hts.h"
 
 
 namespace std {

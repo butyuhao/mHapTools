@@ -5,8 +5,8 @@
 #include <fstream>
 #include "./include/summary.h"
 #include "./include/hap.h"
-#include "../htslib-1.10.2/htslib/regidx.h"
-#include "../htslib-1.10.2/htslib/kseq.h"
+#include "./htslib-1.10.2/htslib/regidx.h"
+#include "./htslib-1.10.2/htslib/kseq.h"
 
 namespace std {
 
@@ -75,6 +75,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
   //get summary result within reg_t and put to sum_t
   ctx_sum.fp_hap = hap_open(ctx_sum.fn_hap, "r");
   if (ctx_sum.fp_hap == NULL) {
+    hts_log_error("Fail to open the hap file.");
     return 1;
   }
   hap_t hap_line_t = hap_t {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
@@ -292,15 +293,18 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
     for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
       if (!cpg_itor->second.is_empty()) {
         if (ctx_sum.stranded) {
-          out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
-              '\t' + to_string(cpg_itor->first + 1) + '\t' + '+' + '\t' + to_string(cpg_itor->second.n_reads)
-              + '\t' + to_string(cpg_itor->second.m_base) + '\t' + to_string(cpg_itor->second.t_base) + '\t' +
-              to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) << endl;
-
-          out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
-              '\t' + to_string(cpg_itor->first + 1) + '\t' + '-' + '\t' + to_string(cpg_itor->second.n_reads_r)
-              + '\t' + to_string(cpg_itor->second.m_base_r) + '\t' + to_string(cpg_itor->second.t_base_r) + '\t' +
-              to_string(cpg_itor->second.n_reads_k4_r) + '\t' + to_string(cpg_itor->second.n_dr_r) << endl;
+          if (!cpg_itor->second.is_direction_plus_empty()) {
+            out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
+                '\t' + to_string(cpg_itor->first + 1) + '\t' + '+' + '\t' + to_string(cpg_itor->second.n_reads)
+                + '\t' + to_string(cpg_itor->second.m_base) + '\t' + to_string(cpg_itor->second.t_base) + '\t' +
+                to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) << endl;
+          }
+          if (!cpg_itor->second.is_direction_minus_empty()) {
+            out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
+                '\t' + to_string(cpg_itor->first + 1) + '\t' + '-' + '\t' + to_string(cpg_itor->second.n_reads_r)
+                + '\t' + to_string(cpg_itor->second.m_base_r) + '\t' + to_string(cpg_itor->second.t_base_r) + '\t' +
+                to_string(cpg_itor->second.n_reads_k4_r) + '\t' + to_string(cpg_itor->second.n_dr_r) << endl;
+          }
         } else {
           out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
               '\t' + to_string(cpg_itor->first + 1) + '\t' + '*' + '\t' + to_string(cpg_itor->second.n_reads)

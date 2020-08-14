@@ -49,6 +49,20 @@ int main(int argc, char *argv[]) {
     cout << "    optional:" << endl;
     cout << "    -o  <str>   output path. (default: beta.txt)" << endl;
     cout << "    -s  <bool>  if specified, the results are grouped by the direction of hap reads." << endl;
+    cout << "    -n  <bool>  if specified, the results do not differentiate the direction." << endl;
+
+    cout << "Command: summary" << endl;
+    cout << "Usage:   haptools summary  [options] -i in.hap -c hg38_CpG.gz [-o beta.txt -s]" << endl;
+    cout << "    required:" << endl;
+    cout << "    -i  <str>   input file, hap format" << endl;
+    cout << "    -c  <str>   CpG file, gz format." << endl;
+    cout << "    -b  <str>   bed file of query regions." << endl;
+    cout << "    -r  <str>   query region, e.g. chr1:2000-20000." << endl;
+
+    cout << "    optional:" << endl;
+    cout << "    -o  <str>   output path." << endl;
+    cout << "    -s  <bool>  if specified, the results are grouped by the direction of hap reads." << endl;
+    cout << "    -g  <bool>  genome-wide result." << endl;
     exit(1);
   }
   int ret = 0;

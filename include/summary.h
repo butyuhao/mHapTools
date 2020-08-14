@@ -26,6 +26,18 @@ typedef struct summary_t {
     }
     return 0;
   }
+  int is_direction_plus_empty() {
+    if (n_reads == 0 && m_base == 0 && t_base == 0 && n_reads_k4 == 0 && n_dr == 0) {
+      return 1;
+    }
+    return 0;
+  }
+  int is_direction_minus_empty() {
+    if (n_reads_r == 0 && m_base_r == 0 && t_base_r == 0 && n_reads_k4_r == 0 && n_dr_r == 0) {
+      return 1;
+    }
+    return 0;
+  }
   // unstranded or direction +
   hap_pos_t n_reads;
   hap_pos_t m_base;
