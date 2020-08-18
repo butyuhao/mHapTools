@@ -4,9 +4,12 @@
 #include <getopt.h>
 #include <map>
 #include <fstream>
+#include <regidx.h>
 #include "./include/beta.h"
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/hts.h"
+#include "./htslib-1.10.2/htslib/regidx.h"
+#include "./include/summary.h"
 
 
 namespace std {
@@ -129,97 +132,127 @@ bool saving_beta(ContextBeta &ctx_beta) {
   return 0;
 }
 
-int get_beta(ContextBeta &ctx_beta) {
-  hap_t h_t = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
-
+int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
   map<string, map<hap_pos_t, beta_t> >::iterator chr_itor;
 
   map<hap_pos_t, beta_t>::iterator cpg_itor;
 
   unordered_map<string, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
 
-  while(hap_read(ctx_beta.fp_hap, &h_t) == 0) {
-    //check the existence of the chr in the map
-    chr_itor = ctx_beta.beta_map.find(h_t.chr);
-    if (chr_itor == ctx_beta.beta_map.end()) {
-      hts_log_error("Can't find chr: %s in the input CpG file.", h_t.chr.c_str());
-      return 1;
-    }
+  //check the existence of the chr in the map
+  chr_itor = ctx_beta.beta_map.find(h_t.chr);
+  if (chr_itor == ctx_beta.beta_map.end()) {
+    hts_log_error("Can't find chr: %s in the input CpG file.", h_t.chr.c_str());
+    return 1;
+  }
 
-    int pos = _lower_bound(ctx_beta.cpg_pos_map[h_t.chr], h_t.chr_beg);
-    cpg_pos_map_itor = ctx_beta.cpg_pos_map.find(h_t.chr);
+  int pos = _lower_bound(ctx_beta.cpg_pos_map[h_t.chr], h_t.chr_beg);
+  cpg_pos_map_itor = ctx_beta.cpg_pos_map.find(h_t.chr);
 
-    int i = 0;
-    if (cpg_pos_map_itor != ctx_beta.cpg_pos_map.end()) {
-      while (pos < ctx_beta.cpg_pos_map[h_t.chr].size() && cpg_pos_map_itor != ctx_beta.cpg_pos_map.end()) {
-        hap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
-        if (cur_cpg_pos >= h_t.chr_beg && cur_cpg_pos <= h_t.chr_end) {
-          if (i < h_t.hap_str.size()) {
-            hap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
-            char cur_hap = h_t.hap_str[i];
-            //check current cpg pos in case it doesn't exists in the map
-            cpg_itor = ctx_beta.beta_map[h_t.chr].find(cur_cpg_pos);
-            if (cpg_itor == ctx_beta.beta_map[h_t.chr ].end()) {
-              hts_log_error("Can't find the CpG position in the input CpG file. Position: %lld ", cur_cpg_pos);
-              hts_log_error("hap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
-              return 1;
-            }
-            if (!ctx_beta.stranded) {
-              if (cur_hap == '1') {
-                ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
-                ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads;
-              } else if (cur_hap == '0') {
-                ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
-              } else {
-                hts_log_error("hap string value error.");
-                return 1;
-              }
-            } else if (ctx_beta.stranded) {
-              switch (h_t.hap_direction) {
-                case '+':
-                  if (cur_hap == '1') {
-                    ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
-                    ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads;
-                  } else if (cur_hap == '0') {
-                    ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
-                  } else {
-                    hts_log_error("hap string value error.");
-                    return 1;
-                  }
-                  break;
-                case '-':
-                  if (cur_hap == '1') {
-                    ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r;
-                    ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads_r;
-                  } else if (cur_hap == '0') {
-                    ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r;
-                  } else {
-                    hts_log_error("hap string value error.");
-                    return 1;
-                  }
-                  break;
-                case '*':
-                  hts_log_error("Hap file contains directional read, do not use --stranded or -s opt");
-                  return 1;
-                  break;
-                default:
-                  hts_log_error("hap string value error.");
-                  return 1;
-                  break;
-              }
-            }
-          } else {
-            hts_log_error("length of cpg pos and hap str doesn't match in hap read.");
+  int i = 0;
+  if (cpg_pos_map_itor != ctx_beta.cpg_pos_map.end()) {
+    while (pos < ctx_beta.cpg_pos_map[h_t.chr].size() && cpg_pos_map_itor != ctx_beta.cpg_pos_map.end()) {
+      hap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
+      if (cur_cpg_pos >= h_t.chr_beg && cur_cpg_pos <= h_t.chr_end) {
+        if (i < h_t.hap_str.size()) {
+          hap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
+          char cur_hap = h_t.hap_str[i];
+          //check current cpg pos in case it doesn't exists in the map
+          cpg_itor = ctx_beta.beta_map[h_t.chr].find(cur_cpg_pos);
+          if (cpg_itor == ctx_beta.beta_map[h_t.chr ].end()) {
+            hts_log_error("Can't find the CpG position in the input CpG file. Position: %lld ", cur_cpg_pos);
             hts_log_error("hap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
             return 1;
           }
-          i++;
-          pos++;
+          if (!ctx_beta.stranded) {
+            if (cur_hap == '1') {
+              ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
+              ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads;
+            } else if (cur_hap == '0') {
+              ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
+            } else {
+              hts_log_error("hap string value error.");
+              return 1;
+            }
+          } else if (ctx_beta.stranded) {
+            switch (h_t.hap_direction) {
+              case '+':
+                if (cur_hap == '1') {
+                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
+                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads;
+                } else if (cur_hap == '0') {
+                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
+                } else {
+                  hts_log_error("hap string value error.");
+                  return 1;
+                }
+                break;
+              case '-':
+                if (cur_hap == '1') {
+                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r;
+                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads_r;
+                } else if (cur_hap == '0') {
+                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r;
+                } else {
+                  hts_log_error("hap string value error.");
+                  return 1;
+                }
+                break;
+              case '*':
+                hts_log_error("Hap file contains directional read, do not use --stranded or -s opt");
+                return 1;
+                break;
+              default:
+                hts_log_error("hap string value error.");
+                return 1;
+                break;
+            }
+          }
         } else {
-          break;
+          hts_log_error("length of cpg pos and hap str doesn't match in hap read.");
+          hts_log_error("hap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
+          return 1;
+        }
+        i++;
+        pos++;
+      } else {
+        break;
+      }
+    }
+  }
+  return 0;
+}
+
+int get_beta(ContextBeta &ctx_beta) {
+  hap_t h_t = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
+  int ret = 0;
+  if (ctx_beta.fn_bed == NULL) {
+    while(hap_read(ctx_beta.fp_hap, &h_t) == 0) {
+      ret = process_beta(ctx_beta, h_t);
+      if (ret == 1) {
+        return 1;
+      }
+    }
+  } else {
+    while(hap_read(ctx_beta.fp_hap, &h_t) == 0) {
+      regidx_t *idx = regidx_init(ctx_beta.fn_bed,NULL,NULL,0,NULL);
+      regitr_t *itr = regitr_init(idx);
+      while (regitr_loop(itr)) {
+        region_t reg_t = region_t {"", 0,0};
+        reg_t.chr = itr->seq;
+        reg_t.beg =  itr->beg;
+        reg_t.end =  itr->end + 1;
+        if (h_t.chr == reg_t.chr &&
+            h_t.chr_beg >= reg_t.beg &&
+            h_t.chr_end <= reg_t.end) {
+          ret = process_beta(ctx_beta, h_t);
+          if (ret == 1) {
+            return 1;
+          }
+        } else {
+          continue;
         }
       }
-
     }
   }
   return 0;
