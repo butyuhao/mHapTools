@@ -13,7 +13,7 @@ Merge two hap files.
 #### convert
 
 - **-i** input file, SAM/BAM format, should be sorted by samtools.
-- **-a** aligner. [**BISMARK** | **BSMAP** | **UNKNOWN**(default)]
+- **-n** non-directional
 - **-b** bed file of query regions.
 - **-c** CpG file, gz format.
 - **-r** region. **chr1:2000-200000**

@@ -274,7 +274,7 @@ int main_merge(int argc, char *argv[]) {
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
       { "output", optional_argument, NULL, 'o' },
-      { "cpg_path", required_argument, NULL, 'c' },
+      { "cpg", required_argument, NULL, 'c' },
       { NULL, no_argument, NULL, 0 }
   };
 

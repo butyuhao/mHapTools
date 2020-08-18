@@ -240,10 +240,10 @@ int main_beta(int argc, char *argv[]) {
   static const char *opt_string = "i:o:c:b:s";
 
   static const struct option long_opts[] = {
-      { "fn_in", required_argument, NULL, 'i' },
-      { "fn_out", optional_argument, NULL, 'o' },
-      { "fn_cpg", required_argument, NULL, 'c' },
-      { "fn_bed", optional_argument, NULL, 'b' },
+      { "input", required_argument, NULL, 'i' },
+      { "output", optional_argument, NULL, 'o' },
+      { "cpg", required_argument, NULL, 'c' },
+      { "bed", optional_argument, NULL, 'b' },
       { "stranded", optional_argument, NULL, 's' },
       { NULL, no_argument, NULL, 0 }
   };
