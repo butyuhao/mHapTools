@@ -286,7 +286,7 @@ static void help() {
   cout << "- Get beta results, group results by the direction of hap reads:" << endl;
   cout << "  samtools beta -i in.hap -c CpG.gz -s" << endl << endl;
   cout << "- Get beta results within several regions" << endl;
-  cout << "  samtools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl;
+  cout << "  samtools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
 
 }
 

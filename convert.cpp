@@ -832,8 +832,7 @@ static void help() {
   cout << "- Convert the SAM/BAM file to hap format within a region" << endl;
   cout << "  samtools convert -i in.bam -c CpG.gz -r chr1:2000-200000" << endl << endl;
   cout << "- Convert the SAM/BAM file to hap format within several regions" << endl;
-  cout << "  samtools convert -i in.bam -c CpG.gz -b bed_file.bed" << endl;
-
+  cout << "  samtools convert -i in.bam -c CpG.gz -b bed_file.bed" << endl << endl;
 }
 
 int main_convert(int argc, char *argv[]) {

@@ -443,7 +443,38 @@ int get_genome_wide(ContextSummary &ctx_sum) {
   return 0;
 }
 
+static void help() {
+  cout << "Usage: haptools summary -i <in.hap> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] | [-g] [-s] [-o name.hap]" << endl;
+  cout << "Options:" << endl;
+  cout << "  -i  str  input file, hap format" << endl;
+  cout << "  -c  str  CpG file, gz format" << endl;
+  cout << "  -r  str  region" << endl;
+  cout << "  -b  str  bed file, contains query regions" << endl;
+  cout << "  -g  flag get genome-wide result" << endl;
+  cout << "  -s  flag group results by the direction of hap reads" << endl;
+  cout << "  -o  str  output file name [fn_hap_summary_genome_wide.txt | fn_hap_summary.txt]" << endl;
+  cout << "Long options:" << endl;
+  cout << "  -i  --input" << endl;
+  cout << "  -c  --cpg" << endl;
+  cout << "  -r  --region" << endl;
+  cout << "  -b  --bed" << endl;
+  cout << "  -g  --genome-wide" << endl;
+  cout << "  -s  --stranded" << endl;
+  cout << "  -o  --output" << endl;
+  cout << "Examples:" << endl;
+  cout << "- Get summary within a region:" << endl;
+  cout << "  samtools summary -i in.hap -c CpG.gz -r chr1:2000-200000" << endl << endl;
+  cout << "- Get summary within several regions:" << endl;
+  cout << "  samtools summary -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "- Get genome-wide summary:" << endl;
+  cout << "  samtools summary -i in.hap -c CpG.gz -g" << endl << endl;
+}
+
 int main_summary(int argc, char *argv[]) {
+  if (argc == optind) {
+    help();
+    return 0;
+  }
 
   ContextSummary ctx_sum = ContextSummary();
 
@@ -459,6 +490,7 @@ int main_summary(int argc, char *argv[]) {
       { "stranded", optional_argument, NULL, 's' },
       { "region", optional_argument, NULL, 'r' },
       { "genome-wide", optional_argument, NULL, 'g' },
+      { "help", optional_argument, NULL, 'h' },
       { NULL, no_argument, NULL, 0 }
   };
 
@@ -491,6 +523,10 @@ int main_summary(int argc, char *argv[]) {
       }
       case 'g': {
         ctx_sum.genome_wide = true;
+        break;
+      }
+      case 'h': {
+        help();
         break;
       }
       default: {

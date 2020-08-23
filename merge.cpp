@@ -197,8 +197,12 @@ bool load_chr_cpg(ContextMerge &ctx_merge) {
 }
 
 bool merge_opt_check(ContextMerge &ctx_merge) {
-  if (ctx_merge.fn_hap2 == NULL || ctx_merge.fn_hap1 == NULL || ctx_merge.fn_out == NULL) {
-    hts_log_error("opt error");
+  if (ctx_merge.fn_hap2 == NULL || ctx_merge.fn_hap1 == NULL) {
+    hts_log_error("Please specify two hap files to merge");
+    return false;
+  }
+  if (strcmp(ctx_merge.fn_hap2, ctx_merge.fn_hap1) == 0) {
+    hts_log_error("Please specify two different hap files to merge");
     return false;
   }
   return true;
@@ -263,7 +267,27 @@ ContextMerge::~ContextMerge() {
   }
 }
 
+static void help() {
+  cout << "Usage: haptools merge -i <in1.hap in2.hap> -c <CpG.gz> [-o name.hap]" << endl;
+  cout << "Options:" << endl;
+  cout << "  -i  str  input file, two hap files" << endl;
+  cout << "  -c  str  CpG file, gz format" << endl;
+  cout << "  -o  str  output file name [out.hap]" << endl;
+  cout << "Long options:" << endl;
+  cout << "  -i  --input" << endl;
+  cout << "  -c  --cpg" << endl;
+  cout << "  -o  --output" << endl;
+  cout << "Examples:" << endl;
+  cout << "- Merge two hap files:" << endl;
+  cout << "  haptools merge -i in1.hap in2.hap -c CpG.gz" << endl << endl;
+
+}
+
 int main_merge(int argc, char *argv[]) {
+  if (argc == optind) {
+    help();
+    return 0;
+  }
 
   ContextMerge ctx_merge = ContextMerge();
 
@@ -275,6 +299,7 @@ int main_merge(int argc, char *argv[]) {
       { "input", required_argument, NULL, 'i' },
       { "output", optional_argument, NULL, 'o' },
       { "cpg", required_argument, NULL, 'c' },
+      { "help", optional_argument, NULL, 'h' },
       { NULL, no_argument, NULL, 0 }
   };
 
