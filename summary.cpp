@@ -20,12 +20,18 @@ ContextSummary::~ContextSummary() {
 }
 
 int summary_opt_check(ContextSummary &ctx_sum) {
+  if (ctx_sum.fn_hap == NULL) {
+    hts_log_error("Please specify input file");
+    return 1;
+  }
   if (ctx_sum.genome_wide) {
     if (ctx_sum.fn_cpg == NULL) {
+      hts_log_error("If -g is specified, -c is also required");
       return 1;
     }
   } else {
     if (ctx_sum.fn_bed == NULL && ctx_sum.region == NULL) {
+      hts_log_error("Please specify -b or -r");
       return 1;
     }
   }
