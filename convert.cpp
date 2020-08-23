@@ -255,6 +255,11 @@ bool SamRead::haplo_type() {
 
 bool convert_opt_check(Context &ctx) {
   if (ctx.fn_bam == NULL || ctx.fn_cpg == NULL) {
+    hts_log_error("Please specify -i and -c options.");
+    return false;
+  }
+  if (ctx.region != NULL && ctx.fn_bed != NULL) {
+    hts_log_error("You can not specify both -r and -b options.");
     return false;
   }
   return true;
@@ -466,6 +471,14 @@ vector<HT_s> itor_sam(Context &ctx) {
     string cpg_idx_fn = string(ctx.fn_cpg) + string(".tbi");
     ctx.idx_cpg = tbx_index_load(cpg_idx_fn.c_str());
     ctx.has_idx_cpg = true;
+
+    if (ctx.idx_cpg == NULL) {
+      string error_message = "Please run the command to generate the index file (.tbi):\ntabix -b 2 -e 3 -p bed " +
+          string(ctx.fn_cpg) + "\nand place the index file with the CpG file in the same folder.";
+      hts_log_error("%s", error_message.c_str());
+      vector<HT_s> null_HT_s;
+      return null_HT_s;
+    }
   }
 
   uint64_t cnt = 0;
@@ -475,6 +488,14 @@ vector<HT_s> itor_sam(Context &ctx) {
     //load bai index
     static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
     ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
+
+    if (ctx.idx_bam == NULL) {
+      string error_message = "Please run the command to generate the index file (.bai):\nsamtools index " +
+      string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
+      hts_log_error("%s", error_message.c_str());
+      vector<HT_s> null_HT_s;
+      return null_HT_s;
+    }
 
     hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
 
@@ -580,6 +601,14 @@ vector<HT_s> itor_sam(Context &ctx) {
     //load bai index
     static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
     ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
+
+    if (ctx.idx_bam == NULL) {
+      string error_message = "Please run the command to generate the index file (.bai):\nsamtools index " +
+          string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
+      hts_log_error("%s", error_message.c_str());
+      vector<HT_s> null_HT_s;
+      return null_HT_s;
+    }
 
     while ( regitr_loop(itr) ) {
       int tid = bam_name2id(ctx.hdr_bam, itr->seq);
@@ -781,9 +810,37 @@ void saving_hap(Context &ctx, vector<HT_s> &HT_vec) {
   out_stream.close();
 }
 
+static void help() {
+  cout << "Usage: haptools convert -i <in.bam>|<in.sam> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] [-n] [-o name.hap]" << endl;
+  cout << "Options:" << endl;
+  cout << "  -i  str  input file, SAM/BAM format, sorted by samtools" << endl;
+  cout << "  -c  str  CpG file, gz format" << endl;
+  cout << "  -r  str  region" << endl;
+  cout << "  -b  str  bed file, contains query regions" << endl;
+  cout << "  -n  flag non-directional" << endl;
+  cout << "  -o  str  output file name [out.hap]" << endl;
+  cout << "Long options:" << endl;
+  cout << "  -i  --input" << endl;
+  cout << "  -c  --cpg" << endl;
+  cout << "  -r  --region" << endl;
+  cout << "  -b  --bed" << endl;
+  cout << "  -n  --non-directional" << endl;
+  cout << "  -o  --output" << endl;
+  cout << "Examples:" << endl;
+  cout << "- Convert the entire SAM/BAM file to hap format:" << endl;
+  cout << "  samtools convert -i in.bam -c CpG.gz" << endl << endl;
+  cout << "- Convert the SAM/BAM file to hap format within a region" << endl;
+  cout << "  samtools convert -i in.bam -c CpG.gz -r chr1:2000-200000" << endl << endl;
+  cout << "- Convert the SAM/BAM file to hap format within several regions" << endl;
+  cout << "  samtools convert -i in.bam -c CpG.gz -b bed_file.bed" << endl;
+
+}
+
 int main_convert(int argc, char *argv[]) {
-  hts_log_info("enter main_convert");
-//TODO(butyuhao@foxmail.com): 增加检查option合法性的部分
+  if (argc == optind) {
+    help();
+    return 0;
+  }
 
   hts_log_info("create Context()");
   Context ctx = Context();
@@ -792,7 +849,7 @@ int main_convert(int argc, char *argv[]) {
 
   int long_index;
 
-  static const char *opt_string = "i:b:c:r:o:n";
+  static const char *opt_string = "i:b:c:r:o:nh";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
@@ -801,6 +858,7 @@ int main_convert(int argc, char *argv[]) {
       { "region", optional_argument, NULL, 'r' },
       { "output", optional_argument, NULL, 'o' },
       { "non-directional", optional_argument, NULL, 'n' },
+      { "help", optional_argument, NULL, 'h' },
       { NULL, no_argument, NULL, 0 }
   };
 
@@ -829,6 +887,10 @@ int main_convert(int argc, char *argv[]) {
       }
       case 'n': {
         ctx.non_directional = true;
+        break;
+      }
+      case 'h': {
+        help();
         break;
       }
       default: {
