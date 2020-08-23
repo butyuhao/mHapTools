@@ -199,7 +199,7 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
                 }
                 break;
               case '*':
-                hts_log_error("Hap file contains directional read, do not use --stranded or -s opt");
+                hts_log_error("Hap file contains directional reads, do not use --stranded or -s opt");
                 return 1;
                 break;
               default:
@@ -260,17 +260,46 @@ int get_beta(ContextBeta &ctx_beta) {
 
 bool beta_opt_check(ContextBeta &ctx_beta) {
   if (ctx_beta.fn_cpg == NULL || ctx_beta.fn_hap == NULL) {
+    hts_log_error("Please specify -i and -c");
     return 1;
   }
   return 0;
 }
 
+static void help() {
+  cout << "Usage: haptools beta -i <in.hap> -c <CpG.gz> [-b bed_file.bed] [-s] [-o name.txt]" << endl;
+  cout << "Options:" << endl;
+  cout << "  -i  str  input file, hap format" << endl;
+  cout << "  -c  str  CpG file, gz format" << endl;
+  cout << "  -b  str  bed file, contains query regions" << endl;
+  cout << "  -s  flag group results by the direction of hap reads" << endl;
+  cout << "  -o  str  output file name [beta.txt]" << endl;
+  cout << "Long options:" << endl;
+  cout << "  -i  --input" << endl;
+  cout << "  -c  --cpg" << endl;
+  cout << "  -b  --bed" << endl;
+  cout << "  -s  --stranded" << endl;
+  cout << "  -o  --output" << endl;
+  cout << "Examples:" << endl;
+  cout << "- Get beta results:" << endl;
+  cout << "  samtools beta -i in.hap -c CpG.gz" << endl << endl;
+  cout << "- Get beta results, group results by the direction of hap reads:" << endl;
+  cout << "  samtools beta -i in.hap -c CpG.gz -s" << endl << endl;
+  cout << "- Get beta results within several regions" << endl;
+  cout << "  samtools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl;
+
+}
+
 int main_beta(int argc, char *argv[]) {
+  if (argc == optind) {
+    help();
+    return 0;
+  }
   ContextBeta ctx_beta = ContextBeta();
 
   int long_index;
 
-  static const char *opt_string = "i:o:c:b:s";
+  static const char *opt_string = "i:o:c:b:sh";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
@@ -278,6 +307,7 @@ int main_beta(int argc, char *argv[]) {
       { "cpg", required_argument, NULL, 'c' },
       { "bed", optional_argument, NULL, 'b' },
       { "stranded", optional_argument, NULL, 's' },
+      { "help", optional_argument, NULL, 'h' },
       { NULL, no_argument, NULL, 0 }
   };
 
@@ -304,6 +334,11 @@ int main_beta(int argc, char *argv[]) {
         ctx_beta.stranded = true;
         break;
       }
+      case 'h': {
+        help();
+        return 0;
+        break;
+      }
       default: {
         break;
       }
@@ -322,7 +357,7 @@ int main_beta(int argc, char *argv[]) {
   ret = load_cpg_init_beta_map(ctx_beta);
 
   if (ret == 1) {
-    hts_log_error("load cpg error.");
+    hts_log_error("Could not load CpG file.");
     return 1;
   }
 

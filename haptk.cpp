@@ -31,8 +31,6 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-
-
   int ret = 0;
 
   time_t start, stop;
@@ -67,6 +65,5 @@ int main(int argc, char *argv[]) {
   cout << "The duration is: "<< difftime(stop,start) <<" seconds." << endl;
 
   return ret;
-
 }
 
