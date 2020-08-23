@@ -1,0 +1,10 @@
+//
+// Created by Yuhao Dan on 2020/8/23.
+//
+
+#ifndef HAPTOOLS_INCLUDE_VERSION_H_
+#define HAPTOOLS_INCLUDE_VERSION_H_
+
+#define HAP_VERSION_TEXT "0.01"
+
+#endif //HAPTOOLS_INCLUDE_VERSION_H_

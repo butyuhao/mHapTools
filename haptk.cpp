@@ -5,73 +5,41 @@
 #include "./include/convert.h"
 #include "./include/beta.h"
 #include "./include/summary.h"
-
+#include "./include/version.h"
 
 using namespace std;
+
+static void help() {
+  cout << endl;
+  cout << "haptools " << HAP_VERSION_TEXT <<  " (Tools for analysing methylated reads)" << endl;
+  cout << endl;
+  cout << "Usage:    haptools <command> [options]" << endl;
+  cout << endl;
+  cout << "Commands:" << endl;
+  cout << "    convert     SAM/BAM --> hap conversion" << endl;
+  cout << "    merge       merge two hap files" << endl;
+  cout << "    beta        count methylated reads on CpG positions" << endl;
+  cout << "    summary     get local or global Summarized Information" << endl;
+}
 
 int main(int argc, char *argv[]) {
 
   hts_set_log_level(HTS_LOG_ERROR);
 
   if (argc < 2) {
-    help:
-    cout << "Command: convert" << endl;
-    cout << "Convert SAM/BAM file to hap file." << endl;
-    cout << "    Usage:   haptools convert  [options] -i test.bam -c hg38_CpG.gz [-a BSMAP] [-o out.hap]" << endl;
-    cout << "Options:" << endl;
-    cout << "required:" << endl;
-    cout << "    -c  <str>   CpG position file, with the corresponding .tbi file in the same folder. Prefix of the index file’s name should be kept same as the corresponding CpG file." << endl;
-    cout << "    -i  <str>   input file, SAM/BAM format, should be sorted by samtools. with the corresponding .bai file in the same folder. Prefix of the index file’s name should be the same as the corresponding SAM/BAM file." << endl;
-
-    cout << "    optional:" << endl;
-    cout << "    -a  <str>   aligner, BSMAP/BISMARK/UNKNOWN, UNKNOWN (default)." << endl;
-    cout << "    -o  <str>   output filename, out.hap is the default output filename." << endl;
-    cout << "    -r  <str>   query region, e.g. chr1:2000-20000, default is to query the whole genome." << endl;
-    cout << "    -b  <str>   bed file of query regions." << endl;
-    cout << "    -h  <str>   help." << endl;
-
-    cout << "Command: merge" << endl;
-    cout << "Convert SAM/BAM file to hap file." << endl;
-    cout << "Usage:   haptools merge  [options] -i in1.hap in2.hap -c hg38_CpG.gz [-o out.hap]" << endl;
-    cout << "    required:" << endl;
-    cout << "    -i  <str>   path of two hap files." << endl;
-    cout << "    -c  <str>   CpG position file." << endl;
-
-    cout << "    optional:" << endl;
-    cout << "    -o  <str>   output filename, out.hap is the default output filename." << endl;
-
-    cout << "Command: beta" << endl;
-    cout << "Usage:   haptools beta  [options] -i in.hap -c hg38_CpG.gz [-o beta.txt -s]" << endl;
-    cout << "    required:" << endl;
-    cout << "    -i  <str>   input file, hap format" << endl;
-    cout << "    -c  <str>   CpG file, gz format." << endl;
-
-    cout << "    optional:" << endl;
-    cout << "    -o  <str>   output path. (default: beta.txt)" << endl;
-    cout << "    -s  <bool>  if specified, the results are grouped by the direction of hap reads." << endl;
-    cout << "    -n  <bool>  if specified, the results do not differentiate the direction." << endl;
-
-    cout << "Command: summary" << endl;
-    cout << "Usage:   haptools summary  [options] -i in.hap -c hg38_CpG.gz [-o beta.txt -s]" << endl;
-    cout << "    required:" << endl;
-    cout << "    -i  <str>   input file, hap format" << endl;
-    cout << "    -c  <str>   CpG file, gz format." << endl;
-    cout << "    -b  <str>   bed file of query regions." << endl;
-    cout << "    -r  <str>   query region, e.g. chr1:2000-20000." << endl;
-
-    cout << "    optional:" << endl;
-    cout << "    -o  <str>   output path." << endl;
-    cout << "    -s  <bool>  if specified, the results are grouped by the direction of hap reads." << endl;
-    cout << "    -g  <bool>  genome-wide result." << endl;
-    exit(1);
+    help();
+    return 0;
   }
+
+
+
   int ret = 0;
 
   time_t start, stop;
   start=time(NULL);
 
-  if (strcmp(argv[1], "convert") == 0) { 
-    ret = main_convert(argc - 1, argv + 1); 
+  if (strcmp(argv[1], "convert") == 0) {
+    ret = main_convert(argc - 1, argv + 1);
 
   } else if (strcmp(argv[1], "merge") == 0) {
     ret = main_merge(argc - 1, argv + 1);
@@ -80,11 +48,14 @@ int main(int argc, char *argv[]) {
   } else if (strcmp(argv[1], "summary") == 0) {
     ret = main_summary(argc - 1, argv + 1);
   } else if (strcmp(argv[1], "help") == 0) {
-    goto help;
+    help();
   } else if (strcmp(argv[1], "--help") == 0) {
-    goto help;
+    help();
   } else if (strcmp(argv[1], "-h") == 0) {
-    goto help;
+    help();
+  } else {
+    cout << "unrecognized command " <<  argv[1] << endl;
+    return 0;
   }
 
   stop=time(NULL);
@@ -98,3 +69,4 @@ int main(int argc, char *argv[]) {
   return ret;
 
 }
+
