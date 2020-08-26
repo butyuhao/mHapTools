@@ -469,11 +469,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Get summary within a region:" << endl;
-  cout << "  samtools summary -i in.hap -c CpG.gz -r chr1:2000-200000" << endl << endl;
+  cout << "  haptools summary -i in.hap -c CpG.gz -r chr1:2000-200000" << endl << endl;
   cout << "- Get summary within several regions:" << endl;
-  cout << "  samtools summary -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  haptools summary -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
   cout << "- Get genome-wide summary:" << endl;
-  cout << "  samtools summary -i in.hap -c CpG.gz -g" << endl << endl;
+  cout << "  haptools summary -i in.hap -c CpG.gz -g" << endl << endl;
 }
 
 int main_summary(int argc, char *argv[]) {

@@ -282,11 +282,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Get beta results:" << endl;
-  cout << "  samtools beta -i in.hap -c CpG.gz" << endl << endl;
+  cout << "  haptools beta -i in.hap -c CpG.gz" << endl << endl;
   cout << "- Get beta results, group results by the direction of hap reads:" << endl;
-  cout << "  samtools beta -i in.hap -c CpG.gz -s" << endl << endl;
+  cout << "  haptools beta -i in.hap -c CpG.gz -s" << endl << endl;
   cout << "- Get beta results within several regions" << endl;
-  cout << "  samtools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  haptools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
 
 }
 

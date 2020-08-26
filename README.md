@@ -52,7 +52,7 @@ cd htslib-1.10.2
 make
 make install
 cd ..
-g++ -o haptools  convert.cpp hap.cpp haptk.cpp merge.cpp beta.cpp summary.cpp -L ./htslib-1.10.2/ -lhts -std=c++11
+g++ -o haptools  convert.cpp hap.cpp haptk.cpp merge.cpp beta.cpp summary.cpp -I ./htslib-1.10.2/htslib -I ./include  -L ./htslib-1.10.2/ -lhts -std=c++11
 export LD_LIBRARY_PATH=`pwd`/htslib-1.10.2/lib
 ```
 
