@@ -107,13 +107,19 @@ bool saving_beta(ContextBeta &ctx_beta) {
         for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
           if (cpg_itor->second.total_reads != 0) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
-                       << cpg_itor->first + 1 << '\t' <<cpg_itor->second.methy_reads
-                       << '\t' << cpg_itor->second.total_reads << '\t' << '+' << endl;
+                       << cpg_itor->first + 1 << '\t' <<
+                       cpg_itor->second.methy_reads * 100 / cpg_itor->second.total_reads <<
+                       '\t' << cpg_itor->second.methy_reads << '\t' <<
+                       cpg_itor->second.total_reads - cpg_itor->second.methy_reads <<
+                       '\t' << '+' << endl;
           }
           if (cpg_itor->second.total_reads_r != 0) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
-                       << cpg_itor->first + 1 << '\t' <<cpg_itor->second.methy_reads_r
-                       << '\t' << cpg_itor->second.total_reads_r << '\t' << '-' << endl;
+                       << cpg_itor->first + 1 << '\t' <<
+                       cpg_itor->second.methy_reads_r * 100 / cpg_itor->second.total_reads_r <<
+                       '\t' << cpg_itor->second.methy_reads_r <<'\t' <<
+                       cpg_itor->second.total_reads_r - cpg_itor->second.methy_reads_r<<
+                       '\t' << '-' << endl;
           }
         }
       }
@@ -122,8 +128,11 @@ bool saving_beta(ContextBeta &ctx_beta) {
         for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
           if (cpg_itor->second.total_reads != 0) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
-            << cpg_itor->first + 1 << '\t' <<cpg_itor->second.methy_reads
-            << '\t' << cpg_itor->second.total_reads << '\t' << '*' << endl;
+                       << cpg_itor->first + 1 << '\t' <<
+                       cpg_itor->second.methy_reads * 100 / cpg_itor->second.total_reads <<
+                       '\t' << cpg_itor->second.methy_reads << '\t' <<
+                       cpg_itor->second.total_reads - cpg_itor->second.methy_reads <<
+                       '\t' << '*' << endl;
           }
         }
       }
