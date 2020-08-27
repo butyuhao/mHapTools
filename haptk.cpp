@@ -24,7 +24,7 @@ static void help() {
 
 int main(int argc, char *argv[]) {
 
-  hts_set_log_level(HTS_LOG_ERROR);
+  hts_set_log_level(HTS_LOG_WARNING);
 
   if (argc < 2) {
     help();
@@ -59,8 +59,6 @@ int main(int argc, char *argv[]) {
   stop=time(NULL);
 
   cout << "Process finished." << endl;
-
-  hts_log_info("The duration is: %f seconds", difftime(stop,start));
 
   cout << "The duration is: "<< difftime(stop,start) <<" seconds." << endl;
 

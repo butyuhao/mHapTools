@@ -89,11 +89,13 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
     if (hap_line_t.chr != reg_t.chr) {
       continue;
     }
+    ctx_sum.region_chr_match = true;
     hap_pos_t cur_m_base = 0;
     hap_pos_t cur_t_base = 0;
     if ((hap_line_t.chr_end >= reg_t.beg && hap_line_t.chr_end <= reg_t.end) ||
         (hap_line_t.chr_beg >= reg_t.beg && hap_line_t.chr_beg <= reg_t.end) ||
         (hap_line_t.chr_beg <= reg_t.beg && hap_line_t.chr_end >= reg_t.end)) {
+      ctx_sum.region_beg_end_match = true;
       if (ctx_sum.stranded) {
         if (hap_line_t.hap_direction == '+') {
           ++sum_t.n_reads;
@@ -207,6 +209,14 @@ int get_summary(ContextSummary &ctx_sum) {
 }
 
 void saving_summary(ContextSummary &ctx_sum) {
+  if (!ctx_sum.region_chr_match || !ctx_sum.region_beg_end_match) {
+    if (!ctx_sum.region_chr_match) {
+      hts_log_warning("Warning: Check the region you specified (especially the chr name), no reads in the hap file match the region.");
+    }
+    if (!ctx_sum.region_beg_end_match) {
+      hts_log_warning("Warning: Check the region you specified, no reads in the hap file match the region.");
+    }
+  }
   string out_stream_name;
   if (ctx_sum.fn_out != NULL) {
     out_stream_name = ctx_sum.fn_out;

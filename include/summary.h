@@ -69,6 +69,8 @@ class ContextSummary {
   FILE *fp_bed;
   bool stranded;
   bool genome_wide = false;
+  bool region_chr_match = false;
+  bool region_beg_end_match = false;
 
   vector<string> summary_result;
   map<string, map<hap_pos_t, summary_t> > genome_wide_map;
