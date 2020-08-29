@@ -164,7 +164,6 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
       hap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
       if (cur_cpg_pos >= h_t.chr_beg && cur_cpg_pos <= h_t.chr_end) {
         if (i < h_t.hap_str.size()) {
-          hap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
           char cur_hap = h_t.hap_str[i];
           //check current cpg pos in case it doesn't exists in the map
           cpg_itor = ctx_beta.beta_map[h_t.chr].find(cur_cpg_pos);
@@ -175,10 +174,10 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
           }
           if (!ctx_beta.stranded) {
             if (cur_hap == '1') {
-              ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
-              ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads;
+              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
+              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads += h_t.hap_count;
             } else if (cur_hap == '0') {
-              ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
+              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
             } else {
               hts_log_error("hap string value error.");
               return 1;
@@ -187,10 +186,10 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
             switch (h_t.hap_direction) {
               case '+':
                 if (cur_hap == '1') {
-                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
-                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads += h_t.hap_count;
                 } else if (cur_hap == '0') {
-                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
                 } else {
                   hts_log_error("hap string value error.");
                   return 1;
@@ -198,10 +197,10 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
                 break;
               case '-':
                 if (cur_hap == '1') {
-                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r;
-                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads_r;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r += h_t.hap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads_r += h_t.hap_count;
                 } else if (cur_hap == '0') {
-                  ++ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r += h_t.hap_count;
                 } else {
                   hts_log_error("hap string value error.");
                   return 1;

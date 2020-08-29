@@ -142,36 +142,6 @@ bool SamRead::init(Context &ctx) {
     }
   }
 
-//  if (strcmp(ctx.aligner, "BISMARK") == 0) {
-//    ret = _get_bismark_std();
-//
-//    if (!ret) {
-//      hts_log_trace("_get_bismark_std(): fail to get bismark std.");
-//      return false;
-//    }
-//
-//    if (_get_XM(ctx)) {
-//      ret = _get_bismark_QC(ctx);
-//      if (!ret) {
-//        return false;
-//      }
-//    } else {
-//      hts_log_trace("XM string is required in SAM");
-//      return false;
-//    }
-//  } else if(strcmp(ctx.aligner, "BSMAP") == 0) {
-//    if (!_get_ZS(ctx)) {
-//      hts_log_trace("_get_ZS(): fail to get ZS str");
-//      return false;
-//    }
-//  } else if(strcmp(ctx.aligner, "UNKNOWN") == 0) {
-//    //TODO(butyuhao@foxmail.com) 使用unknown的时候，与BISMARK比较可能多出一些结果，需要排查一下原因。
-//    read_WC = DIRECTION_UNKNOWN;
-//  } else {
-//    hts_log_error("Only BSMAP, BISMARK and UNKNOWN are supported.");
-//    return false;
-//  }
-
   seq = new char[read_len];
   for(int i = 0; i < read_len; i++) {
     *(seq + i) = kbase[bam_seqi(seq_p, i)];
@@ -217,6 +187,7 @@ bool SamRead::haplo_type() {
   }
 
   if (cpg.size() == 0) {
+    hts_log_trace("remove this read due to the size of cpg is 0.");
     QC = false;
   }
   _hap_qual = hap_qual;
@@ -231,6 +202,7 @@ bool SamRead::haplo_type() {
         _hap_met += '0';
       } else {
         _hap_met += nucleobases;
+        hts_log_trace("Direction + or * : beg: %lld, end: %lld, nucleobases error: %s", read_start,read_end, _hap_met.c_str());
         QC = false;
       }
     } else if (read_WC == DIRECTION_MINUS) {
@@ -240,10 +212,11 @@ bool SamRead::haplo_type() {
         _hap_met += '0';
       } else {
         _hap_met += nucleobases;
+        hts_log_trace("Direction - : beg: %lld, end: %lld, nucleobases error: %s", read_start,read_end, _hap_met.c_str());
         QC = false;
       }
     } else {
-      hts_log_info("Strand undefined");
+      hts_log_trace("Strand undefined");
       QC = false;
     }
   }
@@ -578,6 +551,7 @@ vector<HT_s> itor_sam(Context &ctx) {
 
       sam_r.haplo_type();
       if (!sam_r.QC) {
+        hts_log_trace("--> QC check fail, remove the read.");
         continue;
       }
 

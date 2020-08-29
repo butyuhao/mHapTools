@@ -25,6 +25,7 @@ static void help() {
 int main(int argc, char *argv[]) {
 
   hts_set_log_level(HTS_LOG_WARNING);
+  //hts_set_log_level(HTS_LOG_TRACE);
 
   if (argc < 2) {
     help();
