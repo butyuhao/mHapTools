@@ -221,7 +221,7 @@ void saving_summary(ContextSummary &ctx_sum) {
   if (ctx_sum.fn_out != NULL) {
     out_stream_name = ctx_sum.fn_out;
   } else {
-    out_stream_name = string(ctx_sum.fn_hap) + "_summary.txt";
+    out_stream_name = "summary.txt";
   }
   ofstream out_stream(out_stream_name);
   for (auto s : ctx_sum.summary_result) {
@@ -299,7 +299,7 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
   if (ctx_sum.fn_out != NULL) {
     out_stream_name = ctx_sum.fn_out;
   } else {
-    out_stream_name = string(ctx_sum.fn_hap) + "_summary_genome_wide.txt";
+    out_stream_name = "summary_genome_wide.txt";
   }
   ofstream out_stream(out_stream_name);
 
