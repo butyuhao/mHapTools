@@ -785,7 +785,7 @@ void saving_hap(Context &ctx, vector<HT_s> &HT_vec) {
 }
 
 static void help() {
-  cout << "Usage: haptools convert -i <in.bam>|<in.sam> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] [-n] [-o name.hap]" << endl;
+  cout << "Usage: mhaptools convert -i <in.bam>|<in.sam> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] [-n] [-o name.hap]" << endl;
   cout << "Options:" << endl;
   cout << "  -i  str  input file, SAM/BAM format, sorted by samtools" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
@@ -802,11 +802,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Convert the entire SAM/BAM file to hap format:" << endl;
-  cout << "  samtools convert -i in.bam -c CpG.gz" << endl << endl;
+  cout << "  mhaptools convert -i in.bam -c CpG.gz" << endl << endl;
   cout << "- Convert the SAM/BAM file to hap format within a region" << endl;
-  cout << "  samtools convert -i in.bam -c CpG.gz -r chr1:2000-200000" << endl << endl;
+  cout << "  mhaptools convert -i in.bam -c CpG.gz -r chr1:2000-200000" << endl << endl;
   cout << "- Convert the SAM/BAM file to hap format within several regions" << endl;
-  cout << "  samtools convert -i in.bam -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  mhaptools convert -i in.bam -c CpG.gz -b bed_file.bed" << endl << endl;
 }
 
 int main_convert(int argc, char *argv[]) {

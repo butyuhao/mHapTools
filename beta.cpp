@@ -275,7 +275,7 @@ bool beta_opt_check(ContextBeta &ctx_beta) {
 }
 
 static void help() {
-  cout << "Usage: haptools beta -i <in.hap> -c <CpG.gz> [-b bed_file.bed] [-s] [-o name.txt]" << endl;
+  cout << "Usage: mhaptools beta -i <in.hap> -c <CpG.gz> [-b bed_file.bed] [-s] [-o name.txt]" << endl;
   cout << "Options:" << endl;
   cout << "  -i  str  input file, hap format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
@@ -290,11 +290,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Get beta results:" << endl;
-  cout << "  haptools beta -i in.hap -c CpG.gz" << endl << endl;
+  cout << "  mhaptools beta -i in.hap -c CpG.gz" << endl << endl;
   cout << "- Get beta results, group results by the direction of hap reads:" << endl;
-  cout << "  haptools beta -i in.hap -c CpG.gz -s" << endl << endl;
+  cout << "  mhaptools beta -i in.hap -c CpG.gz -s" << endl << endl;
   cout << "- Get beta results within several regions" << endl;
-  cout << "  haptools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  mhaptools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
 
 }
 

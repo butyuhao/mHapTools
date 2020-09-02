@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-project(haptools)
+project(mhaptools)
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -12,7 +12,7 @@ AUX_SOURCE_DIRECTORY(
         ${CMAKE_SOURCE_DIR} DIR_SRCS
 )
 
-add_executable(haptools haptk.cpp convert.cpp hap.cpp merge.cpp beta.cpp summary.cpp)
+add_executable(mhaptools haptk.cpp convert.cpp hap.cpp merge.cpp beta.cpp summary.cpp)
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0") #for test
 #
@@ -24,14 +24,14 @@ add_executable(haptools haptk.cpp convert.cpp hap.cpp merge.cpp beta.cpp summary
 
 #set(SOURCE_FILES hap.cpp)
 
-target_link_libraries(haptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.a)
+target_link_libraries(mhaptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.a)
 
-target_link_libraries(haptools z)
+target_link_libraries(mhaptools z)
 
-target_link_libraries(haptools m)
+target_link_libraries(mhaptools m)
 
-target_link_libraries(haptools bz2)
+target_link_libraries(mhaptools bz2)
 
-target_link_libraries(haptools lzma)
+target_link_libraries(mhaptools lzma)
 
-target_link_libraries(haptools curl)
+target_link_libraries(mhaptools curl)

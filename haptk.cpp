@@ -11,9 +11,9 @@ using namespace std;
 
 static void help() {
   cout << endl;
-  cout << "haptools " << HAP_VERSION_TEXT <<  " (Tools for analysing methylated reads)" << endl;
+  cout << "mHapTools " << HAP_VERSION_TEXT <<  " (Tools for analysing methylated reads)" << endl;
   cout << endl;
-  cout << "Usage:    haptools <command> [options]" << endl;
+  cout << "Usage:    mhaptools <command> [options]" << endl;
   cout << endl;
   cout << "Commands:" << endl;
   cout << "    convert     SAM/BAM --> hap conversion" << endl;

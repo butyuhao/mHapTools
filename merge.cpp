@@ -268,7 +268,7 @@ ContextMerge::~ContextMerge() {
 }
 
 static void help() {
-  cout << "Usage: haptools merge -i <in1.hap in2.hap> -c <CpG.gz> [-o name.hap]" << endl;
+  cout << "Usage: mhaptools merge -i <in1.hap in2.hap> -c <CpG.gz> [-o name.hap]" << endl;
   cout << "Options:" << endl;
   cout << "  -i  str  input file, two hap files" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
@@ -279,7 +279,7 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Merge two hap files:" << endl;
-  cout << "  haptools merge -i in1.hap in2.hap -c CpG.gz" << endl << endl;
+  cout << "  mhaptools merge -i in1.hap in2.hap -c CpG.gz" << endl << endl;
 
 }
 
