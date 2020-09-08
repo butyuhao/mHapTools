@@ -7,6 +7,9 @@
 #include "./include/summary.h"
 #include "./include/version.h"
 
+#include "./include/hap.h"
+#include "./htslib-1.10.2/htslib/hts.h"
+
 using namespace std;
 
 static void help() {

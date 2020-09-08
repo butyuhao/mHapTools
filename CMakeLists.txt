@@ -14,16 +14,6 @@ AUX_SOURCE_DIRECTORY(
 
 add_executable(mhaptools haptk.cpp convert.cpp hap.cpp merge.cpp beta.cpp summary.cpp)
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0") #for test
-#
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0") #for test
-#
-#set(GCC_OMIT_FRAME_POINTER "-fno-omit-frame-pointer") #for test
-#
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_OMIT_FRAME_POINTER}" ) #for test
-
-#set(SOURCE_FILES hap.cpp)
-
 target_link_libraries(mhaptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.a)
 
 target_link_libraries(mhaptools z)

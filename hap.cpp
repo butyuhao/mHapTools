@@ -72,6 +72,25 @@ int hap_close(hapFile *fp) {
   return 0;
 }
 
+hap_idx_t *hap_index_load(const char *fn) {
+  return tbx_index_load(fn);
+}
+
+int hap_name2id(hap_idx_t *hap_idx_t, const char *ss) {
+  return tbx_name2id(hap_idx_t, ss);
+}
+
+
+int hap_index_build(const char *hap_fn) {
+  /*
+ * return: 0 (success), -1 (general failure) or -2 (compression not BGZF)
+ */
+  tbx_conf_t conf = tbx_conf_t{TBX_GENERIC, 1, 2 ,3};
+  const tbx_conf_t* conf_p = &conf;
+
+  int ret = tbx_index_build(hap_fn, 0, conf_p);
+  return ret;
+}
 
 }// namespace std
 
