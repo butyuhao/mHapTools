@@ -8,7 +8,7 @@
 #include <string>
 #include <map>
 #include "../htslib-1.10.2/htslib/hts.h"
-#include "hap.h"
+#include "mhap.h"
 
 namespace std {
 
@@ -56,7 +56,7 @@ typedef struct summary_t {
 class ContextSummary {
  public:
   ContextSummary():fn_hap(NULL), fn_bed(NULL), fn_out(NULL), fp_hap(NULL),
-                    fp_bed(NULL), stranded(false), region(NULL){};
+                    fp_bed(NULL), fn_hap_idx(NULL), stranded(false), region(NULL){};
   ~ContextSummary();
 
   char *fn_hap;
@@ -67,6 +67,7 @@ class ContextSummary {
   hapFile *fp_hap;
   htsFile *fp_cpg;
   FILE *fp_bed;
+  hap_idx_t *fn_hap_idx;
   bool stranded;
   bool genome_wide = false;
   bool region_chr_match = false;

@@ -12,7 +12,7 @@ AUX_SOURCE_DIRECTORY(
         ${CMAKE_SOURCE_DIR} DIR_SRCS
 )
 
-add_executable(mhaptools haptk.cpp convert.cpp hap.cpp merge.cpp beta.cpp summary.cpp)
+add_executable(mhaptools haptk.cpp convert.cpp mhap.cpp merge.cpp beta.cpp summary.cpp)
 
 target_link_libraries(mhaptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.a)
 

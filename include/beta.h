@@ -8,7 +8,7 @@
 #include <map>
 #include <vector>
 #include <unordered_map>
-#include "hap.h"
+#include "mhap.h"
 #include "../htslib-1.10.2/htslib/hts.h"
 
 namespace std {

@@ -2,11 +2,11 @@
 
 * convert 
 
-Convert SAM/BAM file to hap file.
+Convert SAM/BAM file to mhap file.
 
 * merge
 
-Merge two hap files.
+Merge two mHap files.
 
 ### Options
 
@@ -17,30 +17,30 @@ Merge two hap files.
 - **-b** bed file of query regions.
 - **-c** CpG file, gz format.
 - **-r** region. **chr1:2000-200000**
-- **-o** output path. (default: out.hap)
+- **-o** output path. (default: out.mhap)
 
 #### merge
 
-* **-i** input file, hap format.
+* **-i** input file, mhap format.
 * **-c** CpG file, gz format.
-* **-o** output path. (default: out.hap)
+* **-o** output path. (default: out.mhap)
 
 #### beta
 
-* **-i** input file, hap format
+* **-i** input file, mhap format
 * **-c** CpG file, gz format.
 * **-o** output path. (default: beta.txt)
-* **-s** if specified, the results are grouped by the direction of hap reads.
+* **-s** if specified, the results are grouped by the direction of mhap reads.
 * **-b** bed file of query regions.
 
 #### summary
 
-* **-i** input file, hap format
+* **-i** input file, mhap format
 * **-c** CpG file, gz format.
 * **-b** bed file of query regions.
 * **-r** query region, e.g. chr1:2000-20000.
 * **-o** output path.
-* **-s** if specified, the results are grouped by the direction of hap reads.
+* **-s** if specified, the results are grouped by the direction of mhap reads.
 * **-g** genome-wide result.
 
 ### Build example
@@ -52,7 +52,7 @@ cd htslib-1.10.2
 make
 make install
 cd ..
-g++ -o haptools  convert.cpp hap.cpp haptk.cpp merge.cpp beta.cpp summary.cpp -I ./htslib-1.10.2/htslib -I ./include  -L ./htslib-1.10.2/ -lhts -std=c++11
+g++ -o haptools  convert.cpp mhap.cpp haptk.cpp merge.cpp beta.cpp summary.cpp -I ./htslib-1.10.2/htslib -I ./include  -L ./htslib-1.10.2/ -lhts -std=c++11
 export LD_LIBRARY_PATH=`pwd`/htslib-1.10.2/lib
 ```
 

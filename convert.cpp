@@ -757,7 +757,7 @@ void saving_hap(Context &ctx, vector<HT_s> &HT_vec) {
   if (ctx.output_path) {
     out_stream_name = ctx.output_path;
   } else {
-    out_stream_name = "out.hap";
+    out_stream_name = "out.mhap";
   }
   ofstream out_stream(out_stream_name);
 
@@ -785,14 +785,14 @@ void saving_hap(Context &ctx, vector<HT_s> &HT_vec) {
 }
 
 static void help() {
-  cout << "Usage: mhaptools convert -i <in.bam>|<in.sam> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] [-n] [-o name.hap]" << endl;
+  cout << "Usage: mhaptools convert -i <in.bam>|<in.sam> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] [-n] [-o name.mhap]" << endl;
   cout << "Options:" << endl;
   cout << "  -i  str  input file, SAM/BAM format, sorted by samtools" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
   cout << "  -r  str  region" << endl;
   cout << "  -b  str  bed file, contains query regions" << endl;
   cout << "  -n  flag non-directional" << endl;
-  cout << "  -o  str  output file name [out.hap]" << endl;
+  cout << "  -o  str  output file name [out.mhap]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
   cout << "  -c  --cpg" << endl;
@@ -801,11 +801,11 @@ static void help() {
   cout << "  -n  --non-directional" << endl;
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
-  cout << "- Convert the entire SAM/BAM file to hap format:" << endl;
+  cout << "- Convert the entire SAM/BAM file to mhap format:" << endl;
   cout << "  mhaptools convert -i in.bam -c CpG.gz" << endl << endl;
-  cout << "- Convert the SAM/BAM file to hap format within a region" << endl;
+  cout << "- Convert the SAM/BAM file to mhap format within a region" << endl;
   cout << "  mhaptools convert -i in.bam -c CpG.gz -r chr1:2000-200000" << endl << endl;
-  cout << "- Convert the SAM/BAM file to hap format within several regions" << endl;
+  cout << "- Convert the SAM/BAM file to mhap format within several regions" << endl;
   cout << "  mhaptools convert -i in.bam -c CpG.gz -b bed_file.bed" << endl << endl;
 }
 
@@ -913,7 +913,7 @@ int main_convert(int argc, char *argv[]) {
     cout << "Start processing..." << endl;
     HT_vec = itor_sam(ctx);
 
-    hts_log_info("saving hap");
+    hts_log_info("saving mhap");
     cout << "Saving..." << endl;
     saving_hap(ctx, HT_vec);
 

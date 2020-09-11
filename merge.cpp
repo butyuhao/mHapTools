@@ -14,7 +14,7 @@ extern int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos);
 
 vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
   /*
-   * get cpg pos for a hap read and store to hap_t
+   * get cpg pos for a mhap read and store to hap_t
    */
   vector<hap_pos_t>_cpg_pos(hap_read.hap_str.size(), 0);
 
@@ -34,7 +34,7 @@ vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
           _cpg_pos[i] = ctx_merge.cpg_pos_map[hap_read.chr][pos];
         } else {
           _cpg_pos.push_back(ctx_merge.cpg_pos_map[hap_read.chr][pos]);
-          hts_log_error("length of cpg pos vec and hap str doesn't match");
+          hts_log_error("length of cpg pos vec and mhap str doesn't match");
         }
         i++;
         pos++;
@@ -54,7 +54,7 @@ bool is_overlap(vector<hap_pos_t> &cpg_pos_1, vector<hap_pos_t> &cpg_pos_2,
     return false;
   }
   if (cpg_pos_1.size() != hap_1.hap_str.size() || cpg_pos_2.size() != hap_2.hap_str.size()) {
-    hts_log_error("length of cpg pos vec and hap str doesn't match");
+    hts_log_error("length of cpg pos vec and mhap str doesn't match");
   }
   bool break_flag = false;
   *overlap_beg1 = -1;
@@ -69,11 +69,11 @@ bool is_overlap(vector<hap_pos_t> &cpg_pos_1, vector<hap_pos_t> &cpg_pos_2,
     }
   }
   if (*overlap_beg1 == cpg_pos_1.size() && *overlap_beg2 == cpg_pos_2.size()) {
-    //can't find same cpg pos in both hap strings
+    //can't find same cpg pos in both mhap strings
     return false;
   }
   if ((*overlap_beg1 == -1 || *overlap_beg2 == -1)) {
-    //can't find same cpg pos in both hap strings
+    //can't find same cpg pos in both mhap strings
     return false;
   }
   int i1 = *overlap_beg1;
@@ -198,11 +198,11 @@ bool load_chr_cpg(ContextMerge &ctx_merge) {
 
 bool merge_opt_check(ContextMerge &ctx_merge) {
   if (ctx_merge.fn_hap2 == NULL || ctx_merge.fn_hap1 == NULL) {
-    hts_log_error("Please specify two hap files to merge");
+    hts_log_error("Please specify two mhap files to merge");
     return false;
   }
   if (strcmp(ctx_merge.fn_hap2, ctx_merge.fn_hap1) == 0) {
-    hts_log_error("Please specify two different hap files to merge");
+    hts_log_error("Please specify two different mhap files to merge");
     return false;
   }
   return true;
@@ -233,7 +233,7 @@ void saving_merged_hap(ContextMerge &ctx_merge, vector<hap_t> &merge_result) {
   if (ctx_merge.fn_out) {
     out_stream_name = ctx_merge.fn_out;
   } else {
-    out_stream_name = "out.hap";
+    out_stream_name = "out.mhap";
   }
   ofstream out_stream(out_stream_name);
 
@@ -268,18 +268,18 @@ ContextMerge::~ContextMerge() {
 }
 
 static void help() {
-  cout << "Usage: mhaptools merge -i <in1.hap in2.hap> -c <CpG.gz> [-o name.hap]" << endl;
+  cout << "Usage: mhaptools merge -i <in1.mhap in2.mhap> -c <CpG.gz> [-o name.mhap]" << endl;
   cout << "Options:" << endl;
-  cout << "  -i  str  input file, two hap files" << endl;
+  cout << "  -i  str  input file, two mhap files" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
-  cout << "  -o  str  output file name [out.hap]" << endl;
+  cout << "  -o  str  output file name [out.mhap]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
   cout << "  -c  --cpg" << endl;
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
-  cout << "- Merge two hap files:" << endl;
-  cout << "  mhaptools merge -i in1.hap in2.hap -c CpG.gz" << endl << endl;
+  cout << "- Merge two mhap files:" << endl;
+  cout << "  mhaptools merge -i in1.mhap in2.mhap -c CpG.gz" << endl << endl;
 
 }
 
@@ -338,12 +338,12 @@ int main_merge(int argc, char *argv[]) {
   ctx_merge.fp_hap2 = hap_open(ctx_merge.fn_hap2, "rb");
 
   if (ctx_merge.fp_hap1 == NULL) {
-    hts_log_error("Fail to open hap file1.");
+    hts_log_error("Fail to open mhap file1.");
     return 0;
   }
 
   if (ctx_merge.fp_hap2 == NULL) {
-    hts_log_error("Fail to open hap file2.");
+    hts_log_error("Fail to open mhap file2.");
     return 0;
   }
   int ret = 0;
@@ -360,7 +360,7 @@ int main_merge(int argc, char *argv[]) {
   vector<hap_t> merge_result_vec;
   vector<hap_t> hap_to_merge;
 
-  cout << "Loading hap files..." << endl;
+  cout << "Loading mhap files..." << endl;
 
   while(hap_read(ctx_merge.fp_hap1, &hap_t_1) == 0) {
     hap_to_merge.push_back(hap_t_1);
@@ -381,7 +381,7 @@ int main_merge(int argc, char *argv[]) {
   hap_t merge_result;
   cout << "Processing..." << endl;
   if (hap_to_merge.size() == 0) {
-    hts_log_error("hap files are empty");
+    hts_log_error("mhap files are empty");
   } else if (hap_to_merge.size() == 1) {
     merge_result_vec.push_back(hap_to_merge[0]);
   } else if (hap_to_merge.size() >=2) {

@@ -1,6 +1,6 @@
 #include <unordered_map>
 #include <cstring>
-#include "./include/hap.h"
+#include "mhap.h"
 namespace std {
 
 //todo: 将hap的读取与解析改成c++风格而不是c风格

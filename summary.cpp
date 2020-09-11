@@ -4,7 +4,7 @@
 #include <getopt.h>
 #include <fstream>
 #include "./include/summary.h"
-#include "./include/hap.h"
+#include "mhap.h"
 #include "./htslib-1.10.2/htslib/regidx.h"
 #include "./htslib-1.10.2/htslib/kseq.h"
 
@@ -81,7 +81,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
   //get summary result within reg_t and put to sum_t
   ctx_sum.fp_hap = hap_open(ctx_sum.fn_hap, "r");
   if (ctx_sum.fp_hap == NULL) {
-    hts_log_error("Fail to open the hap file.");
+    hts_log_error("Fail to open the mhap file.");
     return 1;
   }
   hap_t hap_line_t = hap_t {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
@@ -183,6 +183,12 @@ int get_summary(ContextSummary &ctx_sum) {
     if (ret == 1) {
       return 1;
     }
+    string filename_hap_idx = string(ctx_sum.fn_hap) + ".gz.tbi";
+    ctx_sum.fn_hap_idx = hap_index_load(filename_hap_idx.c_str());
+    if (ctx_sum.fn_hap_idx == NULL) {
+      hts_log_error("Fail to open the index file of the input mHap file. Please generate .tbi index file for the mHap file.");
+      return 1;
+    }
     ret = get_summary_within_region(ctx_sum, reg_t, sum_t);
     if (ret == 1) {
       return 1;
@@ -211,10 +217,10 @@ int get_summary(ContextSummary &ctx_sum) {
 void saving_summary(ContextSummary &ctx_sum) {
   if (!ctx_sum.region_chr_match || !ctx_sum.region_beg_end_match) {
     if (!ctx_sum.region_chr_match) {
-      hts_log_warning("Warning: Check the region you specified (especially the chr name), no reads in the hap file match the region.");
+      hts_log_warning("Warning: Check the region you specified (especially the chr name), no reads in the mhap file match the region.");
     }
     if (!ctx_sum.region_beg_end_match) {
-      hts_log_warning("Warning: Check the region you specified, no reads in the hap file match the region.");
+      hts_log_warning("Warning: Check the region you specified, no reads in the mhap file match the region.");
     }
   }
   string out_stream_name;
@@ -337,7 +343,7 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
 int process_genome_wide(ContextSummary &ctx_sum) {
   ctx_sum.fp_hap = hap_open(ctx_sum.fn_hap, "r");
   if (ctx_sum.fp_hap == NULL) {
-    hts_log_error("Fail to open hap file");
+    hts_log_error("Fail to open mhap file");
     return 1;
   }
   hap_t hap_line_t = hap_t {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
@@ -348,12 +354,12 @@ int process_genome_wide(ContextSummary &ctx_sum) {
     map<hap_pos_t, summary_t>::iterator cpg_itor;
     chr_itor = ctx_sum.genome_wide_map.find(hap_line_t.chr);
     if (chr_itor == ctx_sum.genome_wide_map.end()) {
-      hts_log_error("Can not find chr: %s, CpG file and hap file are not match.", hap_line_t.chr.c_str());
+      hts_log_error("Can not find chr: %s, CpG file and mhap file are not match.", hap_line_t.chr.c_str());
       return 1;
     }
     cpg_itor = ctx_sum.genome_wide_map[hap_line_t.chr].find(hap_line_t.chr_beg);
     if (cpg_itor == ctx_sum.genome_wide_map[hap_line_t.chr].end()) {
-      hts_log_error("Can not find CpG begin point %lld, CpG file and hap file are not match.", hap_line_t.chr_beg);
+      hts_log_error("Can not find CpG begin point %lld, CpG file and mhap file are not match.", hap_line_t.chr_beg);
       return 1;
     }
     summary_t cur_sum_t = summary_t {0,0,0,0,0,0,0,0,0,0};
@@ -432,7 +438,7 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       //sanity check
       if (i == hap_line_t.hap_str.size() - 1) {
         if (cpg_itor->first != hap_line_t.chr_end) {
-          hts_log_error("CpG file and hap file do not match.");
+          hts_log_error("CpG file and mhap file do not match.");
           return 1;
         }
       }
@@ -460,14 +466,14 @@ int get_genome_wide(ContextSummary &ctx_sum) {
 }
 
 static void help() {
-  cout << "Usage: mhaptools summary -i <in.hap> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] | [-g] [-s] [-o name.hap]" << endl;
+  cout << "Usage: mhaptools summary -i <in.mhap> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] | [-g] [-s] [-o name.mhap]" << endl;
   cout << "Options:" << endl;
-  cout << "  -i  str  input file, hap format" << endl;
+  cout << "  -i  str  input file, mhap format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
   cout << "  -r  str  region" << endl;
   cout << "  -b  str  bed file, contains query regions" << endl;
   cout << "  -g  flag get genome-wide result" << endl;
-  cout << "  -s  flag group results by the direction of hap reads" << endl;
+  cout << "  -s  flag group results by the direction of mhap reads" << endl;
   cout << "  -o  str  output file name [fn_hap_summary_genome_wide.txt | fn_hap_summary.txt]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
@@ -479,11 +485,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Get summary within a region:" << endl;
-  cout << "  mhaptools summary -i in.hap -c CpG.gz -r chr1:2000-200000" << endl << endl;
+  cout << "  mhaptools summary -i in.mhap -c CpG.gz -r chr1:2000-200000" << endl << endl;
   cout << "- Get summary within several regions:" << endl;
-  cout << "  mhaptools summary -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  mhaptools summary -i in.mhap -c CpG.gz -b bed_file.bed" << endl << endl;
   cout << "- Get genome-wide summary:" << endl;
-  cout << "  mhaptools summary -i in.hap -c CpG.gz -g" << endl << endl;
+  cout << "  mhaptools summary -i in.mhap -c CpG.gz -g" << endl << endl;
 }
 
 int main_summary(int argc, char *argv[]) {

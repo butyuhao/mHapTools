@@ -169,7 +169,7 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
           cpg_itor = ctx_beta.beta_map[h_t.chr].find(cur_cpg_pos);
           if (cpg_itor == ctx_beta.beta_map[h_t.chr ].end()) {
             hts_log_error("Can't find the CpG position in the input CpG file. Position: %lld ", cur_cpg_pos);
-            hts_log_error("hap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
+            hts_log_error("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
             return 1;
           }
           if (!ctx_beta.stranded) {
@@ -179,7 +179,7 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
             } else if (cur_hap == '0') {
               ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
             } else {
-              hts_log_error("hap string value error.");
+              hts_log_error("mhap string value error.");
               return 1;
             }
           } else if (ctx_beta.stranded) {
@@ -191,7 +191,7 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
                 } else if (cur_hap == '0') {
                   ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
                 } else {
-                  hts_log_error("hap string value error.");
+                  hts_log_error("mhap string value error.");
                   return 1;
                 }
                 break;
@@ -202,23 +202,23 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
                 } else if (cur_hap == '0') {
                   ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r += h_t.hap_count;
                 } else {
-                  hts_log_error("hap string value error.");
+                  hts_log_error("mhap string value error.");
                   return 1;
                 }
                 break;
               case '*':
-                hts_log_error("Hap file contains directional reads, do not use --stranded or -s opt");
+                hts_log_error("mhap file contains directional reads, do not use --stranded or -s opt");
                 return 1;
                 break;
               default:
-                hts_log_error("hap string value error.");
+                hts_log_error("mhap string value error.");
                 return 1;
                 break;
             }
           }
         } else {
-          hts_log_error("length of cpg pos and hap str doesn't match in hap read.");
-          hts_log_error("hap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
+          hts_log_error("length of cpg pos and mhap str doesn't match in mhap read.");
+          hts_log_error("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
           return 1;
         }
         i++;
@@ -275,12 +275,12 @@ bool beta_opt_check(ContextBeta &ctx_beta) {
 }
 
 static void help() {
-  cout << "Usage: mhaptools beta -i <in.hap> -c <CpG.gz> [-b bed_file.bed] [-s] [-o name.txt]" << endl;
+  cout << "Usage: mhaptools beta -i <in.mhap> -c <CpG.gz> [-b bed_file.bed] [-s] [-o name.txt]" << endl;
   cout << "Options:" << endl;
-  cout << "  -i  str  input file, hap format" << endl;
+  cout << "  -i  str  input file, mhap format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
   cout << "  -b  str  bed file, contains query regions" << endl;
-  cout << "  -s  flag group results by the direction of hap reads" << endl;
+  cout << "  -s  flag group results by the direction of mhap reads" << endl;
   cout << "  -o  str  output file name [beta.txt]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
@@ -290,11 +290,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Get beta results:" << endl;
-  cout << "  mhaptools beta -i in.hap -c CpG.gz" << endl << endl;
-  cout << "- Get beta results, group results by the direction of hap reads:" << endl;
-  cout << "  mhaptools beta -i in.hap -c CpG.gz -s" << endl << endl;
+  cout << "  mhaptools beta -i in.mhap -c CpG.gz" << endl << endl;
+  cout << "- Get beta results, group results by the direction of mhap reads:" << endl;
+  cout << "  mhaptools beta -i in.mhap -c CpG.gz -s" << endl << endl;
   cout << "- Get beta results within several regions" << endl;
-  cout << "  mhaptools beta -i in.hap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  mhaptools beta -i in.mhap -c CpG.gz -b bed_file.bed" << endl << endl;
 
 }
 
@@ -372,7 +372,7 @@ int main_beta(int argc, char *argv[]) {
   ctx_beta.fp_hap = hap_open(ctx_beta.fn_hap, "rb");
 
   if (ctx_beta.fp_hap == NULL) {
-    hts_log_error("Fail to open hap file.");
+    hts_log_error("Fail to open mhap file.");
     return 0;
   }
 
