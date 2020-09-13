@@ -4,7 +4,8 @@
 #include <getopt.h>
 #include <fstream>
 #include "./include/summary.h"
-#include "mhap.h"
+#include "./include/mhap.h"
+#include "./include/utils.h"
 #include "./htslib-1.10.2/htslib/regidx.h"
 #include "./htslib-1.10.2/htslib/kseq.h"
 
@@ -16,6 +17,20 @@ ContextSummary::~ContextSummary() {
   }
   if (fp_bed) {
     fclose(fp_bed);
+  }
+  if (hap_idx) {
+    mhap_idx_destroy(hap_idx);
+  }
+  if (fp_hap) {
+    mhap_close(fp_hap);
+  }
+  if (!genome_wide) {
+    if (fp_hap_gz) {
+      bgzf_close(fp_hap_gz);
+    }
+  }
+  if (fp_cpg) {
+    hts_close(fp_cpg);
   }
 }
 
@@ -162,7 +177,6 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
       }
     }
   }
-  mhap_close(ctx_sum.fp_hap);
   return 0;
 }
 
@@ -219,6 +233,12 @@ int get_summary(ContextSummary &ctx_sum) {
         return 1;
       }
       get_summary_str(ctx_sum, reg_t, sum_t);
+    }
+    if (idx) {
+      regidx_destroy(idx);
+    }
+    if (itr) {
+      regitr_destroy(itr);
     }
   }
   return 0;
@@ -502,6 +522,48 @@ static void help() {
   cout << "  mhaptools summary -i in.mhap -c CpG.gz -g" << endl << endl;
 }
 
+int sum_fn_suffix_check(ContextSummary &ctx_sum) {
+  string gz_suffix = ".gz";
+  string mhap_suffix = ".mhap";
+  string mhap_gz_suffix = ".mhap.gz";
+  string bed_suffix = ".bed";
+  string txt_suffix = ".txt";
+  if (ctx_sum.genome_wide) {
+    if (ctx_sum.fn_hap) {
+      if (!is_suffix(ctx_sum.fn_hap, mhap_suffix)) {
+        hts_log_error("-i opt should be followed by a .mhap file.");
+        return 1;
+      }
+    }
+  } else {
+    if (ctx_sum.fn_hap) {
+      if (!is_suffix(ctx_sum.fn_hap, mhap_gz_suffix)) {
+        hts_log_error("-i opt should be followed by a .mhap.gz file.");
+        return 1;
+      }
+    }
+  }
+  if (ctx_sum.fn_bed) {
+    if (!is_suffix(ctx_sum.fn_bed, bed_suffix)) {
+      hts_log_error("-b opt should be followed by a .bed file.");
+      return 1;
+    }
+  }
+  if (ctx_sum.fn_cpg) {
+    if (!is_suffix(ctx_sum.fn_cpg, gz_suffix)) {
+      hts_log_error("-c opt should be followed by a .gz file.");
+      return 1;
+    }
+  }
+  if (ctx_sum.fn_out) {
+    if (!is_suffix(ctx_sum.fn_out, txt_suffix)) {
+      hts_log_error("-o opt should be followed by a .txt file.");
+      return 1;
+    }
+  }
+  return 0;
+}
+
 int main_summary(int argc, char *argv[]) {
   if (argc == optind) {
     help();
@@ -573,6 +635,10 @@ int main_summary(int argc, char *argv[]) {
   ret = summary_opt_check(ctx_sum);
   if (ret == 1){
     hts_log_error("opt error");
+    return 1;
+  }
+  if (sum_fn_suffix_check(ctx_sum) == 1) {
+    hts_log_error("filename suffix error.");
     return 1;
   }
 

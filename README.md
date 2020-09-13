@@ -35,7 +35,7 @@ Merge two mHap files.
 
 #### summary
 
-* **-i** input file, mhap format
+* **-i** input file, mhap.gz format or mhap format (if opt -g is specified)
 * **-c** CpG file, gz format.
 * **-b** bed file of query regions.
 * **-r** query region, e.g. chr1:2000-20000.
