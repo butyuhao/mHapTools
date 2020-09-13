@@ -39,7 +39,7 @@ Merge two mHap files.
 * **-c** CpG file, gz format.
 * **-b** bed file of query regions.
 * **-r** query region, e.g. chr1:2000-20000.
-* **-o** output path.
+* **-o** output path. (summary.txt | summary_genome_wide.txt)
 * **-s** if specified, the results are grouped by the direction of mhap reads.
 * **-g** genome-wide result.
 

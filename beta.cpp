@@ -279,21 +279,29 @@ int beta_fn_suffix_check(ContextBeta &ctx_beta) {
   string gz_suffix = ".gz";
   string output_suffix = ".txt";
   string bed_suffix = ".bed";
-  if (!is_suffix(ctx_beta.fn_hap, mhap_suffix)) {
-    hts_log_error("-i opt should be followed by a .mhap file.");
-    return 1;
+  if (ctx_beta.fn_hap) {
+    if (!is_suffix(ctx_beta.fn_hap, mhap_suffix)) {
+      hts_log_error("-i opt should be followed by a .mhap file.");
+      return 1;
+    }
   }
-  if (!is_suffix(ctx_beta.fn_cpg, gz_suffix)) {
-    hts_log_error("-c opt should be followed by a .gz file.");
-    return 1;
+  if (ctx_beta.fn_cpg) {
+    if (!is_suffix(ctx_beta.fn_cpg, gz_suffix)) {
+      hts_log_error("-c opt should be followed by a .gz file.");
+      return 1;
+    }
   }
-  if (!is_suffix(ctx_beta.fn_out, output_suffix)) {
-    hts_log_error("-o opt should be followed by a .txt file.");
-    return 1;
+  if (ctx_beta.fn_out) {
+    if (!is_suffix(ctx_beta.fn_out, output_suffix)) {
+      hts_log_error("-o opt should be followed by a .txt file.");
+      return 1;
+    }
   }
-  if (!is_suffix(ctx_beta.fn_bed, bed_suffix)) {
-    hts_log_error("-o opt should be followed by a .bed file.");
-    return 1;
+  if (ctx_beta.fn_bed) {
+    if (!is_suffix(ctx_beta.fn_bed, bed_suffix)) {
+      hts_log_error("-o opt should be followed by a .bed file.");
+      return 1;
+    }
   }
   return 0;
 }
@@ -382,7 +390,7 @@ int main_beta(int argc, char *argv[]) {
     hts_log_error("opt error");
     return 1;
   }
-  if (beta_fn_suffix_check == 0) {
+  if (beta_fn_suffix_check(ctx_beta) == 1) {
     hts_log_error("filename suffix error.");
     return 1;
   }

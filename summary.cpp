@@ -79,8 +79,8 @@ int get_region(char* region_string, region_t &reg_t) {
 
 int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_t &sum_t) {
   //get summary result within reg_t and put to sum_t
-  ctx_sum.fp_hap_gz = bgzf_open(ctx_sum.fn_hap_gz, "r");
-  if (ctx_sum.fp_hap == NULL) {
+  ctx_sum.fp_hap_gz = bgzf_open(ctx_sum.fn_hap, "r");
+  if (ctx_sum.fp_hap_gz == NULL) {
     hts_log_error("Fail to open the mhap file.");
     return 1;
   }
@@ -193,7 +193,7 @@ int get_summary(ContextSummary &ctx_sum) {
     if (ret == 1) {
       return 1;
     }
-    string filename_hap_idx = string(ctx_sum.fn_hap) + ".gz.tbi";
+    string filename_hap_idx = string(ctx_sum.fn_hap) + ".tbi";
     ctx_sum.hap_idx = mhap_index_load(filename_hap_idx.c_str());
     if (ctx_sum.hap_idx == NULL) {
       hts_log_error("Fail to open the index file of the input mHap file. Please generate .tbi index file for the mHap file.");
@@ -530,7 +530,7 @@ int main_summary(int argc, char *argv[]) {
   while (opt != -1) {
     switch (opt) {
       case 'i': {
-        ctx_sum.fn_hap_gz = optarg;
+        ctx_sum.fn_hap = optarg;
         break;
       }
       case 'o': {

@@ -59,7 +59,7 @@ class ContextSummary {
                     fp_bed(NULL), hap_idx(NULL), stranded(false), region(NULL){};
   ~ContextSummary();
 
-  char *fn_hap;
+  char *fn_hap; //.mhap.gz when specify a region, .mhap  when genome-wide
   char *fn_cpg;
   char *fn_bed;
   char *fn_out;
