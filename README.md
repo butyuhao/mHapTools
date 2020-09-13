@@ -36,6 +36,14 @@ Merge two mHap files.
 #### summary
 
 * **-i** input file, mhap.gz format or mhap format (if opt -g is specified)
+
+```c++
+//Convert from mhap file to bgzip file
+cat file.mhap | sort -k1,1 -k2,2n | bgzip > file.mhap.gz
+//Convert from bgzip file to tabix index file
+tabix -b 2 -e 3 -p bed file.mhap.gz
+```
+
 * **-c** CpG file, gz format.
 * **-b** bed file of query regions.
 * **-r** query region, e.g. chr1:2000-20000.
