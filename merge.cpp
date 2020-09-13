@@ -12,11 +12,11 @@ namespace std {
 
 extern int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos);
 
-vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
+vector<mhap_pos_t> get_cpg(ContextMerge &ctx_merge, mhap_t &hap_read) {
   /*
-   * get cpg pos for a mhap read and store to hap_t
+   * get cpg pos for a mhap read and store to mhap_t
    */
-  vector<hap_pos_t>_cpg_pos(hap_read.hap_str.size(), 0);
+  vector<mhap_pos_t>_cpg_pos(hap_read.mhap_str.size(), 0);
 
   int pos = _lower_bound(ctx_merge.cpg_pos_map[hap_read.chr], hap_read.chr_beg);
 
@@ -30,7 +30,7 @@ vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
 
       if (ctx_merge.cpg_pos_map[hap_read.chr][pos] >= hap_read.chr_beg &&
       ctx_merge.cpg_pos_map[hap_read.chr][pos] <= hap_read.chr_end) {
-        if (i < hap_read.hap_str.size()) {
+        if (i < hap_read.mhap_str.size()) {
           _cpg_pos[i] = ctx_merge.cpg_pos_map[hap_read.chr][pos];
         } else {
           _cpg_pos.push_back(ctx_merge.cpg_pos_map[hap_read.chr][pos]);
@@ -47,13 +47,13 @@ vector<hap_pos_t> get_cpg(ContextMerge &ctx_merge, hap_t &hap_read) {
   return _cpg_pos;
 }
 
-bool is_overlap(vector<hap_pos_t> &cpg_pos_1, vector<hap_pos_t> &cpg_pos_2,
-    hap_t &hap_1, hap_t &hap_2, int *overlap_beg1, int *overlap_beg2,
-    int *overlap_end1, int *overlap_end2) {
-  if (hap_1.chr != hap_2.chr || hap_1.hap_direction != hap_2.hap_direction) {
+bool is_overlap(vector<mhap_pos_t> &cpg_pos_1, vector<mhap_pos_t> &cpg_pos_2,
+                mhap_t &hap_1, mhap_t &hap_2, int *overlap_beg1, int *overlap_beg2,
+                int *overlap_end1, int *overlap_end2) {
+  if (hap_1.chr != hap_2.chr || hap_1.mhap_direction != hap_2.mhap_direction) {
     return false;
   }
-  if (cpg_pos_1.size() != hap_1.hap_str.size() || cpg_pos_2.size() != hap_2.hap_str.size()) {
+  if (cpg_pos_1.size() != hap_1.mhap_str.size() || cpg_pos_2.size() != hap_2.mhap_str.size()) {
     hts_log_error("length of cpg pos vec and mhap str doesn't match");
   }
   bool break_flag = false;
@@ -82,7 +82,7 @@ bool is_overlap(vector<hap_pos_t> &cpg_pos_1, vector<hap_pos_t> &cpg_pos_2,
     if (cpg_pos_1[i1] != cpg_pos_2[i2]) {
       return false;
     }
-    if (hap_1.hap_str[i1] != hap_2.hap_str[i2]) {
+    if (hap_1.mhap_str[i1] != hap_2.mhap_str[i2]) {
       return false;
     }
     ++i1;
@@ -94,60 +94,60 @@ bool is_overlap(vector<hap_pos_t> &cpg_pos_1, vector<hap_pos_t> &cpg_pos_2,
 }
 
 
-bool is_identity(hap_t &hap_a, hap_t &hap_b) {
+bool is_identity(mhap_t &hap_a, mhap_t &hap_b) {
   if (hap_a.chr == hap_b.chr && hap_a.chr_beg == hap_b.chr_beg &&
-      hap_a.chr_end == hap_b.chr_end && hap_a.hap_str == hap_b.hap_str &&
-      hap_a.hap_direction == hap_b.hap_direction) {
+      hap_a.chr_end == hap_b.chr_end && hap_a.mhap_str == hap_b.mhap_str &&
+      hap_a.mhap_direction == hap_b.mhap_direction) {
     return true;
   }
   return false;
 }
 
-hap_t merge(hap_t &hap_t_1, hap_t &hap_t_2, int &overlap_beg_a,
-    int &overlap_beg_b, int &overlap_end_a, int &overlap_end_b) {
+mhap_t merge(mhap_t &hap_t_1, mhap_t &hap_t_2, int &overlap_beg_a,
+             int &overlap_beg_b, int &overlap_end_a, int &overlap_end_b) {
   if (hap_t_1.chr_beg <= hap_t_2.chr_beg && hap_t_1.chr_end >= hap_t_2.chr_end) {
     return hap_t_1;
   }
   if (hap_t_1.chr_beg >= hap_t_2.chr_beg && hap_t_1.chr_end <= hap_t_2.chr_end) {
     return hap_t_2;
   }
-  hap_t hap_merge;
+  mhap_t hap_merge;
   string hap_str = "";
   if (hap_t_1.chr_beg <= hap_t_2.chr_beg) {
     hap_merge.chr_beg = hap_t_1.chr_beg;
     if (!(overlap_beg_a == 0 && overlap_beg_b == 0)) {
-      hap_str += hap_t_1.hap_str.substr(0, overlap_beg_a);
+      hap_str += hap_t_1.mhap_str.substr(0, overlap_beg_a);
     }
   } else {
     hap_merge.chr_beg = hap_t_2.chr_beg;
     if (!(overlap_beg_a == 0 && overlap_beg_b == 0)) {
-    hap_str += hap_t_2.hap_str.substr(0, overlap_beg_b);
+    hap_str += hap_t_2.mhap_str.substr(0, overlap_beg_b);
     }
   }
 
-  hap_str += hap_t_1.hap_str.substr(overlap_beg_a, overlap_end_a - overlap_beg_a + 1);
+  hap_str += hap_t_1.mhap_str.substr(overlap_beg_a, overlap_end_a - overlap_beg_a + 1);
 
   if (hap_t_1.chr_end <= hap_t_2.chr_end) {
     hap_merge.chr_end = hap_t_2.chr_end;
-    if (!(overlap_end_a == hap_t_1.hap_str.size() - 1 &&
-        overlap_end_b == hap_t_2.hap_str.size() - 1)) {
+    if (!(overlap_end_a == hap_t_1.mhap_str.size() - 1 &&
+        overlap_end_b == hap_t_2.mhap_str.size() - 1)) {
 
-      hap_str += hap_t_2.hap_str.substr(overlap_end_b + 1);
+      hap_str += hap_t_2.mhap_str.substr(overlap_end_b + 1);
 
     }
   } else {
     hap_merge.chr_end = hap_t_1.chr_end;
-    if (!(overlap_end_a == hap_t_1.hap_str.size() - 1 &&
-          overlap_end_b == hap_t_2.hap_str.size() - 1)) {
+    if (!(overlap_end_a == hap_t_1.mhap_str.size() - 1 &&
+          overlap_end_b == hap_t_2.mhap_str.size() - 1)) {
 
-      hap_str += hap_t_1.hap_str.substr(overlap_end_a + 1);
+      hap_str += hap_t_1.mhap_str.substr(overlap_end_a + 1);
 
     }
   }
   hap_merge.chr = hap_t_1.chr;
-  hap_merge.hap_str = hap_str;
-  hap_merge.hap_count = 1;
-  hap_merge.hap_direction = hap_t_1.hap_direction;
+  hap_merge.mhap_str = hap_str;
+  hap_merge.mhap_count = 1;
+  hap_merge.mhap_direction = hap_t_1.mhap_direction;
   return hap_merge;
 }
 
@@ -208,26 +208,26 @@ bool merge_opt_check(ContextMerge &ctx_merge) {
   return true;
 }
 
-bool comp_hap(const hap_t &a, const hap_t &b)
+bool comp_hap(const mhap_t &a, const mhap_t &b)
 {
   if (a.chr == b.chr) {
     if (a.chr_beg != b.chr_beg) {
       return a.chr_beg < b.chr_beg;
     } else if (a.chr_end != b.chr_end) {
       return a.chr_end < b.chr_end;
-    } else if (a.hap_str != b.hap_str) {
-      return a.hap_str < b.hap_str;
-    } else if (a.hap_count!= b.hap_count){
-      return a.hap_count < b.hap_count;
+    } else if (a.mhap_str != b.mhap_str) {
+      return a.mhap_str < b.mhap_str;
+    } else if (a.mhap_count!= b.mhap_count){
+      return a.mhap_count < b.mhap_count;
     } else {
-      return a.hap_direction < b.hap_direction;
+      return a.mhap_direction < b.mhap_direction;
     }
   } else {
     return strcmp(a.chr.c_str(), b.chr.c_str()) < 0;
   }
 }
 
-void saving_merged_hap(ContextMerge &ctx_merge, vector<hap_t> &merge_result) {
+void saving_merged_hap(ContextMerge &ctx_merge, vector<mhap_t> &merge_result) {
 
   string out_stream_name;
   if (ctx_merge.fn_out) {
@@ -239,12 +239,12 @@ void saving_merged_hap(ContextMerge &ctx_merge, vector<hap_t> &merge_result) {
 
   unordered_map<string, bool> is_overlap;
   unordered_map<string, bool>::iterator itor;
-  vector<hap_t>::iterator ht_itor;
+  vector<mhap_t>::iterator ht_itor;
 
   for (ht_itor = merge_result.begin(); ht_itor != merge_result.end(); ht_itor++) {
     string line = (*ht_itor).chr + '\t' + to_string((*ht_itor).chr_beg) + '\t' +
-        to_string((*ht_itor).chr_end) + '\t' + (*ht_itor).hap_str + '\t' +
-        to_string((*ht_itor).hap_count) + '\t' + (*ht_itor).hap_direction;
+        to_string((*ht_itor).chr_end) + '\t' + (*ht_itor).mhap_str + '\t' +
+        to_string((*ht_itor).mhap_count) + '\t' + (*ht_itor).mhap_direction;
     itor = is_overlap.find(line);
     if (itor == is_overlap.end()) {
       out_stream << line << '\n';
@@ -257,10 +257,10 @@ void saving_merged_hap(ContextMerge &ctx_merge, vector<hap_t> &merge_result) {
 
 ContextMerge::~ContextMerge() {
   if (fp_hap1) {
-    hap_close(fp_hap1);
+    mhap_close(fp_hap1);
   }
   if (fp_hap2) {
-    hap_close(fp_hap2);
+    mhap_close(fp_hap2);
   }
   if (fp_cpg) {
     hts_close(fp_cpg);
@@ -334,8 +334,8 @@ int main_merge(int argc, char *argv[]) {
     return 1;
   }
 
-  ctx_merge.fp_hap1 = hap_open(ctx_merge.fn_hap1, "rb");
-  ctx_merge.fp_hap2 = hap_open(ctx_merge.fn_hap2, "rb");
+  ctx_merge.fp_hap1 = mhap_open(ctx_merge.fn_hap1, "rb");
+  ctx_merge.fp_hap2 = mhap_open(ctx_merge.fn_hap2, "rb");
 
   if (ctx_merge.fp_hap1 == NULL) {
     hts_log_error("Fail to open mhap file1.");
@@ -354,18 +354,18 @@ int main_merge(int argc, char *argv[]) {
     return 1;
   }
 
-  hap_t hap_t_1 = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
-  hap_t hap_t_2 = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
+  mhap_t hap_t_1 = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+  mhap_t hap_t_2 = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
 
-  vector<hap_t> merge_result_vec;
-  vector<hap_t> hap_to_merge;
+  vector<mhap_t> merge_result_vec;
+  vector<mhap_t> hap_to_merge;
 
   cout << "Loading mhap files..." << endl;
 
-  while(hap_read(ctx_merge.fp_hap1, &hap_t_1) == 0) {
+  while(mhap_read(ctx_merge.fp_hap1, &hap_t_1) == 0) {
     hap_to_merge.push_back(hap_t_1);
   }
-  while(hap_read(ctx_merge.fp_hap2, &hap_t_2) == 0) {
+  while(mhap_read(ctx_merge.fp_hap2, &hap_t_2) == 0) {
     hap_to_merge.push_back(hap_t_2);
   }
 
@@ -374,11 +374,11 @@ int main_merge(int argc, char *argv[]) {
   sort(hap_to_merge.begin(), hap_to_merge.end(), comp_hap);
 
   int i = 1;
-  vector<hap_pos_t> cpg_pos_a;
-  vector<hap_pos_t> cpg_pos_b;
-  hap_t hap_a = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
-  hap_t hap_b = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
-  hap_t merge_result;
+  vector<mhap_pos_t> cpg_pos_a;
+  vector<mhap_pos_t> cpg_pos_b;
+  mhap_t hap_a = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+  mhap_t hap_b = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+  mhap_t merge_result;
   cout << "Processing..." << endl;
   if (hap_to_merge.size() == 0) {
     hts_log_error("mhap files are empty");
@@ -399,7 +399,7 @@ int main_merge(int argc, char *argv[]) {
 
       if (is_identity(hap_a, hap_b)) {
 
-        hap_b.hap_count += hap_a.hap_count;
+        hap_b.mhap_count += hap_a.mhap_count;
 
       } else {
         merge_result_vec.push_back(hap_a);

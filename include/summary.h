@@ -14,8 +14,8 @@ namespace std {
 
 typedef struct region_t {
   string chr;
-  hap_pos_t beg;
-  hap_pos_t end;
+  mhap_pos_t beg;
+  mhap_pos_t end;
 }region_t;
 
 typedef struct summary_t {
@@ -39,24 +39,24 @@ typedef struct summary_t {
     return 0;
   }
   // unstranded or direction +
-  hap_pos_t n_reads;
-  hap_pos_t m_base;
-  hap_pos_t t_base;
-  hap_pos_t n_reads_k4;
-  hap_pos_t n_dr;
+  mhap_pos_t n_reads;
+  mhap_pos_t m_base;
+  mhap_pos_t t_base;
+  mhap_pos_t n_reads_k4;
+  mhap_pos_t n_dr;
   // when direction is -
-  hap_pos_t n_reads_r;
-  hap_pos_t m_base_r;
-  hap_pos_t t_base_r;
-  hap_pos_t n_reads_k4_r;
-  hap_pos_t n_dr_r;
+  mhap_pos_t n_reads_r;
+  mhap_pos_t m_base_r;
+  mhap_pos_t t_base_r;
+  mhap_pos_t n_reads_k4_r;
+  mhap_pos_t n_dr_r;
 
 } summary_t;
 
 class ContextSummary {
  public:
-  ContextSummary():fn_hap(NULL), fn_bed(NULL), fn_out(NULL), fp_hap(NULL),
-                    fp_bed(NULL), fn_hap_idx(NULL), stranded(false), region(NULL){};
+  ContextSummary(): fn_hap(NULL), fn_bed(NULL), fn_out(NULL), fp_hap(NULL),
+                    fp_bed(NULL), hap_idx(NULL), stranded(false), region(NULL){};
   ~ContextSummary();
 
   char *fn_hap;
@@ -64,17 +64,19 @@ class ContextSummary {
   char *fn_bed;
   char *fn_out;
   char *region;
-  hapFile *fp_hap;
+  mHapFile *fp_hap;
+  BGZF* fp_hap_gz;
+  char* fn_hap_gz;
   htsFile *fp_cpg;
   FILE *fp_bed;
-  hap_idx_t *fn_hap_idx;
+  mhap_idx_t *hap_idx;
   bool stranded;
   bool genome_wide = false;
   bool region_chr_match = false;
   bool region_beg_end_match = false;
 
   vector<string> summary_result;
-  map<string, map<hap_pos_t, summary_t> > genome_wide_map;
+  map<string, map<mhap_pos_t, summary_t> > genome_wide_map;
 };
 int main_summary(int argc, char *argv[]);
 }

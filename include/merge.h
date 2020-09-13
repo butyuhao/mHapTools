@@ -20,8 +20,8 @@ class ContextMerge {
   char *fn_hap2;
   char *fn_cpg;
   char *fn_out;
-  hapFile *fp_hap1;
-  hapFile *fp_hap2;
+  mHapFile *fp_hap1;
+  mHapFile *fp_hap2;
 
   htsFile *fp_cpg;
   unordered_map<string, vector<hts_pos_t> > cpg_pos_map;

@@ -67,7 +67,7 @@ extern int hts_verbose;
 *                      - HTS_LOG_INFO means that something normal but significant happened.
 *                      - HTS_LOG_DEBUG means that something normal and insignificant happened.
 *                      - HTS_LOG_TRACE means that something happened that might be of interest when troubleshooting.
-* \param context       Context where the event occurred. Typically set to "__func__".
+* \param context       ContextConvert where the event occurred. Typically set to "__func__".
 * \param format        Format string with placeholders, like printf.
 */
 HTSLIB_EXPORT

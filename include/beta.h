@@ -34,12 +34,12 @@ class ContextBeta {
   char *fn_cpg;
   char *fn_bed;
   char *fn_out;
-  hapFile *fp_hap;
+  mHapFile *fp_hap;
   htsFile *fp_cpg;
   FILE *fp_bed;
   bool stranded;
 
-  map<string, map<hap_pos_t, beta_t> > beta_map;
+  map<string, map<mhap_pos_t, beta_t> > beta_map;
   unordered_map<string, vector<hts_pos_t> > cpg_pos_map;
 
 };

@@ -13,12 +13,13 @@
 #include "./htslib-1.10.2/htslib/bgzf.h"
 #include "./htslib-1.10.2/htslib/hfile.h"
 #include "./htslib-1.10.2/htslib/regidx.h"
+#include "./include/utils.h"
 #include <chrono>
 #include <algorithm>
 
 namespace std {
 
-bool Context::parse_region() {
+bool ContextConvert::parse_region() {
   //parse the -r chr:start-end
   const char *reg = region;
 
@@ -36,7 +37,7 @@ bool Context::parse_region() {
   return true;
 }
 
-bool load_get_cpg_with_idx(Context &ctx, char *chr, hts_pos_t beg, hts_pos_t end, hts_pos_t shift = 500) {
+bool load_get_cpg_with_idx(ContextConvert &ctx, char *chr, hts_pos_t beg, hts_pos_t end, hts_pos_t shift = 500) {
   //concat name of the tbi file
   ctx.cpg_pos.clear();
 
@@ -84,7 +85,7 @@ bool load_get_cpg_with_idx(Context &ctx, char *chr, hts_pos_t beg, hts_pos_t end
 inline SamRead::~SamRead() {
 }
 
-bool SamRead::init(Context &ctx) {
+bool SamRead::init(ContextConvert &ctx) {
   bool ret;
 
   this->ctx = &ctx;
@@ -226,7 +227,7 @@ bool SamRead::haplo_type() {
   return true;
 }
 
-bool convert_opt_check(Context &ctx) {
+bool convert_opt_check(ContextConvert &ctx) {
   if (ctx.fn_bam == NULL || ctx.fn_cpg == NULL) {
     hts_log_error("Please specify -i and -c options.");
     return false;
@@ -238,7 +239,7 @@ bool convert_opt_check(Context &ctx) {
   return true;
 }
 
-bool SamRead::_get_XM(Context &ctx) {
+bool SamRead::_get_XM(ContextConvert &ctx) {
 
   ctx.bam_aux_p = bam_aux_get(ctx.aln, "XM");
   if (!ctx.bam_aux_p) {
@@ -247,7 +248,7 @@ bool SamRead::_get_XM(Context &ctx) {
   return true;
 }
 
-bool SamRead::_get_bismark_QC(Context &ctx) {
+bool SamRead::_get_bismark_QC(ContextConvert &ctx) {
   XM_string = bam_aux2Z(ctx.bam_aux_p);
   if (!XM_string) {
     hts_log_error("has no XM string");
@@ -309,7 +310,7 @@ HT_s paired_end_merge(SamRead &samF, SamRead &samR) {
   return merged_HT;
 }
 
-bool region_to_parse(Context &ctx) {
+bool region_to_parse(ContextConvert &ctx) {
   /* Recognize the way the user specifies the region
    * 1.use command line -r option to specify single region --> SINGLE_REGION
    * 2.use bed file --> MULTI_REGION
@@ -349,7 +350,7 @@ bool comp_HT_vec(const HT_s &a, const HT_s &b)
   }
 }
 
-bool load_cpg_no_idx(Context &ctx) {
+bool load_cpg_no_idx(ContextConvert &ctx) {
   kstring_t cpg_line = {0,0,NULL};
   unordered_map<int, vector<hts_pos_t> >::iterator cpg_pos_map_itor;
   while (hts_getline(ctx.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
@@ -400,7 +401,7 @@ int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos)//二分查找求下�
   return low;
 }
 
-void get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts_pos_t shift = 500) {
+void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts_pos_t shift = 500) {
   ctx.cpg_pos.clear();
 
   hts_pos_t  i_beg;
@@ -433,7 +434,7 @@ void get_cpg_no_idx(Context &ctx, char *chr, hts_pos_t &beg, hts_pos_t &end, hts
   }
 }
 
-vector<HT_s> itor_sam(Context &ctx) {
+vector<HT_s> itor_sam(ContextConvert &ctx) {
 
   map<string, vector<SamRead> > sam_map;
   map<string, vector<SamRead> >::iterator iter;
@@ -683,7 +684,7 @@ vector<HT_s> itor_sam(Context &ctx) {
   return HT_vec;
 }
 
-inline Context::~Context() {
+inline ContextConvert::~ContextConvert() {
   //to_do明确一下哪些指针需要被关掉。
   if (fp_bam) {
     hts_close(fp_bam);
@@ -714,7 +715,7 @@ inline Context::~Context() {
   }
 }
 
-bool open_bam_file(Context &ctx) {
+bool open_bam_file(ContextConvert &ctx) {
 
   ctx.fp_bam = hts_open(ctx.fn_bam, "r");
   ctx.hdr_bam = sam_hdr_read(ctx.fp_bam); //read header
@@ -730,7 +731,7 @@ bool open_bam_file(Context &ctx) {
   return true;
 }
 
-bool open_cpg_file(Context &ctx) {
+bool open_cpg_file(ContextConvert &ctx) {
   //open the cpg file (.gz file)
   ctx.fp_cpg = hts_open(ctx.fn_cpg, "r");
   if (ctx.fp_cpg == NULL) {
@@ -751,11 +752,11 @@ inline void HT_s::get_WC_symbol() {
   }
 }
 
-void saving_hap(Context &ctx, vector<HT_s> &HT_vec) {
+void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
 
   string out_stream_name;
-  if (ctx.output_path) {
-    out_stream_name = ctx.output_path;
+  if (ctx.fn_out) {
+    out_stream_name = ctx.fn_out;
   } else {
     out_stream_name = "out.mhap";
   }
@@ -809,14 +810,39 @@ static void help() {
   cout << "  mhaptools convert -i in.bam -c CpG.gz -b bed_file.bed" << endl << endl;
 }
 
+int convert_fn_suffix_check(ContextConvert &ctx_cvt) {
+  string gz_suffix = ".gz";
+  string output_suffix = ".mhap";
+  string bed_suffix = ".bed";
+  if (ctx_cvt.fn_cpg) {
+    if (!is_suffix(ctx_cvt.fn_cpg, gz_suffix)) {
+      hts_log_error("-c opt should be followed by a .gz file.");
+      return 1;
+    }
+  }
+  if (ctx_cvt.fn_out) {
+    if (!is_suffix(ctx_cvt.fn_out, output_suffix)) {
+      hts_log_error("-o opt should be followed by a .mhap file.");
+      return 1;
+    }
+  }
+  if (ctx_cvt.fn_bed) {
+    if (!is_suffix(ctx_cvt.fn_bed, bed_suffix)) {
+      hts_log_error("-o opt should be followed by a .bed file.");
+      return 1;
+    }
+  }
+  return 0;
+}
+
 int main_convert(int argc, char *argv[]) {
   if (argc == optind) {
     help();
     return 0;
   }
 
-  hts_log_info("create Context()");
-  Context ctx = Context();
+  hts_log_info("create ContextConvert()");
+  ContextConvert ctx = ContextConvert();
 
   hts_log_info("parse options");
 
@@ -855,7 +881,7 @@ int main_convert(int argc, char *argv[]) {
         break;
       }
       case 'o': {
-        ctx.output_path = optarg;
+        ctx.fn_out = optarg;
         break;
       }
       case 'n': {
@@ -877,6 +903,11 @@ int main_convert(int argc, char *argv[]) {
 
   if (!convert_opt_check(ctx)) {
     hts_log_error("opt error");
+    return 1;
+  }
+
+  if (convert_fn_suffix_check(ctx) == 1) {
+    hts_log_error("filename suffix error.");
     return 1;
   }
 

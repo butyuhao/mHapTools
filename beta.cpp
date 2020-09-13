@@ -10,7 +10,7 @@
 #include "./htslib-1.10.2/htslib/hts.h"
 #include "./htslib-1.10.2/htslib/regidx.h"
 #include "./include/summary.h"
-
+#include "./include/utils.h"
 
 namespace std {
 
@@ -18,7 +18,7 @@ extern int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos);
 
 ContextBeta::~ContextBeta() {
   if (fp_hap) {
-    hap_close(fp_hap);
+    mhap_close(fp_hap);
   }
   if (fp_cpg) {
     hts_close(fp_cpg);
@@ -38,8 +38,8 @@ bool load_cpg_init_beta_map(ContextBeta &ctx_beta) {
     return 1;
   }
   kstring_t cpg_line = {0,0,NULL};
-  map<string, map<hap_pos_t, beta_t> >::iterator chr_itor;
-  map<hap_pos_t, beta_t>::iterator cpg_itor;
+  map<string, map<mhap_pos_t, beta_t> >::iterator chr_itor;
+  map<mhap_pos_t, beta_t>::iterator cpg_itor;
   unordered_map<string, vector<hts_pos_t> >::iterator cpg_pos_map_itor;
   while (hts_getline(ctx_beta.fp_cpg, KS_SEP_LINE, &cpg_line) > 0) {
 
@@ -66,7 +66,7 @@ bool load_cpg_init_beta_map(ContextBeta &ctx_beta) {
     chr_itor = ctx_beta.beta_map.find(chr);
     if (chr_itor == ctx_beta.beta_map.end()) {
         beta_t bt_t  = {0, 0,0,0};
-        map<hap_pos_t, beta_t> m;
+        map<mhap_pos_t, beta_t> m;
         m[cpg_start] = bt_t;
         ctx_beta.beta_map[chr] = m;
     } else {
@@ -100,8 +100,8 @@ bool saving_beta(ContextBeta &ctx_beta) {
   }
   ofstream out_stream(out_stream_name);
 
-  map<string, map<hap_pos_t, beta_t> >::iterator chr_itor;
-  map<hap_pos_t, beta_t>::iterator cpg_itor;
+  map<string, map<mhap_pos_t, beta_t> >::iterator chr_itor;
+  map<mhap_pos_t, beta_t>::iterator cpg_itor;
   if (ctx_beta.stranded) {
       for (chr_itor = ctx_beta.beta_map.begin(); chr_itor != ctx_beta.beta_map.end(); chr_itor++) {
         for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
@@ -141,10 +141,10 @@ bool saving_beta(ContextBeta &ctx_beta) {
   return 0;
 }
 
-int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
-  map<string, map<hap_pos_t, beta_t> >::iterator chr_itor;
+int process_beta(ContextBeta &ctx_beta, mhap_t &h_t) {
+  map<string, map<mhap_pos_t, beta_t> >::iterator chr_itor;
 
-  map<hap_pos_t, beta_t>::iterator cpg_itor;
+  map<mhap_pos_t, beta_t>::iterator cpg_itor;
 
   unordered_map<string, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
 
@@ -161,35 +161,35 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
   int i = 0;
   if (cpg_pos_map_itor != ctx_beta.cpg_pos_map.end()) {
     while (pos < ctx_beta.cpg_pos_map[h_t.chr].size() && cpg_pos_map_itor != ctx_beta.cpg_pos_map.end()) {
-      hap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
+      mhap_pos_t cur_cpg_pos = ctx_beta.cpg_pos_map[h_t.chr][pos];
       if (cur_cpg_pos >= h_t.chr_beg && cur_cpg_pos <= h_t.chr_end) {
-        if (i < h_t.hap_str.size()) {
-          char cur_hap = h_t.hap_str[i];
+        if (i < h_t.mhap_str.size()) {
+          char cur_hap = h_t.mhap_str[i];
           //check current cpg pos in case it doesn't exists in the map
           cpg_itor = ctx_beta.beta_map[h_t.chr].find(cur_cpg_pos);
           if (cpg_itor == ctx_beta.beta_map[h_t.chr ].end()) {
             hts_log_error("Can't find the CpG position in the input CpG file. Position: %lld ", cur_cpg_pos);
-            hts_log_error("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
+            hts_log_error("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.mhap_str.c_str(), h_t.mhap_direction);
             return 1;
           }
           if (!ctx_beta.stranded) {
             if (cur_hap == '1') {
-              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
-              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads += h_t.hap_count;
+              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.mhap_count;
+              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads += h_t.mhap_count;
             } else if (cur_hap == '0') {
-              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
+              ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.mhap_count;
             } else {
               hts_log_error("mhap string value error.");
               return 1;
             }
           } else if (ctx_beta.stranded) {
-            switch (h_t.hap_direction) {
+            switch (h_t.mhap_direction) {
               case '+':
                 if (cur_hap == '1') {
-                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
-                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads += h_t.hap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.mhap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads += h_t.mhap_count;
                 } else if (cur_hap == '0') {
-                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.hap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads += h_t.mhap_count;
                 } else {
                   hts_log_error("mhap string value error.");
                   return 1;
@@ -197,10 +197,10 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
                 break;
               case '-':
                 if (cur_hap == '1') {
-                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r += h_t.hap_count;
-                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads_r += h_t.hap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r += h_t.mhap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].methy_reads_r += h_t.mhap_count;
                 } else if (cur_hap == '0') {
-                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r += h_t.hap_count;
+                  ctx_beta.beta_map[h_t.chr][cur_cpg_pos].total_reads_r += h_t.mhap_count;
                 } else {
                   hts_log_error("mhap string value error.");
                   return 1;
@@ -218,7 +218,7 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
           }
         } else {
           hts_log_error("length of cpg pos and mhap str doesn't match in mhap read.");
-          hts_log_error("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.hap_str.c_str(), h_t.hap_direction);
+          hts_log_error("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.mhap_str.c_str(), h_t.mhap_direction);
           return 1;
         }
         i++;
@@ -232,17 +232,17 @@ int process_beta(ContextBeta &ctx_beta, hap_t &h_t) {
 }
 
 int get_beta(ContextBeta &ctx_beta) {
-  hap_t h_t = {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
+  mhap_t h_t = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
   int ret = 0;
   if (ctx_beta.fn_bed == NULL) {
-    while(hap_read(ctx_beta.fp_hap, &h_t) == 0) {
+    while(mhap_read(ctx_beta.fp_hap, &h_t) == 0) {
       ret = process_beta(ctx_beta, h_t);
       if (ret == 1) {
         return 1;
       }
     }
   } else {
-    while(hap_read(ctx_beta.fp_hap, &h_t) == 0) {
+    while(mhap_read(ctx_beta.fp_hap, &h_t) == 0) {
       regidx_t *idx = regidx_init(ctx_beta.fn_bed,NULL,NULL,0,NULL);
       regitr_t *itr = regitr_init(idx);
       while (regitr_loop(itr)) {
@@ -269,6 +269,30 @@ int get_beta(ContextBeta &ctx_beta) {
 bool beta_opt_check(ContextBeta &ctx_beta) {
   if (ctx_beta.fn_cpg == NULL || ctx_beta.fn_hap == NULL) {
     hts_log_error("Please specify -i and -c");
+    return 1;
+  }
+  return 0;
+}
+
+int beta_fn_suffix_check(ContextBeta &ctx_beta) {
+  string mhap_suffix = ".mhap";
+  string gz_suffix = ".gz";
+  string output_suffix = ".txt";
+  string bed_suffix = ".bed";
+  if (!is_suffix(ctx_beta.fn_hap, mhap_suffix)) {
+    hts_log_error("-i opt should be followed by a .mhap file.");
+    return 1;
+  }
+  if (!is_suffix(ctx_beta.fn_cpg, gz_suffix)) {
+    hts_log_error("-c opt should be followed by a .gz file.");
+    return 1;
+  }
+  if (!is_suffix(ctx_beta.fn_out, output_suffix)) {
+    hts_log_error("-o opt should be followed by a .txt file.");
+    return 1;
+  }
+  if (!is_suffix(ctx_beta.fn_bed, bed_suffix)) {
+    hts_log_error("-o opt should be followed by a .bed file.");
     return 1;
   }
   return 0;
@@ -358,8 +382,19 @@ int main_beta(int argc, char *argv[]) {
     hts_log_error("opt error");
     return 1;
   }
+  if (beta_fn_suffix_check == 0) {
+    hts_log_error("filename suffix error.");
+    return 1;
+  }
 
   int ret = 0;
+
+  ctx_beta.fp_hap = mhap_open(ctx_beta.fn_hap, "rb");
+
+  if (ctx_beta.fp_hap == NULL) {
+    hts_log_error("Fail to open mhap file.");
+    return 0;
+  }
 
   cout << "Loding CpG positions..." << endl;
   ret = load_cpg_init_beta_map(ctx_beta);
@@ -367,13 +402,6 @@ int main_beta(int argc, char *argv[]) {
   if (ret == 1) {
     hts_log_error("Could not load CpG file.");
     return 1;
-  }
-
-  ctx_beta.fp_hap = hap_open(ctx_beta.fn_hap, "rb");
-
-  if (ctx_beta.fp_hap == NULL) {
-    hts_log_error("Fail to open mhap file.");
-    return 0;
   }
 
   cout << "Processing..." << endl;

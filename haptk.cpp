@@ -6,6 +6,7 @@
 #include "./include/beta.h"
 #include "./include/summary.h"
 #include "./include/version.h"
+#include "./include/utils.h"
 
 using namespace std;
 

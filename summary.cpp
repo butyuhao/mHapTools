@@ -12,7 +12,7 @@ namespace std {
 
 ContextSummary::~ContextSummary() {
   if (fp_hap) {
-    hap_close(fp_hap);
+    mhap_close(fp_hap);
   }
   if (fp_bed) {
     fclose(fp_bed);
@@ -79,29 +79,39 @@ int get_region(char* region_string, region_t &reg_t) {
 
 int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_t &sum_t) {
   //get summary result within reg_t and put to sum_t
-  ctx_sum.fp_hap = hap_open(ctx_sum.fn_hap, "r");
+  ctx_sum.fp_hap_gz = bgzf_open(ctx_sum.fn_hap_gz, "r");
   if (ctx_sum.fp_hap == NULL) {
     hts_log_error("Fail to open the mhap file.");
     return 1;
   }
-  hap_t hap_line_t = hap_t {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
-  while(hap_read(ctx_sum.fp_hap, &hap_line_t) == 0) {
-    if (hap_line_t.chr != reg_t.chr) {
-      continue;
-    }
+  mhap_t hap_line_t = mhap_t {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+
+  int hap_tid = mhap_name2id(ctx_sum.hap_idx, reg_t.chr.c_str());
+  if (reg_t.beg <= 500) {
+    reg_t.beg = 0;
+  } else {
+    reg_t.beg -= 500;
+  }
+  reg_t.end += 500;
+  hts_itr_t *hap_itr = mhap_itr_queryi(ctx_sum.hap_idx, hap_tid, reg_t.beg, reg_t.end);
+
+  kstring_t ksbuf = {0, 0, NULL};
+
+  while(hts_itr_next(ctx_sum.fp_hap_gz, hap_itr, &ksbuf, ctx_sum.hap_idx) >= 0) {
+    parse_mhap_line(ksbuf.s, ksbuf.l, &hap_line_t);
     ctx_sum.region_chr_match = true;
-    hap_pos_t cur_m_base = 0;
-    hap_pos_t cur_t_base = 0;
+    mhap_pos_t cur_m_base = 0;
+    mhap_pos_t cur_t_base = 0;
     if ((hap_line_t.chr_end >= reg_t.beg && hap_line_t.chr_end <= reg_t.end) ||
         (hap_line_t.chr_beg >= reg_t.beg && hap_line_t.chr_beg <= reg_t.end) ||
         (hap_line_t.chr_beg <= reg_t.beg && hap_line_t.chr_end >= reg_t.end)) {
       ctx_sum.region_beg_end_match = true;
       if (ctx_sum.stranded) {
-        if (hap_line_t.hap_direction == '+') {
+        if (hap_line_t.mhap_direction == '+') {
           ++sum_t.n_reads;
-          sum_t.t_base += hap_line_t.hap_str.size();
-          cur_t_base = hap_line_t.hap_str.size();
-          for (auto b : hap_line_t.hap_str) {
+          sum_t.t_base += hap_line_t.mhap_str.size();
+          cur_t_base = hap_line_t.mhap_str.size();
+          for (auto b : hap_line_t.mhap_str) {
             if (b == '1') {
               ++sum_t.m_base;
               ++cur_m_base;
@@ -113,11 +123,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
           if (cur_m_base > 0 && cur_t_base != cur_m_base) {
             ++sum_t.n_dr;
           }
-        } else if (hap_line_t.hap_direction == '-') {
+        } else if (hap_line_t.mhap_direction == '-') {
           ++sum_t.n_reads_r;
-          sum_t.t_base_r += hap_line_t.hap_str.size();
-          cur_t_base = hap_line_t.hap_str.size();
-          for (auto b : hap_line_t.hap_str) {
+          sum_t.t_base_r += hap_line_t.mhap_str.size();
+          cur_t_base = hap_line_t.mhap_str.size();
+          for (auto b : hap_line_t.mhap_str) {
             if (b == '1') {
               ++sum_t.m_base_r;
               ++cur_m_base;
@@ -135,9 +145,9 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
         }
       } else {
         ++sum_t.n_reads;
-        sum_t.t_base += hap_line_t.hap_str.size();
-        cur_t_base = hap_line_t.hap_str.size();
-        for (auto b : hap_line_t.hap_str) {
+        sum_t.t_base += hap_line_t.mhap_str.size();
+        cur_t_base = hap_line_t.mhap_str.size();
+        for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
             ++sum_t.m_base;
             ++cur_m_base;
@@ -152,7 +162,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
       }
     }
   }
-  hap_close(ctx_sum.fp_hap);
+  mhap_close(ctx_sum.fp_hap);
   return 0;
 }
 
@@ -184,8 +194,8 @@ int get_summary(ContextSummary &ctx_sum) {
       return 1;
     }
     string filename_hap_idx = string(ctx_sum.fn_hap) + ".gz.tbi";
-    ctx_sum.fn_hap_idx = hap_index_load(filename_hap_idx.c_str());
-    if (ctx_sum.fn_hap_idx == NULL) {
+    ctx_sum.hap_idx = mhap_index_load(filename_hap_idx.c_str());
+    if (ctx_sum.hap_idx == NULL) {
       hts_log_error("Fail to open the index file of the input mHap file. Please generate .tbi index file for the mHap file.");
       return 1;
     }
@@ -264,8 +274,8 @@ inline int parse_cpg_line(char *cpg_line, string *chr, hts_pos_t *beg, hts_pos_t
 
 int load_cpg_init_map(ContextSummary &ctx_sum) {
   int ret = 0;
-  map<string, map<hap_pos_t, summary_t> >::iterator chr_itor;
-  map<hap_pos_t, summary_t>::iterator cpg_itor;
+  map<string, map<mhap_pos_t, summary_t> >::iterator chr_itor;
+  map<mhap_pos_t, summary_t>::iterator cpg_itor;
   ctx_sum.fp_cpg = hts_open(ctx_sum.fn_cpg, "r");
   if (ctx_sum.fp_cpg == NULL) {
     hts_log_error("Fail to open CpG file.");
@@ -285,7 +295,7 @@ int load_cpg_init_map(ContextSummary &ctx_sum) {
     //load genome_summary_map
     chr_itor = ctx_sum.genome_wide_map.find(chr);
     if (chr_itor == ctx_sum.genome_wide_map.end()) {
-      map<hap_pos_t, summary_t> summary_t_map;
+      map<mhap_pos_t, summary_t> summary_t_map;
       summary_t sum_t  = {0,0,0,0,0,0,0,0,0,0};
       summary_t_map[beg] = sum_t;
       ctx_sum.genome_wide_map[chr] = summary_t_map;
@@ -309,8 +319,8 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
   }
   ofstream out_stream(out_stream_name);
 
-  map<string, map<hap_pos_t, summary_t> >::iterator chr_itor;
-  map<hap_pos_t, summary_t>::iterator cpg_itor;
+  map<string, map<mhap_pos_t, summary_t> >::iterator chr_itor;
+  map<mhap_pos_t, summary_t>::iterator cpg_itor;
   for (chr_itor = ctx_sum.genome_wide_map.begin(); chr_itor != ctx_sum.genome_wide_map.end(); chr_itor++) {
     for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
       if (!cpg_itor->second.is_empty()) {
@@ -341,17 +351,17 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
 }
 
 int process_genome_wide(ContextSummary &ctx_sum) {
-  ctx_sum.fp_hap = hap_open(ctx_sum.fn_hap, "r");
+  ctx_sum.fp_hap = mhap_open(ctx_sum.fn_hap, "r");
   if (ctx_sum.fp_hap == NULL) {
     hts_log_error("Fail to open mhap file");
     return 1;
   }
-  hap_t hap_line_t = hap_t {HAP_NULL_STRING, 0, 0, HAP_NULL_STRING, 0, HAP_DEFAULT_DIRECTION};
-  while(hap_read(ctx_sum.fp_hap, &hap_line_t) == 0) {
-    hap_pos_t cur_m_base = 0;
-    hap_pos_t cur_t_base = 0;
-    map<string, map<hap_pos_t, summary_t> >::iterator chr_itor;
-    map<hap_pos_t, summary_t>::iterator cpg_itor;
+  mhap_t hap_line_t = mhap_t {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+  while(mhap_read(ctx_sum.fp_hap, &hap_line_t) == 0) {
+    mhap_pos_t cur_m_base = 0;
+    mhap_pos_t cur_t_base = 0;
+    map<string, map<mhap_pos_t, summary_t> >::iterator chr_itor;
+    map<mhap_pos_t, summary_t>::iterator cpg_itor;
     chr_itor = ctx_sum.genome_wide_map.find(hap_line_t.chr);
     if (chr_itor == ctx_sum.genome_wide_map.end()) {
       hts_log_error("Can not find chr: %s, CpG file and mhap file are not match.", hap_line_t.chr.c_str());
@@ -364,11 +374,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
     }
     summary_t cur_sum_t = summary_t {0,0,0,0,0,0,0,0,0,0};
     if (ctx_sum.stranded) {
-      if (hap_line_t.hap_direction == '+') {
+      if (hap_line_t.mhap_direction == '+') {
         ++cur_sum_t.n_reads;
-        cur_sum_t.t_base += hap_line_t.hap_str.size();
-        cur_t_base = hap_line_t.hap_str.size();
-        for (auto b : hap_line_t.hap_str) {
+        cur_sum_t.t_base += hap_line_t.mhap_str.size();
+        cur_t_base = hap_line_t.mhap_str.size();
+        for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
             ++cur_sum_t.m_base;
             ++cur_m_base;
@@ -380,11 +390,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
         if (cur_m_base > 0 && cur_t_base != cur_m_base) {
           ++cur_sum_t.n_dr;
         }
-      } else if (hap_line_t.hap_direction == '-') {
+      } else if (hap_line_t.mhap_direction == '-') {
         ++cur_sum_t.n_reads_r;
-        cur_sum_t.t_base_r += hap_line_t.hap_str.size();
-        cur_t_base = hap_line_t.hap_str.size();
-        for (auto b : hap_line_t.hap_str) {
+        cur_sum_t.t_base_r += hap_line_t.mhap_str.size();
+        cur_t_base = hap_line_t.mhap_str.size();
+        for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
             ++cur_sum_t.m_base_r;
             ++cur_m_base;
@@ -402,9 +412,9 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       }
     } else {
       ++cur_sum_t.n_reads;
-      cur_sum_t.t_base += hap_line_t.hap_str.size();
-      cur_t_base = hap_line_t.hap_str.size();
-      for (auto b : hap_line_t.hap_str) {
+      cur_sum_t.t_base += hap_line_t.mhap_str.size();
+      cur_t_base = hap_line_t.mhap_str.size();
+      for (auto b : hap_line_t.mhap_str) {
         if (b == '1') {
           ++cur_sum_t.m_base;
           ++cur_m_base;
@@ -419,8 +429,8 @@ int process_genome_wide(ContextSummary &ctx_sum) {
     }
 
     for (int i = 0;
-    cpg_itor != ctx_sum.genome_wide_map[hap_line_t.chr].end() &&
-    i < hap_line_t.hap_str.size(); cpg_itor++, i++) {
+         cpg_itor != ctx_sum.genome_wide_map[hap_line_t.chr].end() &&
+    i < hap_line_t.mhap_str.size(); cpg_itor++, i++) {
 
       cpg_itor->second.n_reads += cur_sum_t.n_reads;
       cpg_itor->second.m_base += cur_sum_t.m_base;
@@ -436,7 +446,7 @@ int process_genome_wide(ContextSummary &ctx_sum) {
         cpg_itor->second.n_dr_r += cur_sum_t.n_dr_r;
       }
       //sanity check
-      if (i == hap_line_t.hap_str.size() - 1) {
+      if (i == hap_line_t.mhap_str.size() - 1) {
         if (cpg_itor->first != hap_line_t.chr_end) {
           hts_log_error("CpG file and mhap file do not match.");
           return 1;
@@ -444,7 +454,7 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       }
     }
   }
-  hap_close(ctx_sum.fp_hap);
+  mhap_close(ctx_sum.fp_hap);
   return 0;
 }
 
@@ -520,7 +530,7 @@ int main_summary(int argc, char *argv[]) {
   while (opt != -1) {
     switch (opt) {
       case 'i': {
-        ctx_sum.fn_hap = optarg;
+        ctx_sum.fn_hap_gz = optarg;
         break;
       }
       case 'o': {

@@ -20,13 +20,13 @@ namespace std {
 
 const uint8_t kbase[16] = {0, 65, 67, 0, 71, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 78};
 
-class Context {
+class ContextConvert {
  public:
-  Context () :fp_bam(NULL), fp_cpg(NULL), idx_cpg(NULL), has_idx_cpg(false),
-              idx_bam(NULL), cpg_itr(NULL), sam_itr(NULL), hdr_bam(NULL),
-              aln(NULL), bam_aux_p(NULL), fn_bam(NULL), output_path(NULL),
-              fn_bed(NULL), fn_cpg(NULL), region(NULL), non_directional(false){};
-  ~Context();
+  ContextConvert () : fp_bam(NULL), fp_cpg(NULL), idx_cpg(NULL), has_idx_cpg(false),
+                      idx_bam(NULL), cpg_itr(NULL), sam_itr(NULL), hdr_bam(NULL),
+                      aln(NULL), bam_aux_p(NULL), fn_bam(NULL), fn_out(NULL),
+                      fn_bed(NULL), fn_cpg(NULL), region(NULL), non_directional(false){};
+  ~ContextConvert();
 
   bool parse_region();
 
@@ -43,7 +43,7 @@ class Context {
 
   // options
   char *fn_bam;   /* -i option */
-  char *output_path;  /* -o option */
+  char *fn_out;  /* -o option */
   char *fn_bed;     /* -b option */
   char *fn_cpg;      /* -c option */
   char *region;       /* -r option */
@@ -103,10 +103,10 @@ class SamRead {
               read_start(0), read_end(0), read_len(0), read_qual(NULL), ctx(NULL),
               _hap_seq(""), _hap_met(""){}
   ~SamRead();
-  bool init(Context &ctx);
+  bool init(ContextConvert &ctx);
   bool haplo_type();
-  bool _get_XM(Context &ctx);
-  bool _get_bismark_QC(Context &ctxainain);
+  bool _get_XM(ContextConvert &ctx);
+  bool _get_bismark_QC(ContextConvert &ctxainain);
 
   char *XM_string;
   char *ZS_string;
@@ -126,7 +126,7 @@ class SamRead {
   hts_pos_t read_len; //length of the read.
   uint8_t *read_qual; //quality string
 
-  Context *ctx;
+  ContextConvert *ctx;
 
   string _hap_seq;
   vector<int8_t> _hap_qual;
