@@ -4,6 +4,7 @@
 #include <algorithm>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/sam.h"
+#include "./include/utils.h"
 #include "./include/merge.h"
 #include <fstream>
 #include <unordered_map>
@@ -283,6 +284,37 @@ static void help() {
 
 }
 
+int convert_fn_suffix_check(ContextMerge &ctx_merge) {
+  string gz_suffix = ".gz";
+  string mhap_suffix = ".mhap";
+  string bed_suffix = ".bed";
+  if (ctx_merge.fn_cpg) {
+    if (!is_suffix(ctx_merge.fn_cpg, gz_suffix)) {
+      hts_log_error("-c opt should be followed by a .gz file.");
+      return 1;
+    }
+  }
+  if (ctx_merge.fn_out) {
+    if (!is_suffix(ctx_merge.fn_out, mhap_suffix)) {
+      hts_log_error("-o opt should be followed by a .mhap file.");
+      return 1;
+    }
+  }
+  if (ctx_merge.fn_hap1) {
+    if (!is_suffix(ctx_merge.fn_hap1, mhap_suffix)) {
+      hts_log_error("-i opt should be followed by two .mhap file.");
+      return 1;
+    }
+  }
+  if (ctx_merge.fn_hap2) {
+    if (!is_suffix(ctx_merge.fn_hap2, mhap_suffix)) {
+      hts_log_error("-i opt should be followed by two .mhap file.");
+      return 1;
+    }
+  }
+  return 0;
+}
+
 int main_merge(int argc, char *argv[]) {
   if (argc == optind) {
     help();
@@ -331,6 +363,11 @@ int main_merge(int argc, char *argv[]) {
 
   if (!merge_opt_check(ctx_merge)) {
     hts_log_error("opt error");
+    return 1;
+  }
+
+  if (convert_fn_suffix_check(ctx_merge) == 1) {
+    hts_log_error("filename suffix error.");
     return 1;
   }
 
