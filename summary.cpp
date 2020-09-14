@@ -177,6 +177,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
       }
     }
   }
+
+  if (hap_itr) {
+    hts_itr_destroy(hap_itr);
+  }
+
   return 0;
 }
 
