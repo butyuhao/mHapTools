@@ -54,13 +54,13 @@ tabix -b 2 -e 3 -p bed file.mhap.gz
 ### Build example
 
 ```bash
-cd haptools
+cd mHapTools
 cd htslib-1.10.2
 ./configure --prefix=`pwd`
 make
 make install
 cd ..
-g++ -o haptools  convert.cpp mhap.cpp haptk.cpp merge.cpp beta.cpp summary.cpp -I ./htslib-1.10.2/htslib -I ./include  -L ./htslib-1.10.2/ -lhts -std=c++11
+g++ -o mhaptools  haptk.cpp convert.cpp mhap.cpp merge.cpp beta.cpp summary.cpp utils.cpp -I ./htslib-1.10.2/htslib -I ./include  -L ./htslib-1.10.2/ -lhts -std=c++11
 export LD_LIBRARY_PATH=`pwd`/htslib-1.10.2/lib
 ```
 
