@@ -500,11 +500,11 @@ static void help() {
   cout << "Options:" << endl;
   cout << "  -i  str  input file, mhap format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
-  cout << "  -r  str  region" << endl;
-  cout << "  -b  str  bed file, contains query regions" << endl;
+  cout << "  -r  str  region, e.g. chr1:2000-200000" << endl;
+  cout << "  -b  str  bed file, one query region per line" << endl;
   cout << "  -g  flag get genome-wide result" << endl;
   cout << "  -s  flag group results by the direction of mhap reads" << endl;
-  cout << "  -o  str  output file name [fn_hap_summary_genome_wide.txt | fn_hap_summary.txt]" << endl;
+  cout << "  -o  str  output filename [fn_hap_summary_genome_wide.txt | fn_hap_summary.txt]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
   cout << "  -c  --cpg" << endl;

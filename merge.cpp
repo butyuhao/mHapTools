@@ -271,9 +271,9 @@ ContextMerge::~ContextMerge() {
 static void help() {
   cout << "Usage: mhaptools merge -i <in1.mhap in2.mhap> -c <CpG.gz> [-o name.mhap]" << endl;
   cout << "Options:" << endl;
-  cout << "  -i  str  input file, two mhap files" << endl;
+  cout << "  -i  str  input file, two mhap files to merge" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
-  cout << "  -o  str  output file name [out.mhap]" << endl;
+  cout << "  -o  str  output filename [out.mhap]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
   cout << "  -c  --cpg" << endl;

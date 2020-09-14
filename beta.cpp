@@ -311,9 +311,9 @@ static void help() {
   cout << "Options:" << endl;
   cout << "  -i  str  input file, mhap format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
-  cout << "  -b  str  bed file, contains query regions" << endl;
+  cout << "  -b  str  bed file, one query region per line" << endl;
   cout << "  -s  flag group results by the direction of mhap reads" << endl;
-  cout << "  -o  str  output file name [beta.txt]" << endl;
+  cout << "  -o  str  output filename [beta.txt]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
   cout << "  -c  --cpg" << endl;
