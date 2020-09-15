@@ -64,7 +64,3 @@ g++ -o mhaptools  haptk.cpp convert.cpp mhap.cpp merge.cpp beta.cpp summary.cpp 
 export LD_LIBRARY_PATH=`pwd`/htslib-1.10.2/lib
 ```
 
-### Index File
-
-Index files are needed when you use `-r`  to specify a region or when you use `-b` to specify a bed file. Suppose you have a bam file named `XXX.bam` and a cpg file named `YYY.gz`, the names of corresponding index files should be `XXX.bam.bai` and `YYY.gz.tbi`. Index files should be placed in the same directory as indexed files.
-

@@ -652,6 +652,7 @@ int main_summary(int argc, char *argv[]) {
     ret = get_summary(ctx_sum);
     if (ret == 1) {
       hts_log_error("Get summary error.");
+      return 0;
     }
     cout << "Saving..." << endl;
     saving_summary(ctx_sum);
