@@ -55,8 +55,10 @@ typedef struct summary_t {
 
 class ContextSummary {
  public:
-  ContextSummary(): fn_hap(NULL), fn_bed(NULL), fn_out(NULL), fp_hap(NULL),
-                    fp_bed(NULL), hap_idx(NULL), stranded(false), region(NULL){};
+  ContextSummary(): fn_hap(NULL), fn_cpg(NULL), fn_bed(NULL), fn_out(NULL), fp_hap(NULL),
+                    fp_bed(NULL), hap_idx(NULL), stranded(false), region(NULL),
+                    fp_hap_gz(NULL), fp_cpg(NULL), genome_wide(false), region_chr_match(false),
+                    region_beg_end_match(false){};
   ~ContextSummary();
 
   char *fn_hap; //.mhap.gz when specify a region, .mhap  when genome-wide
@@ -66,14 +68,13 @@ class ContextSummary {
   char *region;
   mHapFile *fp_hap;
   BGZF* fp_hap_gz;
-  char* fn_hap_gz;
   htsFile *fp_cpg;
   FILE *fp_bed;
   mhap_idx_t *hap_idx;
   bool stranded;
-  bool genome_wide = false;
-  bool region_chr_match = false;
-  bool region_beg_end_match = false;
+  bool genome_wide;
+  bool region_chr_match;
+  bool region_beg_end_match;
 
   vector<string> summary_result;
   map<string, map<mhap_pos_t, summary_t> > genome_wide_map;
