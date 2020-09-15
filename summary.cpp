@@ -21,9 +21,6 @@ ContextSummary::~ContextSummary() {
   if (hap_idx) {
     mhap_idx_destroy(hap_idx);
   }
-  if (fp_hap) {
-    mhap_close(fp_hap);
-  }
   if (fp_cpg) {
     hts_close(fp_cpg);
   }
