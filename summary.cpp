@@ -24,11 +24,6 @@ ContextSummary::~ContextSummary() {
   if (fp_hap) {
     mhap_close(fp_hap);
   }
-  if (!genome_wide) {
-    if (fp_hap_gz) {
-      bgzf_close(fp_hap_gz);
-    }
-  }
   if (fp_cpg) {
     hts_close(fp_cpg);
   }
@@ -181,7 +176,9 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
   if (hap_itr) {
     hts_itr_destroy(hap_itr);
   }
-
+  if (ctx_sum.fp_hap_gz) {
+    bgzf_close(ctx_sum.fp_hap_gz);
+  }
   return 0;
 }
 
@@ -205,17 +202,19 @@ void get_summary_str(ContextSummary &ctx_sum, region_t &reg_t, summary_t &sum_t)
 }
 int get_summary(ContextSummary &ctx_sum) {
   int ret = 0;
+
+  string filename_hap_idx = string(ctx_sum.fn_hap) + ".tbi";
+  ctx_sum.hap_idx = mhap_index_load(filename_hap_idx.c_str());
+  if (ctx_sum.hap_idx == NULL) {
+    hts_log_error("Fail to open the index file of the input mHap file. Please generate .tbi index file for the mHap file.");
+    return 1;
+  }
+
   if (ctx_sum.region != NULL) {
     summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0};
     region_t reg_t = region_t {"", 0,0};
     ret = get_region(ctx_sum.region, reg_t);
     if (ret == 1) {
-      return 1;
-    }
-    string filename_hap_idx = string(ctx_sum.fn_hap) + ".tbi";
-    ctx_sum.hap_idx = mhap_index_load(filename_hap_idx.c_str());
-    if (ctx_sum.hap_idx == NULL) {
-      hts_log_error("Fail to open the index file of the input mHap file. Please generate .tbi index file for the mHap file.");
       return 1;
     }
     ret = get_summary_within_region(ctx_sum, reg_t, sum_t);
@@ -579,7 +578,7 @@ int main_summary(int argc, char *argv[]) {
 
   int long_index;
 
-  static const char *opt_string = "i:o:b:sr:gc:";
+  static const char *opt_string = "i:o:b:sr:gc:h";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
@@ -626,6 +625,7 @@ int main_summary(int argc, char *argv[]) {
       }
       case 'h': {
         help();
+        return 0;
         break;
       }
       default: {
