@@ -262,7 +262,9 @@ void saving_summary(ContextSummary &ctx_sum) {
   }
   ofstream out_stream(out_stream_name);
 
-  out_stream << "Chr" << '\t' << "Begin" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "mReadsK4" << '\t' << "nDR" << endl;
+  if (ctx_sum.summary_result.size() > 0) {
+    out_stream << "Chr" << '\t' << "Start" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "K4plus" << '\t' << "nDR" << endl;
+  }
 
   for (auto s : ctx_sum.summary_result) {
     out_stream << s << endl;
@@ -345,6 +347,9 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
 
   map<string, map<mhap_pos_t, summary_t> >::iterator chr_itor;
   map<mhap_pos_t, summary_t>::iterator cpg_itor;
+
+  out_stream << "Chr" << '\t' << "Begin" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "mReadsK4" << '\t' << "nDR" << endl;
+
   for (chr_itor = ctx_sum.genome_wide_map.begin(); chr_itor != ctx_sum.genome_wide_map.end(); chr_itor++) {
     for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
       if (!cpg_itor->second.is_empty()) {
