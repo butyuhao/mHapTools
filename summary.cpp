@@ -261,6 +261,9 @@ void saving_summary(ContextSummary &ctx_sum) {
     out_stream_name = "summary.txt";
   }
   ofstream out_stream(out_stream_name);
+
+  out_stream << "Chr" << '\t' << "Begin" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "mReadsK4" << '\t' << "nDR" << endl;
+
   for (auto s : ctx_sum.summary_result) {
     out_stream << s << endl;
   }
