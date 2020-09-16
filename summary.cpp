@@ -115,56 +115,56 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
       ctx_sum.region_beg_end_match = true;
       if (ctx_sum.stranded) {
         if (hap_line_t.mhap_direction == '+') {
-          ++sum_t.n_reads;
-          sum_t.t_base += hap_line_t.mhap_str.size();
+          sum_t.n_reads += hap_line_t.mhap_count;
+          sum_t.t_base += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
           cur_t_base = hap_line_t.mhap_str.size();
           for (auto b : hap_line_t.mhap_str) {
             if (b == '1') {
-              ++sum_t.m_base;
+              sum_t.m_base += hap_line_t.mhap_count;
               ++cur_m_base;
             }
           }
           if (cur_m_base >= 4) {
-            ++sum_t.n_reads_k4;
+            sum_t.n_reads_k4 += hap_line_t.mhap_count;
           }
           if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-            ++sum_t.n_dr;
+            sum_t.n_dr += hap_line_t.mhap_count;
           }
         } else if (hap_line_t.mhap_direction == '-') {
-          ++sum_t.n_reads_r;
-          sum_t.t_base_r += hap_line_t.mhap_str.size();
+          sum_t.n_reads_r += hap_line_t.mhap_count;
+          sum_t.t_base_r += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
           cur_t_base = hap_line_t.mhap_str.size();
           for (auto b : hap_line_t.mhap_str) {
             if (b == '1') {
-              ++sum_t.m_base_r;
+              sum_t.m_base_r += hap_line_t.mhap_count;
               ++cur_m_base;
             }
           }
           if (cur_m_base >= 4) {
-            ++sum_t.n_reads_k4_r;
+            sum_t.n_reads_k4_r += hap_line_t.mhap_count;
           }
           if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-            ++sum_t.n_dr_r;
+            sum_t.n_dr_r += hap_line_t.mhap_count;
           }
         } else {
           hts_log_error("Contain unknown direction info.");
           return 1;
         }
       } else {
-        ++sum_t.n_reads;
-        sum_t.t_base += hap_line_t.mhap_str.size();
+        sum_t.n_reads += hap_line_t.mhap_count;
+        sum_t.t_base += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
         cur_t_base = hap_line_t.mhap_str.size();
         for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
-            ++sum_t.m_base;
+            sum_t.m_base += hap_line_t.mhap_count;
             ++cur_m_base;
           }
         }
         if (cur_m_base >= 4) {
-          ++sum_t.n_reads_k4;
+          sum_t.n_reads_k4 += hap_line_t.mhap_count;
         }
         if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-          ++sum_t.n_dr;
+          sum_t.n_dr += hap_line_t.mhap_count;
         }
       }
     }
@@ -404,56 +404,56 @@ int process_genome_wide(ContextSummary &ctx_sum) {
     summary_t cur_sum_t = summary_t {0,0,0,0,0,0,0,0,0,0};
     if (ctx_sum.stranded) {
       if (hap_line_t.mhap_direction == '+') {
-        ++cur_sum_t.n_reads;
-        cur_sum_t.t_base += hap_line_t.mhap_str.size();
+        cur_sum_t.n_reads += hap_line_t.mhap_count;
+        cur_sum_t.t_base += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
         cur_t_base = hap_line_t.mhap_str.size();
         for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
-            ++cur_sum_t.m_base;
+            cur_sum_t.m_base += hap_line_t.mhap_count;
             ++cur_m_base;
           }
         }
         if (cur_m_base >= 4) {
-          ++cur_sum_t.n_reads_k4;
+          cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
         }
         if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-          ++cur_sum_t.n_dr;
+          cur_sum_t.n_dr += hap_line_t.mhap_count;
         }
       } else if (hap_line_t.mhap_direction == '-') {
-        ++cur_sum_t.n_reads_r;
-        cur_sum_t.t_base_r += hap_line_t.mhap_str.size();
+        cur_sum_t.n_reads_r += hap_line_t.mhap_count;
+        cur_sum_t.t_base_r += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
         cur_t_base = hap_line_t.mhap_str.size();
         for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
-            ++cur_sum_t.m_base_r;
+            cur_sum_t.m_base_r += hap_line_t.mhap_count;
             ++cur_m_base;
           }
         }
         if (cur_m_base >= 4) {
-          ++cur_sum_t.n_reads_k4_r;
+          cur_sum_t.n_reads_k4_r += hap_line_t.mhap_count;
         }
         if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-          ++cur_sum_t.n_dr_r;
+          cur_sum_t.n_dr_r += hap_line_t.mhap_count;
         }
       } else {
         hts_log_error("Contain unknown direction info.");
         return 1;
       }
     } else {
-      ++cur_sum_t.n_reads;
-      cur_sum_t.t_base += hap_line_t.mhap_str.size();
+      cur_sum_t.n_reads += hap_line_t.mhap_count;
+      cur_sum_t.t_base += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
       cur_t_base = hap_line_t.mhap_str.size();
       for (auto b : hap_line_t.mhap_str) {
         if (b == '1') {
-          ++cur_sum_t.m_base;
+          cur_sum_t.m_base += hap_line_t.mhap_count;
           ++cur_m_base;
         }
       }
       if (cur_m_base >= 4) {
-        ++cur_sum_t.n_reads_k4;
+        cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
       }
       if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-        ++cur_sum_t.n_dr;
+        cur_sum_t.n_dr += hap_line_t.mhap_count;
       }
     }
 
