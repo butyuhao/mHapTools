@@ -159,18 +159,25 @@ bool SamRead::haplo_type() {
   hts_pos_t pos;
   for (int i = 0; i < ctx->cpg_pos.size(); i++) {
     pos = ctx->cpg_pos[i];
-    if (pos < read_start) {
-      continue;
-    }
-    if (pos > read_end) {
-      //因为cpg位点是有序的，所以超过end就说明之后不可能再有在范围内的位点了。
-      break;
-    }
+
     if (read_WC == DIRECTION_PLUS || read_WC == DIRECTION_UNKNOWN) {
+      if (pos < read_start) {
+        continue;
+      }
+      if (pos > read_end) {
+        break;
+      }
       r_pos = pos - read_start;
     } else {
+      if (pos < read_start - 1) {
+        continue;
+      }
+      if (pos > read_end - 1) {
+        break;
+      }
       r_pos = pos - read_start + 1;
     }
+
     if (r_pos >= read_len || r_pos < 0) {
       continue;
     }
@@ -474,7 +481,6 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
     hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
 
     while(sam_itr_next(ctx.fp_bam, sam_itr, ctx.aln) >= 0) {
-
       ++cnt;
       if (cnt % 1000000 == 0) {
         cout << cnt << " reads processed." << endl;
@@ -490,7 +496,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       int ret = sam_r.init(ctx);
 
       if (!ret) {
-        hts_log_trace("");
+        hts_log_trace("san_r init error.");
         if (sam_r.seq != NULL) {
           delete [] sam_r.seq;
         }
