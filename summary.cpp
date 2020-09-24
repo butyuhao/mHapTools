@@ -94,13 +94,17 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
   mhap_t hap_line_t = mhap_t {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
 
   int hap_tid = mhap_name2id(ctx_sum.hap_idx, reg_t.chr.c_str());
-  if (reg_t.beg <= 500) {
-    reg_t.beg = 0;
+
+  hts_pos_t start = reg_t.beg;
+  hts_pos_t end = reg_t.end;
+  if (start <= 500) {
+    hts_pos_t start = 0;
   } else {
-    reg_t.beg -= 500;
+    start -= 500;
   }
-  reg_t.end += 500;
-  hts_itr_t *hap_itr = mhap_itr_queryi(ctx_sum.hap_idx, hap_tid, reg_t.beg, reg_t.end);
+  end += 500;
+
+  hts_itr_t *hap_itr = mhap_itr_queryi(ctx_sum.hap_idx, hap_tid, start, end);
 
   kstring_t ksbuf = {0, 0, NULL};
 
