@@ -130,9 +130,9 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
           }
           if (cur_m_base >= 4) {
             sum_t.n_reads_k4 += hap_line_t.mhap_count;
-          }
-          if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-            sum_t.n_dr += hap_line_t.mhap_count;
+            if (cur_t_base != cur_m_base) {
+              sum_t.n_dr += hap_line_t.mhap_count;
+            }
           }
         } else if (hap_line_t.mhap_direction == '-') {
           sum_t.n_reads_r += hap_line_t.mhap_count;
@@ -146,10 +146,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
           }
           if (cur_m_base >= 4) {
             sum_t.n_reads_k4_r += hap_line_t.mhap_count;
+            if (cur_t_base != cur_m_base) {
+              sum_t.n_dr_r += hap_line_t.mhap_count;
+            }
           }
-          if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-            sum_t.n_dr_r += hap_line_t.mhap_count;
-          }
+
         } else {
           hts_log_error("Contain unknown direction info.");
           return 1;
@@ -166,10 +167,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
         }
         if (cur_m_base >= 4) {
           sum_t.n_reads_k4 += hap_line_t.mhap_count;
+          if (cur_t_base != cur_m_base) {
+            sum_t.n_dr += hap_line_t.mhap_count;
+          }
         }
-        if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-          sum_t.n_dr += hap_line_t.mhap_count;
-        }
+
       }
     }
   }
@@ -419,10 +421,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
         }
         if (cur_m_base >= 4) {
           cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
+          if (cur_t_base != cur_m_base) {
+            cur_sum_t.n_dr += hap_line_t.mhap_count;
+          }
         }
-        if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-          cur_sum_t.n_dr += hap_line_t.mhap_count;
-        }
+
       } else if (hap_line_t.mhap_direction == '-') {
         cur_sum_t.n_reads_r += hap_line_t.mhap_count;
         cur_sum_t.t_base_r += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
@@ -435,10 +438,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
         }
         if (cur_m_base >= 4) {
           cur_sum_t.n_reads_k4_r += hap_line_t.mhap_count;
+          if (cur_t_base != cur_m_base) {
+            cur_sum_t.n_dr_r += hap_line_t.mhap_count;
+          }
         }
-        if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-          cur_sum_t.n_dr_r += hap_line_t.mhap_count;
-        }
+
       } else {
         hts_log_error("Contain unknown direction info.");
         return 1;
@@ -455,10 +459,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       }
       if (cur_m_base >= 4) {
         cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
+        if (cur_t_base != cur_m_base) {
+          cur_sum_t.n_dr += hap_line_t.mhap_count;
+        }
       }
-      if (cur_m_base > 0 && cur_t_base != cur_m_base) {
-        cur_sum_t.n_dr += hap_line_t.mhap_count;
-      }
+
     }
 
     for (int i = 0;
