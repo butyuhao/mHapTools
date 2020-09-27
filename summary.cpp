@@ -181,6 +181,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
   }
   if (ctx_sum.fp_hap_gz) {
     bgzf_close(ctx_sum.fp_hap_gz);
+    ctx_sum.fp_hap_gz = NULL;
   }
   return 0;
 }
@@ -493,6 +494,7 @@ int process_genome_wide(ContextSummary &ctx_sum) {
     }
   }
   mhap_close(ctx_sum.fp_hap);
+  ctx_sum.fp_hap = NULL;
   return 0;
 }
 
