@@ -12,9 +12,6 @@
 namespace std {
 
 ContextSummary::~ContextSummary() {
-  if (fp_hap) {
-    mhap_close(fp_hap);
-  }
   if (fp_bed) {
     fclose(fp_bed);
   }
@@ -178,6 +175,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
 
   if (hap_itr) {
     hts_itr_destroy(hap_itr);
+    hap_itr = NULL;
   }
   if (ctx_sum.fp_hap_gz) {
     bgzf_close(ctx_sum.fp_hap_gz);
@@ -244,9 +242,11 @@ int get_summary(ContextSummary &ctx_sum) {
     }
     if (idx) {
       regidx_destroy(idx);
+      idx = NULL;
     }
     if (itr) {
       regitr_destroy(itr);
+      itr = NULL;
     }
   }
   return 0;
@@ -387,17 +387,19 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
 }
 
 int process_genome_wide(ContextSummary &ctx_sum) {
-  ctx_sum.fp_hap = mhap_open(ctx_sum.fn_hap, "r");
-  if (ctx_sum.fp_hap == NULL) {
+  ctx_sum.fp_hap_gz = bgzf_open(ctx_sum.fn_hap, "r");
+  if (ctx_sum.fp_hap_gz == NULL) {
     hts_log_error("Fail to open mhap file");
     return 1;
   }
   mhap_t hap_line_t = mhap_t {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
-  while(mhap_read(ctx_sum.fp_hap, &hap_line_t) == 0) {
+  kstring_t str = {0, 0, NULL};
+  while(bgzf_getline(ctx_sum.fp_hap_gz, '\n', &str) >= 0) {
     mhap_pos_t cur_m_base = 0;
     mhap_pos_t cur_t_base = 0;
     map<string, map<mhap_pos_t, summary_t> >::iterator chr_itor;
     map<mhap_pos_t, summary_t>::iterator cpg_itor;
+    parse_mhap_line(str.s, str.l, &hap_line_t);
     chr_itor = ctx_sum.genome_wide_map.find(hap_line_t.chr);
     if (chr_itor == ctx_sum.genome_wide_map.end()) {
       hts_log_error("Can not find chr: %s, CpG file and mhap file are not match.", hap_line_t.chr.c_str());
@@ -493,8 +495,8 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       }
     }
   }
-  mhap_close(ctx_sum.fp_hap);
-  ctx_sum.fp_hap = NULL;
+  bgzf_close(ctx_sum.fp_hap_gz);
+  ctx_sum.fp_hap_gz = NULL;
   return 0;
 }
 
@@ -548,21 +550,14 @@ int sum_fn_suffix_check(ContextSummary &ctx_sum) {
   string mhap_gz_suffix = ".mhap.gz";
   string bed_suffix = ".bed";
   string txt_suffix = ".txt";
-  if (ctx_sum.genome_wide) {
-    if (ctx_sum.fn_hap) {
-      if (!is_suffix(ctx_sum.fn_hap, mhap_suffix)) {
-        hts_log_error("-i opt should be followed by a .mhap file.");
-        return 1;
-      }
-    }
-  } else {
-    if (ctx_sum.fn_hap) {
-      if (!is_suffix(ctx_sum.fn_hap, mhap_gz_suffix)) {
-        hts_log_error("-i opt should be followed by a .mhap.gz file.");
-        return 1;
-      }
+
+  if (ctx_sum.fn_hap) {
+    if (!is_suffix(ctx_sum.fn_hap, mhap_gz_suffix)) {
+      hts_log_error("-i opt should be followed by a .mhap.gz file.");
+      return 1;
     }
   }
+
   if (ctx_sum.fn_bed) {
     if (!is_suffix(ctx_sum.fn_bed, bed_suffix)) {
       hts_log_error("-b opt should be followed by a .bed file.");
