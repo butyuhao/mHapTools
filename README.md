@@ -1,3 +1,16 @@
+### Build example
+
+```bash
+cd mHapTools
+cd htslib-1.10.2
+./configure --prefix=`pwd`
+make
+make install
+cd ..
+g++ -o mhaptools  haptk.cpp convert.cpp mhap.cpp merge.cpp beta.cpp summary.cpp utils.cpp -I ./htslib-1.10.2/htslib -I ./include  -L ./htslib-1.10.2/ -lhts -std=c++11
+export LD_LIBRARY_PATH=`pwd`/htslib-1.10.2/lib
+```
+
 ### Commands
 
 * convert 
@@ -56,17 +69,3 @@ tabix -b 2 -e 3 -p bed file.mhap.gz
 * **-o** output path. (summary.txt | summary_genome_wide.txt)
 * **-s** if specified, the results are grouped by the direction of mHap reads.
 * **-g** genome-wide result.
-
-### Build example
-
-```bash
-cd mHapTools
-cd htslib-1.10.2
-./configure --prefix=`pwd`
-make
-make install
-cd ..
-g++ -o mhaptools  haptk.cpp convert.cpp mhap.cpp merge.cpp beta.cpp summary.cpp utils.cpp -I ./htslib-1.10.2/htslib -I ./include  -L ./htslib-1.10.2/ -lhts -std=c++11
-export LD_LIBRARY_PATH=`pwd`/htslib-1.10.2/lib
-```
-
