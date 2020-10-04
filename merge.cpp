@@ -2,12 +2,14 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <algorithm>
+#include <fcntl.h>
+#include <fstream>
+#include <unordered_map>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/sam.h"
 #include "./include/utils.h"
 #include "./include/merge.h"
-#include <fstream>
-#include <unordered_map>
+
 
 namespace std {
 
@@ -232,9 +234,9 @@ void saving_merged_hap(ContextMerge &ctx_merge, vector<mhap_t> &merge_result) {
 
   string out_stream_name;
   if (ctx_merge.fn_out) {
-    out_stream_name = ctx_merge.fn_out;
+    out_stream_name = string(ctx_merge.fn_out).substr(0, strlen(ctx_merge.fn_out) - 3);
   } else {
-    out_stream_name = "out.mhap";
+    out_stream_name = "merged.mhap";
   }
   ofstream out_stream(out_stream_name);
 
@@ -252,16 +254,38 @@ void saving_merged_hap(ContextMerge &ctx_merge, vector<mhap_t> &merge_result) {
     }
     is_overlap[line] = true;
   }
-
   out_stream.close();
+
+  // compress mhap to gz
+  string path_src = "./" + out_stream_name;
+  string gz_path = path_src + ".gz";
+  int f_src = open(path_src.c_str(), O_RDONLY);
+  if (f_src < 0) {
+    hts_log_error("bgzip: source file open error.");
+  }
+  int c = -1;
+  static const int WINDOW_SIZE = 64 * 1024;
+  void *buffer;
+  buffer = malloc(WINDOW_SIZE);
+  BGZF *fp;
+  char out_mode[3] = "w\0";
+  fp = bgzf_open(gz_path.c_str(), out_mode);
+  while ((c = read(f_src, buffer, WINDOW_SIZE)) > 0) {
+    if (bgzf_write(fp, buffer, c) < 0) hts_log_error("Could not write %d bytes: Error %d\n", c, fp->errcode);
+  }
+  bgzf_close(fp);
+  free(buffer);
+  close(f_src);
+  // delete temp mhap file
+  remove(path_src.c_str());
 }
 
 ContextMerge::~ContextMerge() {
-  if (fp_hap1) {
-    mhap_close(fp_hap1);
+  if (fp_hap1_gz) {
+    bgzf_close(fp_hap1_gz);
   }
-  if (fp_hap2) {
-    mhap_close(fp_hap2);
+  if (fp_hap2_gz) {
+    bgzf_close(fp_hap2_gz);
   }
   if (fp_cpg) {
     hts_close(fp_cpg);
@@ -286,7 +310,7 @@ static void help() {
 
 int convert_fn_suffix_check(ContextMerge &ctx_merge) {
   string gz_suffix = ".gz";
-  string mhap_suffix = ".mhap";
+  string mhap_suffix = ".mhap.gz";
   string bed_suffix = ".bed";
   if (ctx_merge.fn_cpg) {
     if (!is_suffix(ctx_merge.fn_cpg, gz_suffix)) {
@@ -296,19 +320,19 @@ int convert_fn_suffix_check(ContextMerge &ctx_merge) {
   }
   if (ctx_merge.fn_out) {
     if (!is_suffix(ctx_merge.fn_out, mhap_suffix)) {
-      hts_log_error("-o opt should be followed by a .mhap file.");
+      hts_log_error("-o opt should be followed by a .mhap.gz file.");
       return 1;
     }
   }
   if (ctx_merge.fn_hap1) {
     if (!is_suffix(ctx_merge.fn_hap1, mhap_suffix)) {
-      hts_log_error("-i opt should be followed by two .mhap file.");
+      hts_log_error("-i opt should be followed by two .mhap.gz file.");
       return 1;
     }
   }
   if (ctx_merge.fn_hap2) {
     if (!is_suffix(ctx_merge.fn_hap2, mhap_suffix)) {
-      hts_log_error("-i opt should be followed by two .mhap file.");
+      hts_log_error("-i opt should be followed by two .mhap.gz file.");
       return 1;
     }
   }
@@ -349,6 +373,7 @@ int main_merge(int argc, char *argv[]) {
       }
       case 'c': {
         ctx_merge.fn_cpg = optarg;
+        break;
       }
       case 'o': {
         ctx_merge.fn_out = optarg;
@@ -371,20 +396,20 @@ int main_merge(int argc, char *argv[]) {
     return 1;
   }
 
-  ctx_merge.fp_hap1 = mhap_open(ctx_merge.fn_hap1, "rb");
-  ctx_merge.fp_hap2 = mhap_open(ctx_merge.fn_hap2, "rb");
+  ctx_merge.fp_hap1_gz = bgzf_open(ctx_merge.fn_hap1, "r");
+  ctx_merge.fp_hap2_gz = bgzf_open(ctx_merge.fn_hap2, "r");
 
-  if (ctx_merge.fp_hap1 == NULL) {
-    hts_log_error("Fail to open mhap file1.");
+  if (ctx_merge.fp_hap1_gz == NULL) {
+    hts_log_error("Fail to open .mhap.gz file1.");
     return 0;
   }
 
-  if (ctx_merge.fp_hap2 == NULL) {
-    hts_log_error("Fail to open mhap file2.");
+  if (ctx_merge.fp_hap2_gz == NULL) {
+    hts_log_error("Fail to open .mhap.gz file2.");
     return 0;
   }
   int ret = 0;
-  cout << "Loading cpg positions..." << endl;
+  cout << "Loading CpG positions..." << endl;
   ret = load_chr_cpg(ctx_merge);
 
   if (ret == 1) {
@@ -397,12 +422,16 @@ int main_merge(int argc, char *argv[]) {
   vector<mhap_t> merge_result_vec;
   vector<mhap_t> hap_to_merge;
 
-  cout << "Loading mhap files..." << endl;
+  cout << "Loading mHap files..." << endl;
 
-  while(mhap_read(ctx_merge.fp_hap1, &hap_t_1) == 0) {
+  kstring_t str = {0, 0, NULL};
+
+  while(bgzf_getline(ctx_merge.fp_hap1_gz, '\n', &str) >= 0) {
+    parse_mhap_line(str.s, str.l, &hap_t_1);
     hap_to_merge.push_back(hap_t_1);
   }
-  while(mhap_read(ctx_merge.fp_hap2, &hap_t_2) == 0) {
+  while(bgzf_getline(ctx_merge.fp_hap2_gz, '\n', &str) >= 0) {
+    parse_mhap_line(str.s, str.l, &hap_t_2);
     hap_to_merge.push_back(hap_t_2);
   }
 
@@ -422,7 +451,6 @@ int main_merge(int argc, char *argv[]) {
   } else if (hap_to_merge.size() == 1) {
     merge_result_vec.push_back(hap_to_merge[0]);
   } else if (hap_to_merge.size() >=2) {
-
     hap_b = hap_to_merge[0];
     int overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b;
     while(i < hap_to_merge.size()) {

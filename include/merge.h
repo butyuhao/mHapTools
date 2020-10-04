@@ -13,15 +13,15 @@ namespace std {
 class ContextMerge {
  public:
   ContextMerge () : fn_cpg(NULL), fn_hap1(NULL), fn_hap2(NULL), fn_out(NULL),
-                    fp_hap1(NULL), fp_hap2(NULL), fp_cpg(NULL){};
+                    fp_hap1_gz(NULL), fp_hap2_gz(NULL), fp_cpg(NULL){};
   ~ContextMerge();
 
   char *fn_hap1;
   char *fn_hap2;
   char *fn_cpg;
   char *fn_out;
-  mHapFile *fp_hap1;
-  mHapFile *fp_hap2;
+  BGZF *fp_hap1_gz;
+  BGZF *fp_hap2_gz;
 
   htsFile *fp_cpg;
   unordered_map<string, vector<hts_pos_t> > cpg_pos_map;
