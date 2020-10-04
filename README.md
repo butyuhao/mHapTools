@@ -1,14 +1,22 @@
-### Command
+### Commands
 
 * convert 
 
-Convert SAM/BAM file to mhap file.
+Convert SAM/BAM file to mHap file.
 
 * merge
 
 Merge two mHap files.
 
-### Options
+* beta
+
+Get the percentage of methylated bases, number of methylated bases and number of unmethylated bases across reads on each CpG position.
+
+* summary
+
+Get number of reads, number of methylated bases, number of total bases, K4plus and nDR on each CpG position or within region(s).
+
+### Details
 
 #### convert
 
@@ -17,30 +25,28 @@ Merge two mHap files.
 - **-b** bed file of query regions.
 - **-c** CpG file, gz format.
 - **-r** region. **chr1:2000-200000**
-- **-o** output path. (default: out.mhap)
+- **-o** output path. (default: out.mhap.gz)
 
 #### merge
 
-* **-i** input file, mhap format.
+* **-i** input file, .mhap.gz format.
 * **-c** CpG file, gz format.
-* **-o** output path. (default: out.mhap)
+* **-o** output path. (default: merge.mhap.gz)
 
 #### beta
 
-* **-i** input file, mhap format
+* **-i** input file, .mhap.gz format.
 * **-c** CpG file, gz format.
 * **-o** output path. (default: beta.txt)
-* **-s** if specified, the results are grouped by the direction of mhap reads.
+* **-s** if specified, the results are grouped by the direction of mHap reads.
 * **-b** bed file of query regions.
 
 #### summary
 
-* **-i** input file, mhap.gz format or mhap format (if opt -g is specified)
+* **-i** input file, mhap.gz format.
 
 ```c++
-//Convert from mhap file to bgzip file
-cat file.mhap | sort -k1,1 -k2,2n | bgzip > file.mhap.gz
-//Convert from bgzip file to tabix index file
+//Generate index for .mhap.gz file
 tabix -b 2 -e 3 -p bed file.mhap.gz
 ```
 
@@ -48,7 +54,7 @@ tabix -b 2 -e 3 -p bed file.mhap.gz
 * **-b** bed file of query regions.
 * **-r** query region, e.g. chr1:2000-20000.
 * **-o** output path. (summary.txt | summary_genome_wide.txt)
-* **-s** if specified, the results are grouped by the direction of mhap reads.
+* **-s** if specified, the results are grouped by the direction of mHap reads.
 * **-g** genome-wide result.
 
 ### Build example

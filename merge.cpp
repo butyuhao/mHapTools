@@ -349,7 +349,7 @@ int main_merge(int argc, char *argv[]) {
 
   int long_index;
 
-  static const char *opt_string = "i:o:c:";
+  static const char *opt_string = "i:o:c:h";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
@@ -377,6 +377,11 @@ int main_merge(int argc, char *argv[]) {
       }
       case 'o': {
         ctx_merge.fn_out = optarg;
+        break;
+      }
+      case 'h': {
+        help();
+        return 0;
         break;
       }
       default: {

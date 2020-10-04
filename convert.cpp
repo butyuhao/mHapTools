@@ -921,6 +921,7 @@ int main_convert(int argc, char *argv[]) {
       }
       case 'h': {
         help();
+        return 0;
         break;
       }
       default: {
