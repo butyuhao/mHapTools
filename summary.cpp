@@ -214,7 +214,9 @@ int get_summary(ContextSummary &ctx_sum) {
   string filename_hap_idx = string(ctx_sum.fn_hap) + ".tbi";
   ctx_sum.hap_idx = mhap_index_load(filename_hap_idx.c_str());
   if (ctx_sum.hap_idx == NULL) {
-    hts_log_error("Fail to open the index file of the input mHap file. Please generate .tbi index file for the mHap file.");
+    hts_log_error("Use the following command to generate .tbi index file for the intput file.");
+    string tbx_command = "tabix -b 2 -e 3 -p bed " + string(ctx_sum.fn_hap);
+    hts_log_error(tbx_command.c_str());
     return 1;
   }
 
@@ -524,15 +526,15 @@ int get_genome_wide(ContextSummary &ctx_sum) {
 }
 
 static void help() {
-  cout << "Usage: mhaptools summary -i <in.mhap> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] | [-g] [-s] [-o name.mhap]" << endl;
+  cout << "Usage: mhaptools summary -i <in.mhap.gz> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] | [-g] [-s] [-o name.txt]" << endl;
   cout << "Options:" << endl;
-  cout << "  -i  str  input file, mhap format" << endl;
+  cout << "  -i  str  input file, .mhap.gz format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
   cout << "  -r  str  region, e.g. chr1:2000-200000" << endl;
   cout << "  -b  str  bed file, one query region per line" << endl;
   cout << "  -g  flag get genome-wide result" << endl;
   cout << "  -s  flag group results by the direction of mhap reads" << endl;
-  cout << "  -o  str  output filename [fn_hap_summary_genome_wide.txt | fn_hap_summary.txt]" << endl;
+  cout << "  -o  str  output filename [genome_wide.txt | summary.txt]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
   cout << "  -c  --cpg" << endl;
@@ -543,11 +545,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Get summary within a region:" << endl;
-  cout << "  mhaptools summary -i in.mhap -c CpG.gz -r chr1:2000-200000" << endl << endl;
+  cout << "  mhaptools summary -i in.mhap.gz -c CpG.gz -r chr1:2000-200000" << endl << endl;
   cout << "- Get summary within several regions:" << endl;
-  cout << "  mhaptools summary -i in.mhap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  mhaptools summary -i in.mhap.gz -c CpG.gz -b bed_file.bed" << endl << endl;
   cout << "- Get genome-wide summary:" << endl;
-  cout << "  mhaptools summary -i in.mhap -c CpG.gz -g" << endl << endl;
+  cout << "  mhaptools summary -i in.mhap.gz -c CpG.gz -g" << endl << endl;
 }
 
 int sum_fn_suffix_check(ContextSummary &ctx_sum) {

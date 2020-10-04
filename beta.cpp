@@ -17,8 +17,8 @@ namespace std {
 extern int _lower_bound(vector<hts_pos_t> &v, hts_pos_t &cpg_pos);
 
 ContextBeta::~ContextBeta() {
-  if (fp_hap) {
-    mhap_close(fp_hap);
+  if (fp_hap_gz) {
+    bgzf_close(fp_hap_gz);
   }
   if (fp_cpg) {
     hts_close(fp_cpg);
@@ -234,15 +234,18 @@ int process_beta(ContextBeta &ctx_beta, mhap_t &h_t) {
 int get_beta(ContextBeta &ctx_beta) {
   mhap_t h_t = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
   int ret = 0;
+  kstring_t str = {0, 0, NULL};
   if (ctx_beta.fn_bed == NULL) {
-    while(mhap_read(ctx_beta.fp_hap, &h_t) == 0) {
+    while(bgzf_getline(ctx_beta.fp_hap_gz, '\n', &str) >= 0) {
+      parse_mhap_line(str.s, str.l, &h_t);
       ret = process_beta(ctx_beta, h_t);
       if (ret == 1) {
         return 1;
       }
     }
   } else {
-    while(mhap_read(ctx_beta.fp_hap, &h_t) == 0) {
+    while(bgzf_getline(ctx_beta.fp_hap_gz, '\n', &str) >= 0) {
+      parse_mhap_line(str.s, str.l, &h_t);
       regidx_t *idx = regidx_init(ctx_beta.fn_bed,NULL,NULL,0,NULL);
       regitr_t *itr = regitr_init(idx);
       while (regitr_loop(itr)) {
@@ -275,13 +278,13 @@ bool beta_opt_check(ContextBeta &ctx_beta) {
 }
 
 int beta_fn_suffix_check(ContextBeta &ctx_beta) {
-  string mhap_suffix = ".mhap";
+  string mhap_suffix = ".mhap.gz";
   string gz_suffix = ".gz";
   string output_suffix = ".txt";
   string bed_suffix = ".bed";
   if (ctx_beta.fn_hap) {
     if (!is_suffix(ctx_beta.fn_hap, mhap_suffix)) {
-      hts_log_error("-i opt should be followed by a .mhap file.");
+      hts_log_error("-i opt should be followed by a .mhap.gz file.");
       return 1;
     }
   }
@@ -307,9 +310,9 @@ int beta_fn_suffix_check(ContextBeta &ctx_beta) {
 }
 
 static void help() {
-  cout << "Usage: mhaptools beta -i <in.mhap> -c <CpG.gz> [-b bed_file.bed] [-s] [-o name.txt]" << endl;
+  cout << "Usage: mhaptools beta -i <in.mhap.gz> -c <CpG.gz> [-b bed_file.bed] [-s] [-o name.txt]" << endl;
   cout << "Options:" << endl;
-  cout << "  -i  str  input file, mhap format" << endl;
+  cout << "  -i  str  input file, .mhap.gz format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
   cout << "  -b  str  bed file, one query region per line" << endl;
   cout << "  -s  flag group results by the direction of mhap reads" << endl;
@@ -322,11 +325,11 @@ static void help() {
   cout << "  -o  --output" << endl;
   cout << "Examples:" << endl;
   cout << "- Get beta results:" << endl;
-  cout << "  mhaptools beta -i in.mhap -c CpG.gz" << endl << endl;
+  cout << "  mhaptools beta -i in.mhap.gz -c CpG.gz" << endl << endl;
   cout << "- Get beta results, group results by the direction of mhap reads:" << endl;
-  cout << "  mhaptools beta -i in.mhap -c CpG.gz -s" << endl << endl;
+  cout << "  mhaptools beta -i in.mhap.gz -c CpG.gz -s" << endl << endl;
   cout << "- Get beta results within several regions" << endl;
-  cout << "  mhaptools beta -i in.mhap -c CpG.gz -b bed_file.bed" << endl << endl;
+  cout << "  mhaptools beta -i in.mhap.gz -c CpG.gz -b bed_file.bed" << endl << endl;
 
 }
 
@@ -397,10 +400,10 @@ int main_beta(int argc, char *argv[]) {
 
   int ret = 0;
 
-  ctx_beta.fp_hap = mhap_open(ctx_beta.fn_hap, "rb");
+  ctx_beta.fp_hap_gz = bgzf_open(ctx_beta.fn_hap, "r");
 
-  if (ctx_beta.fp_hap == NULL) {
-    hts_log_error("Fail to open mhap file.");
+  if (ctx_beta.fp_hap_gz == NULL) {
+    hts_log_error("Fail to open input .mhap.gz file.");
     return 0;
   }
 

@@ -27,14 +27,14 @@ int main_beta(int argc, char *argv[]);
 class ContextBeta {
  public:
   ContextBeta() :fn_hap(NULL), fn_cpg(NULL), fn_bed(NULL), fn_out(NULL),
-  fp_hap(NULL), fp_cpg(NULL), fp_bed(NULL), stranded(false) {}
+  fp_hap_gz(NULL), fp_cpg(NULL), fp_bed(NULL), stranded(false) {}
   ~ContextBeta();
 
   char *fn_hap;
   char *fn_cpg;
   char *fn_bed;
   char *fn_out;
-  mHapFile *fp_hap;
+  BGZF *fp_hap_gz;
   htsFile *fp_cpg;
   FILE *fp_bed;
   bool stranded;
