@@ -649,7 +649,9 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       }
     }
     regidx_destroy(idx);
+    idx = NULL;
     regitr_destroy(itr);
+    itr = NULL;
   } else {
     hts_log_error("region_error");
     exit(1);
@@ -696,30 +698,38 @@ inline ContextConvert::~ContextConvert() {
   //to_do明确一下哪些指针需要被关掉。
   if (fp_bam) {
     hts_close(fp_bam);
+    fp_bam = NULL;
   }
   if (fp_cpg) {
     hts_close(fp_cpg);
+    fp_cpg = NULL;
   }
   if (aln) {
     bam_destroy1(aln);
+    aln = NULL;
   }
 
   //当用到load_get_no_idx()的时候，生成以下两个指针
-  if (has_idx_cpg) {
+  if (idx_cpg) {
     tbx_destroy(idx_cpg);
+    idx_cpg = NULL;
   }
-  if (has_idx_cpg) {
+  if (cpg_itr) {
     hts_itr_destroy(cpg_itr);
+    cpg_itr = NULL;
   }
 
   if (idx_bam) {
     hts_idx_destroy(idx_bam);
+    idx_bam = NULL;
   }
   if (sam_itr) {
     hts_itr_destroy(sam_itr);
+    sam_itr = NULL;
   }
   if (hdr_bam) {
     bam_hdr_destroy(hdr_bam);
+    hdr_bam = NULL;
   }
 }
 
@@ -975,11 +985,14 @@ int main_convert(int argc, char *argv[]) {
     hts_log_info("itor_sam(ctx).");
     cout << "Start processing..." << endl;
     HT_vec = itor_sam(ctx);
+    if (HT_vec.size() == 0) {
+      return 0;
+    }
 
     hts_log_info("saving mhap");
     cout << "Saving..." << endl;
     saving_hap(ctx, HT_vec);
 
-  return EXIT_SUCCESS;
+  return 0;
 }
 } // namespace std

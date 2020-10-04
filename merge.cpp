@@ -1,9 +1,11 @@
 #include <iostream>
 #include <getopt.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <algorithm>
 #include <fcntl.h>
 #include <fstream>
+#include <unistd.h>
 #include <unordered_map>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/sam.h"
