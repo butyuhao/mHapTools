@@ -12,14 +12,20 @@
 namespace std {
 
 ContextSummary::~ContextSummary() {
-  if (fp_bed) {
-    fclose(fp_bed);
-  }
-  if (hap_idx) {
-    mhap_idx_destroy(hap_idx);
-  }
-  if (fp_cpg) {
-    hts_close(fp_cpg);
+  if (!genome_wide) {
+    if (fp_bed) {
+      fclose(fp_bed);
+    }
+    if (hap_idx) {
+      mhap_idx_destroy(hap_idx);
+    }
+    if (fp_cpg) {
+      hts_close(fp_cpg);
+    }
+  } else {
+    if (fp_cpg) {
+      hts_close(fp_cpg);
+    }
   }
 }
 

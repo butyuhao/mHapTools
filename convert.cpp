@@ -1,7 +1,7 @@
 //
 // Created by Yuhao Dan on 2020/4/13.
 //
-#include "./include/convert.h"
+
 #include <unistd.h>
 #include <getopt.h>
 #include <stdlib.h>
@@ -9,14 +9,16 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <chrono>
+#include <algorithm>
+#include <fcntl.h>
+#include <stdio.h>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/bgzf.h"
 #include "./htslib-1.10.2/htslib/hfile.h"
 #include "./htslib-1.10.2/htslib/regidx.h"
+#include "./include/convert.h"
 #include "./include/utils.h"
-#include <chrono>
-#include <algorithm>
-
 namespace std {
 
 bool ContextConvert::parse_region() {
@@ -762,7 +764,7 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
 
   string out_stream_name;
   if (ctx.fn_out) {
-    out_stream_name = ctx.fn_out;
+    out_stream_name = string(ctx.fn_out).substr(0, strlen(ctx.fn_out) - 3);
   } else {
     out_stream_name = "out.mhap";
   }
@@ -789,6 +791,29 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
     is_overlap[line] = true;
   }
   out_stream.close();
+
+  // compress mhap to gz
+  string path_src = "./" + out_stream_name;
+  string gz_path = path_src + ".gz";
+  int f_src = open(path_src.c_str(), O_RDONLY);
+  if (f_src < 0) {
+    hts_log_error("bgzip: source file open error.");
+  }
+  int c = -1;
+  static const int WINDOW_SIZE = 64 * 1024;
+  void *buffer;
+  buffer = malloc(WINDOW_SIZE);
+  BGZF *fp;
+  char out_mode[3] = "w\0";
+  fp = bgzf_open(gz_path.c_str(), out_mode);
+  while ((c = read(f_src, buffer, WINDOW_SIZE)) > 0) {
+    if (bgzf_write(fp, buffer, c) < 0) hts_log_error("Could not write %d bytes: Error %d\n", c, fp->errcode);
+  }
+  bgzf_close(fp);
+  free(buffer);
+  close(f_src);
+  // delete temp mhap file
+  remove(path_src.c_str());
 }
 
 static void help() {
@@ -818,7 +843,7 @@ static void help() {
 
 int convert_fn_suffix_check(ContextConvert &ctx_cvt) {
   string gz_suffix = ".gz";
-  string output_suffix = ".mhap";
+  string output_suffix = ".mhap.gz";
   string bed_suffix = ".bed";
   if (ctx_cvt.fn_cpg) {
     if (!is_suffix(ctx_cvt.fn_cpg, gz_suffix)) {
@@ -828,7 +853,7 @@ int convert_fn_suffix_check(ContextConvert &ctx_cvt) {
   }
   if (ctx_cvt.fn_out) {
     if (!is_suffix(ctx_cvt.fn_out, output_suffix)) {
-      hts_log_error("-o opt should be followed by a .mhap file.");
+      hts_log_error("-o opt should be followed by a .mhap.gz file.");
       return 1;
     }
   }
