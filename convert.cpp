@@ -985,9 +985,6 @@ int main_convert(int argc, char *argv[]) {
     hts_log_info("itor_sam(ctx).");
     cout << "Start processing..." << endl;
     HT_vec = itor_sam(ctx);
-//    if (HT_vec.size() == 0) {
-//      return 0;
-//    }
 
     hts_log_info("saving mhap");
     cout << "Saving..." << endl;
