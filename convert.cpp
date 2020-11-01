@@ -450,7 +450,7 @@ void put_HT_to_map(ContextConvert &ctx, HT_s &HT) {
   if (HT_map_iter == ctx.HT_map.end()) {
     ctx.HT_map[HT_str] = HT;
   } else {
-    ctx.HT_map[HT_str].count += 1
+    ctx.HT_map[HT_str].count += 1;
   }
 }
 
@@ -680,29 +680,15 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         //HT_vec.push_back(ht);
       } else {
         for (int i = 0; i < sam_l.second.size(); i++) {
-          put_HT_to_map(ctx, ht);
+          put_HT_to_map(ctx, sam_l.second[i].HT);
           //HT_vec.push_back(sam_l.second[i].HT);
         }
       }
     } else {
       for (int i = 0; i < sam_l.second.size(); i++) {
-        put_HT_to_map(ctx, ht);
+        put_HT_to_map(ctx, sam_l.second[i].HT);
         //HT_vec.push_back(sam_l.second[i].HT);
       }
-    }
-  }
-  //count
-  vector<HT_s>::iterator ht_itor;
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
-    string ht_id = (*ht_itor).to_str();
-
-    map<string, int>::iterator res_map_itor;
-
-    res_map_itor = ctx.res_map.find(ht_id);
-    if (res_map_itor == ctx.res_map.end()){
-      ctx.res_map[ht_id] = 1;
-    } else {
-      ctx.res_map[ht_id] += 1;
     }
   }
 
@@ -798,11 +784,9 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
   unordered_map<string, bool> is_overlap;
   unordered_map<string, bool>::iterator itor;
   vector<HT_s>::iterator ht_itor;
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-    (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
-  }
+
   //sort
-  sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
+  sort(ctx.HT_map.begin(), ctx.HT_map.end(), comp_HT_vec);
 
   for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
     (*ht_itor).get_WC_symbol();
@@ -1002,9 +986,9 @@ int main_convert(int argc, char *argv[]) {
   hts_log_info("itor_sam(ctx).");
   cout << "Start processing..." << endl;
   HT_vec = itor_sam(ctx);
-  if (HT_vec.size() == 0) {
-    return 0;
-  }
+//  if (HT_vec.size() == 0) {
+//    return 0;
+//  }
 
   hts_log_info("saving mhap");
   cout << "Saving..." << endl;
