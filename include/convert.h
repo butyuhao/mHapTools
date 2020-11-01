@@ -59,6 +59,7 @@ class ContextConvert {
   hts_pos_t i_end;
 
   map<string, int> res_map;
+  map <string, int> HT_map;
 
   int region_to_parse;
 
@@ -71,7 +72,8 @@ struct HT_s {
 
   void get_WC_symbol();
   string to_str() {
-    return string(h_chr) + '\t' + to_string(h_start) + '\t' + to_string(h_end) + '\t' + hap_met + to_string(WC);
+    this->get_WC_symbol();
+    return string(h_chr) + '\t' + to_string(h_start) + '\t' + to_string(h_end) + '\t' + hap_met + '\t' + WC_symbol;
   }
   int ht_count;
   char *h_chr;

@@ -443,6 +443,18 @@ void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &e
   }
 }
 
+void put_to_HT_map(ContextConvert &ctx, HT_s &HT) {
+  static string HT_id;
+  static map <string, int>::iterator HT_map_iter;
+  HT_map_iter = ctx.HT_map.find(HT_id);
+  HT_id = HT.to_str();
+  if (HT_map_iter == ctx.HT_map.end()) {
+    ctx.HT_map[HT_id] = 1;
+  } else {
+    ctx.HT_map[HT_id] += 1;
+  }
+}
+
 vector<HT_s> itor_sam(ContextConvert &ctx) {
 
   map<string, vector<SamRead> > sam_map;
@@ -493,7 +505,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         continue;
       }
 
-      SamRead sam_r = SamRead();
+      static SamRead sam_r = SamRead();
 
       int ret = sam_r.init(ctx);
 
@@ -522,10 +534,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         v.push_back(sam_r);
         sam_map[qname] = v;
       } else {
-        vector<SamRead> v;
-        v = sam_map[qname];
-        v.push_back(sam_r);
-        sam_map[qname] = v;
+        sam_map[qname].push_back(sam_r);
       }
 
     }
@@ -641,10 +650,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
           v.push_back(sam_r);
           sam_map[qname] = v;
         } else {
-          vector<SamRead> v;
-          v = sam_map[qname];
-          v.push_back(sam_r);
-          sam_map[qname] = v;
+          sam_map[qname].push_back(sam_r);
         }
       }
     }
@@ -658,36 +664,25 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
   }
 
   //merge
+
   for (auto sam_l :  sam_map) {
+
     if (sam_l.second.size() == 2) {
       SamRead samF = sam_l.second[0];
       SamRead samR = sam_l.second[1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
-        HT_vec.push_back(ht);
+        put_to_HT_map(ctx, ht);
+
       } else {
         for (int i = 0; i < sam_l.second.size(); i++) {
-          HT_vec.push_back(sam_l.second[i].HT);
+          put_to_HT_map(ctx, sam_l.second[i].HT);
         }
       }
     } else {
       for (int i = 0; i < sam_l.second.size(); i++) {
-        HT_vec.push_back(sam_l.second[i].HT);
+        put_to_HT_map(ctx, sam_l.second[i].HT);
       }
-    }
-  }
-
-  vector<HT_s>::iterator ht_itor;
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
-    string ht_id = (*ht_itor).to_str();
-
-    map<string, int>::iterator res_map_itor;
-
-    res_map_itor = ctx.res_map.find(ht_id);
-    if (res_map_itor == ctx.res_map.end()){
-      ctx.res_map[ht_id] = 1;
-    } else {
-      ctx.res_map[ht_id] += 1;
     }
   }
 
@@ -783,22 +778,27 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
   unordered_map<string, bool> is_overlap;
   unordered_map<string, bool>::iterator itor;
   vector<HT_s>::iterator ht_itor;
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-    (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
-  }
+//  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
+//    (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
+//  }
   //sort
-  sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
+  //sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
 
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-    (*ht_itor).get_WC_symbol();
-    string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
-        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
-        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
-    itor = is_overlap.find(line);
-    if (itor == is_overlap.end()) {
-      out_stream << line << '\n';
-    }
-    is_overlap[line] = true;
+//  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
+//    (*ht_itor).get_WC_symbol();
+//    string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
+//        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
+//        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
+//    itor = is_overlap.find(line);
+//    if (itor == is_overlap.end()) {
+//      out_stream << line << '\n';
+//    }
+//    is_overlap[line] = true;
+//
+//  }
+  map<string, int>::iterator iter;
+  for (iter = ctx.HT_map.begin(); iter != ctx.HT_map.end(); iter++) {
+    out_stream << iter->first << '\t' << iter->second << endl;
   }
   out_stream.close();
 
@@ -985,9 +985,9 @@ int main_convert(int argc, char *argv[]) {
     hts_log_info("itor_sam(ctx).");
     cout << "Start processing..." << endl;
     HT_vec = itor_sam(ctx);
-    if (HT_vec.size() == 0) {
-      return 0;
-    }
+//    if (HT_vec.size() == 0) {
+//      return 0;
+//    }
 
     hts_log_info("saving mhap");
     cout << "Saving..." << endl;
