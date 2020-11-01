@@ -20,6 +20,8 @@ namespace std {
 
 const uint8_t kbase[16] = {0, 65, 67, 0, 71, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 78};
 
+struct HT_s;
+
 class ContextConvert {
  public:
   ContextConvert () : fp_bam(NULL), fp_cpg(NULL), idx_cpg(NULL), has_idx_cpg(false),
@@ -51,6 +53,7 @@ class ContextConvert {
 
   vector<hts_pos_t> cpg_pos;
   unordered_map<int, vector<hts_pos_t> > cpg_pos_map;
+  map<string, HT_s> HT_map;
 
   //region
   string i_chr;
@@ -143,3 +146,4 @@ int main_convert(int argc, char *argv[]);
 } // namespace std
 
 #endif //BAM2HAP__CONVERT_H_
+

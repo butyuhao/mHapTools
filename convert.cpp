@@ -443,6 +443,17 @@ void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &e
   }
 }
 
+void put_HT_to_map(ContextConvert &ctx, HT_s &HT) {
+  static map<string, HT_s>::iterator HT_map_iter;
+  static string HT_str = HT.to_str();
+  HT_map_iter = ctx.HT_map.find(HT_str);
+  if (HT_map_iter == ctx.HT_map.end()) {
+    ctx.HT_map[HT_str] = HT;
+  } else {
+    ctx.HT_map[HT_str].count += 1
+  }
+}
+
 vector<HT_s> itor_sam(ContextConvert &ctx) {
 
   map<string, vector<SamRead> > sam_map;
@@ -474,7 +485,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
 
     if (ctx.idx_bam == NULL) {
       string error_message = "Please run the command to generate the index file (.bai):\nsamtools index " +
-      string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
+          string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
       hts_log_error("%s", error_message.c_str());
       vector<HT_s> null_HT_s;
       return null_HT_s;
@@ -656,7 +667,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
     hts_log_error("region_error");
     exit(1);
   }
-
+  map<string, HT_s>::iterator HT_map_itor;
   //merge
   for (auto sam_l :  sam_map) {
     if (sam_l.second.size() == 2) {
@@ -664,19 +675,23 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       SamRead samR = sam_l.second[1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
-        HT_vec.push_back(ht);
+        put_HT_to_map(ctx, ht);
+
+        //HT_vec.push_back(ht);
       } else {
         for (int i = 0; i < sam_l.second.size(); i++) {
-          HT_vec.push_back(sam_l.second[i].HT);
+          put_HT_to_map(ctx, ht);
+          //HT_vec.push_back(sam_l.second[i].HT);
         }
       }
     } else {
       for (int i = 0; i < sam_l.second.size(); i++) {
-        HT_vec.push_back(sam_l.second[i].HT);
+        put_HT_to_map(ctx, ht);
+        //HT_vec.push_back(sam_l.second[i].HT);
       }
     }
   }
-
+  //count
   vector<HT_s>::iterator ht_itor;
   for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
     string ht_id = (*ht_itor).to_str();
@@ -797,6 +812,8 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
     itor = is_overlap.find(line);
     if (itor == is_overlap.end()) {
       out_stream << line << '\n';
+    } else {
+      cout << line << endl;
     }
     is_overlap[line] = true;
   }
@@ -953,46 +970,47 @@ int main_convert(int argc, char *argv[]) {
     return 1;
   }
 
-    hts_log_info("open_bam_file(ctx)");
-    ret = open_bam_file(ctx);
-    if (!ret) {
-      hts_log_error("open_bam_file():fail to open bam file");
-      return EXIT_FAILURE;
-    }
-    hts_log_info("region_to_parse(ctx)");
-    ret = region_to_parse(ctx);
-    if (!ret) {
-      hts_log_error("region_to_parse()");
-    }
-    if (ctx.region_to_parse == SINGLE_REGION) {
-      ret = ctx.parse_region();
-      hts_log_info("parse_region(): %s:%lld-%lld", ctx.hdr_bam->target_name[ctx.i_tid], ctx.i_beg, ctx.i_end);
-    }
-    if (!ret) {
-      hts_log_error("parse_region():fail to parse region");
-      return EXIT_FAILURE;
-    }
+  hts_log_info("open_bam_file(ctx)");
+  ret = open_bam_file(ctx);
+  if (!ret) {
+    hts_log_error("open_bam_file():fail to open bam file");
+    return EXIT_FAILURE;
+  }
+  hts_log_info("region_to_parse(ctx)");
+  ret = region_to_parse(ctx);
+  if (!ret) {
+    hts_log_error("region_to_parse()");
+  }
+  if (ctx.region_to_parse == SINGLE_REGION) {
+    ret = ctx.parse_region();
+    hts_log_info("parse_region(): %s:%lld-%lld", ctx.hdr_bam->target_name[ctx.i_tid], ctx.i_beg, ctx.i_end);
+  }
+  if (!ret) {
+    hts_log_error("parse_region():fail to parse region");
+    return EXIT_FAILURE;
+  }
 
-    hts_log_info("open_cpg_file(ctx)");
-    ret = open_cpg_file(ctx);
-    if (!ret) {
-      hts_log_error("open_cpg_file():fail to open cpg file");
-      return EXIT_FAILURE;
-    }
+  hts_log_info("open_cpg_file(ctx)");
+  ret = open_cpg_file(ctx);
+  if (!ret) {
+    hts_log_error("open_cpg_file():fail to open cpg file");
+    return EXIT_FAILURE;
+  }
 
-    vector<HT_s> HT_vec;
+  vector<HT_s> HT_vec;
 
-    hts_log_info("itor_sam(ctx).");
-    cout << "Start processing..." << endl;
-    HT_vec = itor_sam(ctx);
-    if (HT_vec.size() == 0) {
-      return 0;
-    }
+  hts_log_info("itor_sam(ctx).");
+  cout << "Start processing..." << endl;
+  HT_vec = itor_sam(ctx);
+  if (HT_vec.size() == 0) {
+    return 0;
+  }
 
-    hts_log_info("saving mhap");
-    cout << "Saving..." << endl;
-    saving_hap(ctx, HT_vec);
+  hts_log_info("saving mhap");
+  cout << "Saving..." << endl;
+  saving_hap(ctx, HT_vec);
 
   return 0;
 }
 } // namespace std
+
