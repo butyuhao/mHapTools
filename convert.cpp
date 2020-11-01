@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <fcntl.h>
 #include <stdio.h>
+#include <sys/malloc.h>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/bgzf.h"
 #include "./htslib-1.10.2/htslib/hfile.h"
@@ -457,8 +458,8 @@ void put_to_HT_map(ContextConvert &ctx, HT_s &HT) {
 
 bool itor_sam(ContextConvert &ctx) {
 
-  map<string, vector<SamRead> > sam_map;
-  map<string, vector<SamRead> >::iterator iter;
+  unordered_map<string, vector<SamRead> > sam_map;
+  unordered_map<string, vector<SamRead> >::iterator iter, iter_pre;
 
   if (ctx.region_to_parse == SINGLE_REGION) {
     //load tbi index outside the load_get_cpg_with_idx()
@@ -621,7 +622,7 @@ bool itor_sam(ContextConvert &ctx) {
             || ctx.aln->core.flag & BAM_FSECONDARY || ctx.aln->core.flag & BAM_FSUPPLEMENTARY) {
           continue;
         }
-
+        
         SamRead sam_r = SamRead();
 
         int ret = sam_r.init(ctx);
@@ -661,24 +662,28 @@ bool itor_sam(ContextConvert &ctx) {
 
   //merge
 
-  for (auto sam_l :  sam_map) {
-    if (sam_l.second.size() == 2) {
-      SamRead samF = sam_l.second[0];
-      SamRead samR = sam_l.second[1];
+  for (iter_pre = iter = sam_map.begin(); iter != sam_map.end(); iter++) {
+    if (iter_pre != iter) {
+      sam_map.erase(iter_pre);
+    }
+    if (iter->second.size() == 2) {
+      SamRead samF = iter->second[0];
+      SamRead samR = iter->second[1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
         put_to_HT_map(ctx, ht);
 
       } else {
-        for (int i = 0; i < sam_l.second.size(); i++) {
-          put_to_HT_map(ctx, sam_l.second[i].HT);
+        for (int i = 0; i < iter->second.size(); i++) {
+          put_to_HT_map(ctx, iter->second[i].HT);
         }
       }
     } else {
-      for (int i = 0; i < sam_l.second.size(); i++) {
-        put_to_HT_map(ctx, sam_l.second[i].HT);
+      for (int i = 0; i < iter->second.size(); i++) {
+        put_to_HT_map(ctx, iter->second[i].HT);
       }
     }
+    iter_pre = iter;
   }
 
   return 0;
