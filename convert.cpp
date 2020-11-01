@@ -455,11 +455,10 @@ void put_to_HT_map(ContextConvert &ctx, HT_s &HT) {
   }
 }
 
-vector<HT_s> itor_sam(ContextConvert &ctx) {
+bool itor_sam(ContextConvert &ctx) {
 
   map<string, vector<SamRead> > sam_map;
   map<string, vector<SamRead> >::iterator iter;
-  vector<HT_s> HT_vec;
 
   if (ctx.region_to_parse == SINGLE_REGION) {
     //load tbi index outside the load_get_cpg_with_idx()
@@ -471,8 +470,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       string error_message = "Please run the command to generate the index file (.tbi):\ntabix -b 2 -e 3 -p bed " +
           string(ctx.fn_cpg) + "\nand place the index file with the CpG file in the same folder.";
       hts_log_error("%s", error_message.c_str());
-      vector<HT_s> null_HT_s;
-      return null_HT_s;
+      return 1;
     }
   }
 
@@ -488,8 +486,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       string error_message = "Please run the command to generate the index file (.bai):\nsamtools index " +
       string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
       hts_log_error("%s", error_message.c_str());
-      vector<HT_s> null_HT_s;
-      return null_HT_s;
+      return 1;
     }
 
     hts_itr_t *sam_itr = sam_itr_queryi(ctx.idx_bam, ctx.i_tid, ctx.i_beg, ctx.i_end);
@@ -598,8 +595,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       string error_message = "Please run the command to generate the index file (.bai):\nsamtools index " +
           string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
       hts_log_error("%s", error_message.c_str());
-      vector<HT_s> null_HT_s;
-      return null_HT_s;
+      return 1;
     }
 
     while ( regitr_loop(itr) ) {
@@ -666,27 +662,29 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
   //merge
 
   for (auto sam_l :  sam_map) {
-
     if (sam_l.second.size() == 2) {
       SamRead samF = sam_l.second[0];
       SamRead samR = sam_l.second[1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
+        cout << ht.to_str() << endl;
         put_to_HT_map(ctx, ht);
 
       } else {
         for (int i = 0; i < sam_l.second.size(); i++) {
+          cout << sam_l.second[i].HT.to_str() << endl;
           put_to_HT_map(ctx, sam_l.second[i].HT);
         }
       }
     } else {
       for (int i = 0; i < sam_l.second.size(); i++) {
+        cout << sam_l.second[i].HT.to_str() << endl;
         put_to_HT_map(ctx, sam_l.second[i].HT);
       }
     }
   }
 
-  return HT_vec;
+  return 0;
 }
 
 inline ContextConvert::~ContextConvert() {
@@ -765,7 +763,7 @@ inline void HT_s::get_WC_symbol() {
   }
 }
 
-void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
+void saving_hap(ContextConvert &ctx) {
 
   string out_stream_name;
   if (ctx.fn_out) {
@@ -778,25 +776,9 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
   unordered_map<string, bool> is_overlap;
   unordered_map<string, bool>::iterator itor;
   vector<HT_s>::iterator ht_itor;
-//  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-//    (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
-//  }
-  //sort
-  //sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
 
-//  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-//    (*ht_itor).get_WC_symbol();
-//    string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
-//        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
-//        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
-//    itor = is_overlap.find(line);
-//    if (itor == is_overlap.end()) {
-//      out_stream << line << '\n';
-//    }
-//    is_overlap[line] = true;
-//
-//  }
   map<string, int>::iterator iter;
+
   for (iter = ctx.HT_map.begin(); iter != ctx.HT_map.end(); iter++) {
     out_stream << iter->first << '\t' << iter->second << endl;
   }
@@ -980,15 +962,17 @@ int main_convert(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
 
-    vector<HT_s> HT_vec;
-
     hts_log_info("itor_sam(ctx).");
     cout << "Start processing..." << endl;
-    HT_vec = itor_sam(ctx);
+
+    ret = itor_sam(ctx);
+    if (ret == 1) {
+      return EXIT_FAILURE;
+    }
 
     hts_log_info("saving mhap");
     cout << "Saving..." << endl;
-    saving_hap(ctx, HT_vec);
+    saving_hap(ctx);
 
   return 0;
 }
