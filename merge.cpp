@@ -202,12 +202,8 @@ bool load_chr_cpg(ContextMerge &ctx_merge) {
 }
 
 bool merge_opt_check(ContextMerge &ctx_merge) {
-  if (ctx_merge.fn_hap2 == NULL || ctx_merge.fn_hap1 == NULL) {
-    hts_log_error("Please specify two mhap files to merge");
-    return false;
-  }
-  if (strcmp(ctx_merge.fn_hap2, ctx_merge.fn_hap1) == 0) {
-    hts_log_error("Please specify two different mhap files to merge");
+  if (ctx_merge.fn_input_vec.size() < 2) {
+    hts_log_error("Please specify at least two mhap.gz files to merge");
     return false;
   }
   return true;
@@ -326,15 +322,15 @@ int convert_fn_suffix_check(ContextMerge &ctx_merge) {
       return 1;
     }
   }
-  if (ctx_merge.fn_hap1) {
-    if (!is_suffix(ctx_merge.fn_hap1, mhap_suffix)) {
-      hts_log_error("-i opt should be followed by two .mhap.gz file.");
+  for (int i = 0; i < ctx_merge.fn_input_vec.size(); i++) {
+    if (ctx_merge.fn_input_vec[i].size() < mhap_suffix.size()) {
       return 1;
     }
-  }
-  if (ctx_merge.fn_hap2) {
-    if (!is_suffix(ctx_merge.fn_hap2, mhap_suffix)) {
-      hts_log_error("-i opt should be followed by two .mhap.gz file.");
+    string suffix = ctx_merge.fn_input_vec[i].substr(ctx_merge.fn_input_vec[i].size() - mhap_suffix.size(), mhap_suffix.size());
+    if (suffix != mhap_suffix) {
+      string error_string = "File format error, replace this file with a " + mhap_suffix + " file";
+      hts_log_error("%s", error_string.c_str());
+      hts_log_error("%s", ctx_merge.fn_input_vec[i].c_str());
       return 1;
     }
   }
@@ -368,8 +364,12 @@ int main_merge(int argc, char *argv[]) {
         if (argc < 4) {
           return 1;
         } else {
-          ctx_merge.fn_hap1 = optarg;
-          ctx_merge.fn_hap2 = argv[optind];
+          for (int i = optind - 1; i < argc; i++) {
+            if (argv[i][0] == '-') {
+              break;
+            }
+            ctx_merge.fn_input_vec.push_back(argv[i]);
+          }
         }
         break;
       }
@@ -384,7 +384,6 @@ int main_merge(int argc, char *argv[]) {
       case 'h': {
         help();
         return 0;
-        break;
       }
       default: {
         break;
@@ -398,90 +397,111 @@ int main_merge(int argc, char *argv[]) {
     return 1;
   }
 
+
   if (convert_fn_suffix_check(ctx_merge) == 1) {
     hts_log_error("filename suffix error.");
     return 1;
   }
 
-  ctx_merge.fp_hap1_gz = bgzf_open(ctx_merge.fn_hap1, "r");
-  ctx_merge.fp_hap2_gz = bgzf_open(ctx_merge.fn_hap2, "r");
+  ctx_merge.fn_hap1 = ctx_merge.fn_input_vec[0];
 
-  if (ctx_merge.fp_hap1_gz == NULL) {
-    hts_log_error("Fail to open .mhap.gz file1.");
-    return 0;
-  }
+  for (int i_merge = 1; i_merge < ctx_merge.fn_input_vec.size(); i_merge++) {
 
-  if (ctx_merge.fp_hap2_gz == NULL) {
-    hts_log_error("Fail to open .mhap.gz file2.");
-    return 0;
-  }
-  int ret = 0;
-  cout << "Loading CpG positions..." << endl;
-  ret = load_chr_cpg(ctx_merge);
+    ctx_merge.fn_hap2 = ctx_merge.fn_input_vec[i_merge];
 
-  if (ret == 1) {
-    return 1;
-  }
+    ctx_merge.fp_hap1_gz = bgzf_open(ctx_merge.fn_hap1.c_str(), "r");
+    ctx_merge.fp_hap2_gz = bgzf_open(ctx_merge.fn_hap2.c_str(), "r");
 
-  mhap_t hap_t_1 = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
-  mhap_t hap_t_2 = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
-
-  vector<mhap_t> merge_result_vec;
-  vector<mhap_t> hap_to_merge;
-
-  cout << "Loading mHap files..." << endl;
-
-  kstring_t str = {0, 0, NULL};
-
-  while(bgzf_getline(ctx_merge.fp_hap1_gz, '\n', &str) >= 0) {
-    parse_mhap_line(str.s, str.l, &hap_t_1);
-    hap_to_merge.push_back(hap_t_1);
-  }
-  while(bgzf_getline(ctx_merge.fp_hap2_gz, '\n', &str) >= 0) {
-    parse_mhap_line(str.s, str.l, &hap_t_2);
-    hap_to_merge.push_back(hap_t_2);
-  }
-
-  //sort
-  cout << "Sorting..." << endl;
-  sort(hap_to_merge.begin(), hap_to_merge.end(), comp_hap);
-
-  int i = 1;
-  vector<mhap_pos_t> cpg_pos_a;
-  vector<mhap_pos_t> cpg_pos_b;
-  mhap_t hap_a = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
-  mhap_t hap_b = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
-  mhap_t merge_result;
-  cout << "Processing..." << endl;
-  if (hap_to_merge.size() == 0) {
-    hts_log_error("mhap files are empty");
-  } else if (hap_to_merge.size() == 1) {
-    merge_result_vec.push_back(hap_to_merge[0]);
-  } else if (hap_to_merge.size() >=2) {
-    hap_b = hap_to_merge[0];
-    int overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b;
-    while(i < hap_to_merge.size()) {
-      hap_a = hap_b;
-      hap_b = hap_to_merge[i];
-
-      cpg_pos_a.clear();
-      cpg_pos_b.clear();
-      cpg_pos_a = get_cpg(ctx_merge, hap_a);
-      cpg_pos_b = get_cpg(ctx_merge, hap_b);
-
-      if (is_identity(hap_a, hap_b)) {
-
-        hap_b.mhap_count += hap_a.mhap_count;
-
-      } else {
-        merge_result_vec.push_back(hap_a);
-      }
-      i++;
+    if (ctx_merge.fp_hap1_gz == NULL) {
+      string error_string = "Fail to open " + string(ctx_merge.fn_hap1);
+      hts_log_error("%s", error_string.c_str());
+      return 0;
     }
-    merge_result_vec.push_back(hap_b);
+
+    if (ctx_merge.fp_hap2_gz == NULL) {
+      string error_string = "Fail to open " + string(ctx_merge.fn_hap2);
+      hts_log_error("%s", error_string.c_str());
+      return 0;
+    }
+    int ret = 0;
+
+    if (ctx_merge.is_load_cpg) {
+      cout << "Loading CpG positions..." << endl;
+      ret = load_chr_cpg(ctx_merge);
+
+      if (ret == 1) {
+        return 1;
+      }
+      ctx_merge.is_load_cpg = false;
+    }
+
+    mhap_t hap_t_1 = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+    mhap_t hap_t_2 = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+
+    vector<mhap_t> merge_result_vec;
+    vector<mhap_t> hap_to_merge;
+
+    cout << "Loading mHap files..." << endl;
+
+    kstring_t str = {0, 0, NULL};
+
+    while (bgzf_getline(ctx_merge.fp_hap1_gz, '\n', &str) >= 0) {
+      parse_mhap_line(str.s, str.l, &hap_t_1);
+      hap_to_merge.push_back(hap_t_1);
+    }
+    while (bgzf_getline(ctx_merge.fp_hap2_gz, '\n', &str) >= 0) {
+      parse_mhap_line(str.s, str.l, &hap_t_2);
+      hap_to_merge.push_back(hap_t_2);
+    }
+
+    //sort
+    cout << "Sorting..." << endl;
+    sort(hap_to_merge.begin(), hap_to_merge.end(), comp_hap);
+
+    int i = 1;
+    vector<mhap_pos_t> cpg_pos_a;
+    vector<mhap_pos_t> cpg_pos_b;
+    mhap_t hap_a = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+    mhap_t hap_b = {MHAP_NULL_STRING, 0, 0, MHAP_NULL_STRING, 0, MHAP_DEFAULT_DIRECTION};
+    mhap_t merge_result;
+    cout << "Processing..." << endl;
+    if (hap_to_merge.size() == 0) {
+      hts_log_error("mhap files are empty");
+    } else if (hap_to_merge.size() == 1) {
+      merge_result_vec.push_back(hap_to_merge[0]);
+    } else if (hap_to_merge.size() >= 2) {
+      hap_b = hap_to_merge[0];
+      int overlap_beg_a, overlap_beg_b, overlap_end_a, overlap_end_b;
+      while (i < hap_to_merge.size()) {
+        hap_a = hap_b;
+        hap_b = hap_to_merge[i];
+
+        cpg_pos_a.clear();
+        cpg_pos_b.clear();
+        cpg_pos_a = get_cpg(ctx_merge, hap_a);
+        cpg_pos_b = get_cpg(ctx_merge, hap_b);
+
+        if (is_identity(hap_a, hap_b)) {
+
+          hap_b.mhap_count += hap_a.mhap_count;
+
+        } else {
+          merge_result_vec.push_back(hap_a);
+        }
+        i++;
+      }
+      merge_result_vec.push_back(hap_b);
+    }
+    cout << "Saving..." << endl;
+    saving_merged_hap(ctx_merge, merge_result_vec);
+
+    if (ctx_merge.fn_out) {
+      ctx_merge.fn_hap1 = ctx_merge.fn_out;
+    } else {
+      ctx_merge.fn_hap1 = "merged.mhap.gz";
+    }
+
   }
-  cout << "Saving..." << endl;
-  saving_merged_hap(ctx_merge, merge_result_vec);
 
   return 0;
 }
