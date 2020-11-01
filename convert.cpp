@@ -502,7 +502,7 @@ bool itor_sam(ContextConvert &ctx) {
         continue;
       }
 
-      static SamRead sam_r = SamRead();
+      SamRead sam_r = SamRead();
 
       int ret = sam_r.init(ctx);
 
@@ -667,18 +667,15 @@ bool itor_sam(ContextConvert &ctx) {
       SamRead samR = sam_l.second[1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
-        cout << ht.to_str() << endl;
         put_to_HT_map(ctx, ht);
 
       } else {
         for (int i = 0; i < sam_l.second.size(); i++) {
-          cout << sam_l.second[i].HT.to_str() << endl;
           put_to_HT_map(ctx, sam_l.second[i].HT);
         }
       }
     } else {
       for (int i = 0; i < sam_l.second.size(); i++) {
-        cout << sam_l.second[i].HT.to_str() << endl;
         put_to_HT_map(ctx, sam_l.second[i].HT);
       }
     }
@@ -780,7 +777,9 @@ void saving_hap(ContextConvert &ctx) {
   map<string, int>::iterator iter;
 
   for (iter = ctx.HT_map.begin(); iter != ctx.HT_map.end(); iter++) {
-    out_stream << iter->first << '\t' << iter->second << endl;
+    char direction = iter->first[iter->first.size() - 1];
+    string output_string = iter->first.substr(0, iter->first.size() - 1) + to_string(iter->second) + '\t' + direction;
+    out_stream << output_string << endl;
   }
   out_stream.close();
 
