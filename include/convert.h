@@ -101,7 +101,7 @@ class SamRead {
   SamRead() : XM_string(NULL), ZS_string(NULL), read_WC(0), QC (true), read_name(NULL),
               flag(0), read_map_quality(0), read_cigar(NULL), seq(NULL), read_chr(NULL),
               read_start(0), read_end(0), read_len(0), read_qual(NULL), ctx(NULL),
-              _hap_seq(""), _hap_met(""){}
+              _hap_seq(""), _hap_met(""), stream_id(0){}
   ~SamRead();
   bool init(ContextConvert &ctx);
   bool haplo_type();
@@ -126,12 +126,14 @@ class SamRead {
   hts_pos_t read_len; //length of the read.
   uint8_t *read_qual; //quality string
 
+
   ContextConvert *ctx;
 
   string _hap_seq;
   vector<int8_t> _hap_qual;
   vector<hts_pos_t> _cpg;
   string _hap_met;
+  int stream_id; // 按照读入顺序编号
 
   HT_s HT = HT_s();
   HT_s merged_HT = HT_s();

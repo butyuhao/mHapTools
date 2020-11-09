@@ -443,27 +443,50 @@ void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &e
   }
 }
 
-void merge_HT(unordered_map<string, vector<SamRead> > &sam_map, vector<HT_s> &HT_vec) {
+void merge_HT(unordered_map<string, vector<SamRead> > &sam_map, vector<HT_s> &HT_vec, bool is_flush=false, bool flush_flag=false, int cache_size=0) {
   //merge
-  for (auto sam_l :  sam_map) {
-    if (sam_l.second.size() == 2) {
-      SamRead samF = sam_l.second[0];
-      SamRead samR = sam_l.second[1];
+  unordered_map<string, vector<SamRead> >::iterator iter;
+  unordered_map<string, vector<SamRead> >::iterator iter_next;
+  iter = iter_next = sam_map.begin();
+  while (iter_next!=sam_map.end()) {
+    iter = iter_next;
+    if (iter->second.size() == 2) {
+      SamRead samF = iter->second[0];
+      SamRead samR = iter->second[1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
         HT_vec.push_back(ht);
       } else {
-        for (int i = 0; i < sam_l.second.size(); i++) {
-          HT_vec.push_back(sam_l.second[i].HT);
+        for (int i = 0; i < iter->second.size(); i++) {
+          HT_vec.push_back(iter->second[i].HT);
         }
       }
     } else {
-      for (int i = 0; i < sam_l.second.size(); i++) {
-        HT_vec.push_back(sam_l.second[i].HT);
+      for (int i = 0; i < iter->second.size(); i++) {
+        HT_vec.push_back(iter->second[i].HT);
+      }
+    }
+    iter_next = iter;
+    ++iter_next;
+    if (flush_flag) {
+
+      for (int i = 0; i < iter->second.size(); i++) {
+        if (iter->second[i].stream_id > 0 && iter->second[i].stream_id <= int(cache_size * 0.5)) {
+          sam_map.erase(iter);
+          break;
+        }
+      }
+    } else {
+
+      for (int i = 0; i < iter->second.size(); i++) {
+        if (iter->second[i].stream_id > int(cache_size * 0.5) && iter->second[i].stream_id <= cache_size) {
+          sam_map.erase(iter);
+          break;
+        }
       }
     }
   }
-  sam_map.clear();
+
 }
 
 vector<HT_s> itor_sam(ContextConvert &ctx) {
@@ -556,8 +579,9 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
   } else if (ctx.region_to_parse == WHOLE_FILE) {
     load_cpg_no_idx(ctx);
 
-    string pre_chr = string("");
-    string cur_chr = string("");
+    int cache_reads = 30000; // 最多保存30000条reads，达到后将前二分之一条删除。
+    int flush_reads = int(cache_reads * 0.5);
+    bool flush_former_half_reads = true;
 
     while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) >= 0) {
 
@@ -573,16 +597,20 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
 
       SamRead sam_r = SamRead();
 
+
+      sam_r.stream_id = cnt % cache_reads;
+
+
+
       int ret = sam_r.init(ctx);
 
-      cur_chr = string(sam_r.read_chr);
 
-      if (cur_chr != pre_chr && pre_chr != "") {
-        merge_HT(sam_map, HT_vec);
-        pre_chr = cur_chr;
+      if (cnt % flush_reads == 0 && cnt > flush_reads) {
+
+        merge_HT(sam_map, HT_vec, true, flush_former_half_reads, cache_reads);
+        flush_former_half_reads = !flush_former_half_reads;
       }
 
-      pre_chr = cur_chr;
 
       if (!ret) {
         hts_log_trace("");
