@@ -131,7 +131,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
               ++cur_m_base;
             }
           }
-          if (cur_m_base >= 4) {
+          if (cur_t_base >= 4) {
             sum_t.n_reads_k4 += hap_line_t.mhap_count;
             if (cur_t_base != cur_m_base) {
               sum_t.n_dr += hap_line_t.mhap_count;
@@ -147,7 +147,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
               ++cur_m_base;
             }
           }
-          if (cur_m_base >= 4) {
+          if (cur_t_base >= 4) {
             sum_t.n_reads_k4_r += hap_line_t.mhap_count;
             if (cur_t_base != cur_m_base) {
               sum_t.n_dr_r += hap_line_t.mhap_count;
@@ -168,7 +168,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
             ++cur_m_base;
           }
         }
-        if (cur_m_base >= 4) {
+        if (cur_t_base >= 4) {
           sum_t.n_reads_k4 += hap_line_t.mhap_count;
           if (cur_t_base != cur_m_base) {
             sum_t.n_dr += hap_line_t.mhap_count;
@@ -216,7 +216,7 @@ int get_summary(ContextSummary &ctx_sum) {
   if (ctx_sum.hap_idx == NULL) {
     hts_log_error("Use the following command to generate .tbi index file for the intput file.");
     string tbx_command = "tabix -b 2 -e 3 -p bed " + string(ctx_sum.fn_hap);
-    hts_log_error(tbx_command.c_str());
+    hts_log_error("%s", tbx_command.c_str());
     return 1;
   }
 
