@@ -133,7 +133,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
           }
           if (cur_t_base >= 4) {
             sum_t.n_reads_k4 += hap_line_t.mhap_count;
-            if (cur_t_base != cur_m_base) {
+            if (cur_t_base != cur_m_base && cur_m_base != 0) {
               sum_t.n_dr += hap_line_t.mhap_count;
             }
           }
@@ -149,7 +149,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
           }
           if (cur_t_base >= 4) {
             sum_t.n_reads_k4_r += hap_line_t.mhap_count;
-            if (cur_t_base != cur_m_base) {
+            if (cur_t_base != cur_m_base && cur_m_base != 0) {
               sum_t.n_dr_r += hap_line_t.mhap_count;
             }
           }
@@ -170,7 +170,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
         }
         if (cur_t_base >= 4) {
           sum_t.n_reads_k4 += hap_line_t.mhap_count;
-          if (cur_t_base != cur_m_base) {
+          if (cur_t_base != cur_m_base && cur_m_base != 0) {
             sum_t.n_dr += hap_line_t.mhap_count;
           }
         }
@@ -430,9 +430,9 @@ int process_genome_wide(ContextSummary &ctx_sum) {
             ++cur_m_base;
           }
         }
-        if (cur_m_base >= 4) {
+        if (cur_t_base >= 4) {
           cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
-          if (cur_t_base != cur_m_base) {
+          if (cur_t_base != cur_m_base && cur_m_base != 0) {
             cur_sum_t.n_dr += hap_line_t.mhap_count;
           }
         }
@@ -447,9 +447,9 @@ int process_genome_wide(ContextSummary &ctx_sum) {
             ++cur_m_base;
           }
         }
-        if (cur_m_base >= 4) {
+        if (cur_t_base >= 4) {
           cur_sum_t.n_reads_k4_r += hap_line_t.mhap_count;
-          if (cur_t_base != cur_m_base) {
+          if (cur_t_base != cur_m_base && cur_m_base != 0) {
             cur_sum_t.n_dr_r += hap_line_t.mhap_count;
           }
         }
@@ -468,9 +468,9 @@ int process_genome_wide(ContextSummary &ctx_sum) {
           ++cur_m_base;
         }
       }
-      if (cur_m_base >= 4) {
+      if (cur_t_base >= 4) {
         cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
-        if (cur_t_base != cur_m_base) {
+        if (cur_t_base != cur_m_base && cur_m_base != 0) {
           cur_sum_t.n_dr += hap_line_t.mhap_count;
         }
       }
