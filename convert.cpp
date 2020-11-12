@@ -30,7 +30,6 @@ bool ContextConvert::parse_region() {
   while(*reg) {
     reg = sam_parse_region(hdr_bam, reg, &i_tid, &i_beg, &i_end, flags);
     if (!reg) {
-      fprintf(stderr, "Failed to parse region\n");
       return false;
     }
   }
@@ -969,7 +968,7 @@ int main_convert(int argc, char *argv[]) {
       hts_log_info("parse_region(): %s:%lld-%lld", ctx.hdr_bam->target_name[ctx.i_tid], ctx.i_beg, ctx.i_end);
     }
     if (!ret) {
-      hts_log_error("parse_region():fail to parse region");
+      hts_log_error("Failed to parse region, check the -r specified.");
       return EXIT_FAILURE;
     }
 
