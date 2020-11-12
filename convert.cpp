@@ -597,7 +597,6 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         flush_former_half_reads = !flush_former_half_reads;
       }
 
-
       if (!ret) {
         hts_log_trace("");
         continue;
@@ -645,6 +644,10 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       return null_HT_s;
     }
 
+    int cache_reads = 30000; // 最多保存30000条reads，达到后将前二分之一条删除。
+    int flush_reads = int(cache_reads * 0.5);
+    bool flush_former_half_reads = true;
+
     while ( regitr_loop(itr) ) {
       int tid = bam_name2id(ctx.hdr_bam, itr->seq);
 
@@ -676,6 +679,12 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         if (!ret) {
           hts_log_trace("");
           continue;
+        }
+
+        if (cnt % flush_reads == 0 && cnt > flush_reads) {
+
+          merge_HT(sam_map, HT_vec, true, flush_former_half_reads, cache_reads);
+          flush_former_half_reads = !flush_former_half_reads;
         }
 
         string qname = string(sam_r.read_name);
