@@ -443,56 +443,37 @@ void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &e
   }
 }
 
-void merge_HT(unordered_map<string, vector<SamRead> > &sam_map, vector<HT_s> &HT_vec, bool is_flush=false, bool flush_flag=false, int cache_size=0) {
+void merge_HT(vector<vector<SamRead> > &sam_vec, vector<HT_s> &HT_vec) {
   //merge
-  unordered_map<string, vector<SamRead> >::iterator iter;
-  unordered_map<string, vector<SamRead> >::iterator iter_next;
-  iter = iter_next = sam_map.begin();
-  while (iter_next!=sam_map.end()) {
-    iter = iter_next;
-    if (iter->second.size() == 2) {
-      SamRead samF = iter->second[0];
-      SamRead samR = iter->second[1];
+  vector<vector<SamRead> >::iterator iter;
+  iter = sam_vec.begin();
+  while (iter!=sam_vec.end()) {
+    if (iter[0].size() == 2) {
+      SamRead samF = iter[0][0];
+      SamRead samR = iter[0][1];
       if (paired_end_check(samF, samR)) {
         HT_s ht = paired_end_merge(samF, samR);
         HT_vec.push_back(ht);
       } else {
-        for (int i = 0; i < iter->second.size(); i++) {
-          HT_vec.push_back(iter->second[i].HT);
+        for (int i = 0; i < iter[0].size(); i++) {
+          HT_vec.push_back(iter[0][i].HT);
         }
       }
     } else {
-      for (int i = 0; i < iter->second.size(); i++) {
-        HT_vec.push_back(iter->second[i].HT);
+      for (int i = 0; i < iter[0].size(); i++) {
+        HT_vec.push_back(iter[0][i].HT);
       }
     }
-    iter_next = iter;
-    ++iter_next;
-    if (flush_flag) {
-
-      for (int i = 0; i < iter->second.size(); i++) {
-        if (iter->second[i].stream_id > 0 && iter->second[i].stream_id <= int(cache_size * 0.5)) {
-          sam_map.erase(iter);
-          break;
-        }
-      }
-    } else {
-
-      for (int i = 0; i < iter->second.size(); i++) {
-        if (iter->second[i].stream_id > int(cache_size * 0.5) && iter->second[i].stream_id <= cache_size) {
-          sam_map.erase(iter);
-          break;
-        }
-      }
-    }
+    ++iter;
   }
 
 }
 
 vector<HT_s> itor_sam(ContextConvert &ctx) {
 
-  unordered_map<string, vector<SamRead> > sam_map;
-  unordered_map<string, vector<SamRead> >::iterator iter;
+  vector<vector<SamRead> > sam_vec;
+  unordered_map<string, int> sam_vec_table;
+  unordered_map<string, int>::iterator iter;
   vector<HT_s> HT_vec;
 
   if (ctx.region_to_parse == SINGLE_REGION) {
@@ -511,6 +492,8 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
   }
 
   uint64_t cnt = 0;
+
+  int sam_vec_pt = 0;
 
   if (ctx.region_to_parse == SINGLE_REGION) {
     auto single_start = std::chrono::high_resolution_clock::now(); //stop_watch
@@ -561,17 +544,20 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         continue;
       }
 
-      iter = sam_map.find(qname);
+      iter = sam_vec_table.find(qname);
 
-      if (iter == sam_map.end()) {
+      if (iter == sam_vec_table.end()) {
         vector<SamRead> v;
         v.push_back(sam_r);
-        sam_map[qname] = v;
+        sam_vec.push_back(v);
+        sam_vec_table[qname] = sam_vec_pt;
+        ++sam_vec_pt;
       } else {
+        int i = iter->second;
         vector<SamRead> v;
-        v = sam_map[qname];
+        v = sam_vec[i];
         v.push_back(sam_r);
-        sam_map[qname] = v;
+        sam_vec[i] = v;
       }
 
     }
@@ -607,7 +593,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
 
       if (cnt % flush_reads == 0 && cnt > flush_reads) {
 
-        merge_HT(sam_map, HT_vec, true, flush_former_half_reads, cache_reads);
+        merge_HT(sam_vec, HT_vec);
         flush_former_half_reads = !flush_former_half_reads;
       }
 
@@ -627,16 +613,19 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         continue;
       }
 
-      iter = sam_map.find(qname);
-      if (iter == sam_map.end()) {
+      iter = sam_vec_table.find(qname);
+
+      if (iter == sam_vec_table.end()) {
+        int i = iter->second;
         vector<SamRead> v;
         v.push_back(sam_r);
-        sam_map[qname] = v;
+        sam_vec[i] = v;
       } else {
+        int i = iter->second;
         vector<SamRead> v;
-        v = sam_map[qname];
+        v = sam_vec[i];
         v.push_back(sam_r);
-        sam_map[qname] = v;
+        sam_vec[i] = v;
       }
     }
   } else if (ctx.region_to_parse == MULTI_REGION) {
@@ -698,16 +687,19 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
           continue;
         }
 
-        iter = sam_map.find(qname);
-        if (iter == sam_map.end()) {
+        iter = sam_vec_table.find(qname);
+
+        if (iter == sam_vec_table.end()) {
+          int i = iter->second;
           vector<SamRead> v;
           v.push_back(sam_r);
-          sam_map[qname] = v;
+          sam_vec[i] = v;
         } else {
+          int i = iter->second;
           vector<SamRead> v;
-          v = sam_map[qname];
+          v = sam_vec[i];
           v.push_back(sam_r);
-          sam_map[qname] = v;
+          sam_vec[i] = v;
         }
       }
     }
@@ -720,7 +712,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
     exit(1);
   }
 
-  merge_HT(sam_map, HT_vec);
+  merge_HT(sam_vec, HT_vec);
 
   vector<HT_s>::iterator ht_itor;
   for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
