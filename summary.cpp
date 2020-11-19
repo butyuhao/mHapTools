@@ -216,7 +216,7 @@ int get_summary(ContextSummary &ctx_sum) {
   if (ctx_sum.hap_idx == NULL) {
     hts_log_error("Use the following command to generate .tbi index file for the intput file.");
     string tbx_command = "tabix -b 2 -e 3 -p bed " + string(ctx_sum.fn_hap);
-    hts_log_error(tbx_command.c_str());
+    hts_log_error("%s", tbx_command.c_str());
     return 1;
   }
 

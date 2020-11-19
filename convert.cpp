@@ -586,8 +586,6 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
 
       sam_r.stream_id = cnt % cache_reads;
 
-
-
       int ret = sam_r.init(ctx);
 
 
@@ -615,10 +613,11 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       iter = sam_vec_table.find(qname);
 
       if (iter == sam_vec_table.end()) {
-        int i = iter->second;
         vector<SamRead> v;
         v.push_back(sam_r);
-        sam_vec[i] = v;
+        sam_vec.push_back(v);
+        sam_vec_table[qname] = sam_vec_pt;
+        ++sam_vec_pt;
       } else {
         int i = iter->second;
         vector<SamRead> v;
@@ -683,7 +682,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
 
         if (cnt % flush_reads == 0 && cnt > flush_reads) {
 
-          merge_HT(sam_map, HT_vec, true, flush_former_half_reads, cache_reads);
+          merge_HT(sam_vec, HT_vec);
           flush_former_half_reads = !flush_former_half_reads;
         }
 
@@ -699,10 +698,11 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         iter = sam_vec_table.find(qname);
 
         if (iter == sam_vec_table.end()) {
-          int i = iter->second;
           vector<SamRead> v;
           v.push_back(sam_r);
-          sam_vec[i] = v;
+          sam_vec.push_back(v);
+          sam_vec_table[qname] = sam_vec_pt;
+          ++sam_vec_pt;
         } else {
           int i = iter->second;
           vector<SamRead> v;
