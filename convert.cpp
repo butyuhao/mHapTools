@@ -445,7 +445,7 @@ void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &e
 vector<HT_s> itor_sam(ContextConvert &ctx) {
 
   unordered_map<string, SamRead > sam_map;
-  uint64_t sam_map_cache_size = 200000;
+  uint64_t sam_map_cache_size = 500000;
   uint64_t read_id_cnt = 0;
 
   unordered_map<string, SamRead >::iterator iter_find; // iter used to find a specific sam read
@@ -517,7 +517,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         while(iter != sam_map.end()){
           iter_pre = iter;
           ++iter;
-          if ((read_id_cnt - iter_pre->second.read_id) > 10000) {
+          if ((read_id_cnt - iter_pre->second.read_id) > 50000) {
             sam_map.erase(iter_pre);
           }
         }
