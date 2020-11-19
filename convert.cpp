@@ -445,6 +445,7 @@ void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &e
 vector<HT_s> itor_sam(ContextConvert &ctx) {
 
   map<string, vector<SamRead> > sam_map;
+  //TODO: map<string, SamRead > sam_map;
   map<string, vector<SamRead> >::iterator iter;
   vector<HT_s> HT_vec;
 
@@ -523,8 +524,16 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       } else {
         vector<SamRead> v;
         v = sam_map[qname];
-        v.push_back(sam_r);
-        sam_map[qname] = v;
+        SamRead samF = v[0];
+        SamRead samR = sam_r;
+        if (paired_end_check(samF, samR)) {
+          HT_s ht = paired_end_merge(samF, samR);
+          HT_vec.push_back(ht);
+        } else {
+          HT_vec.push_back(samF.HT);
+          HT_vec.push_back(samR.HT);
+        }
+        sam_map.erase(iter);
       }
 
     }
