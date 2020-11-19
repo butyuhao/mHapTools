@@ -98,7 +98,7 @@ enum RegionToParse {
 
 class SamRead {
  public:
-  SamRead() : XM_string(NULL), ZS_string(NULL), read_WC(0), QC (true), read_name(NULL),
+  SamRead() : XM_string(NULL), ZS_string(NULL), read_WC(0), QC (true), read_id(-1), read_name(NULL),
               flag(0), read_map_quality(0), read_cigar(NULL), seq(NULL), read_chr(NULL),
               read_start(0), read_end(0), read_len(0), read_qual(NULL), ctx(NULL),
               _hap_seq(""), _hap_met(""){}
@@ -112,6 +112,7 @@ class SamRead {
   char *ZS_string;
   int read_WC;
   bool QC;
+  int read_id;
 
   char *read_name;
   uint16_t flag; //
