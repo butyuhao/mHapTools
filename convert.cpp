@@ -590,6 +590,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
           iter_pre = iter;
           ++iter;
           if ((read_id_cnt - iter_pre->second.read_id) > 10000) {
+            HT_vec.push_back(iter_pre->second.HT);
             sam_map.erase(iter_pre);
           }
         }
