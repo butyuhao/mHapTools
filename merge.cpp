@@ -255,7 +255,10 @@ void saving_merged_hap(ContextMerge &ctx_merge, vector<mhap_t> &merge_result) {
   out_stream.close();
 
   // compress mhap to gz
-  string path_src = "./" + out_stream_name;
+  string path_src = out_stream_name;
+  if (out_stream_name[0] != '.' && out_stream_name[0] != '/') {
+    path_src = "./" + path_src;
+  }
   string gz_path = path_src + ".gz";
   int f_src = open(path_src.c_str(), O_RDONLY);
   if (f_src < 0) {
