@@ -19,7 +19,7 @@ Convert SAM/BAM file to mHap file.
 
 * merge
 
-Merge two mHap files.
+Merge several mHap files.
 
 * beta
 

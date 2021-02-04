@@ -18,7 +18,7 @@ static void help() {
   cout << endl;
   cout << "Commands:" << endl;
   cout << "    convert     SAM/BAM --> mhap conversion" << endl;
-  cout << "    merge       merge two mhap files" << endl;
+  cout << "    merge       merge several mhap files" << endl;
   cout << "    beta        count methylated reads on CpG positions" << endl;
   cout << "    summary     get local or global Summarized Information" << endl;
 }
