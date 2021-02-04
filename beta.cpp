@@ -315,7 +315,7 @@ static void help() {
   cout << "  -i  str  input file, .mhap.gz format" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
   cout << "  -b  str  bed file, one query region per line" << endl;
-  cout << "  -s  flag group results by the direction of mhap reads" << endl;
+  cout << "  -s  flag group results by the direction of mHap reads" << endl;
   cout << "  -o  str  output filename [beta.txt]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
@@ -326,7 +326,7 @@ static void help() {
   cout << "Examples:" << endl;
   cout << "- Get beta results:" << endl;
   cout << "  mhaptools beta -i in.mhap.gz -c CpG.gz" << endl << endl;
-  cout << "- Get beta results, group results by the direction of mhap reads:" << endl;
+  cout << "- Get beta results, group results by the direction of mHap reads:" << endl;
   cout << "  mhaptools beta -i in.mhap.gz -c CpG.gz -s" << endl << endl;
   cout << "- Get beta results within several regions" << endl;
   cout << "  mhaptools beta -i in.mhap.gz -c CpG.gz -b bed_file.bed" << endl << endl;

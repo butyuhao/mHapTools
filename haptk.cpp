@@ -17,10 +17,10 @@ static void help() {
   cout << "Usage:    mhaptools <command> [options]" << endl;
   cout << endl;
   cout << "Commands:" << endl;
-  cout << "    convert     SAM/BAM --> mhap conversion" << endl;
-  cout << "    merge       merge several mhap files" << endl;
-  cout << "    beta        count methylated reads on CpG positions" << endl;
-  cout << "    summary     get local or global Summarized Information" << endl;
+  cout << "    convert     Convert SAM/BAM format to mHap format" << endl;
+  cout << "    merge       Merge multiple sorted mHap files" << endl;
+  cout << "    beta        Summarize CpG site-level methylation from mHap file" << endl;
+  cout << "    summary     Get local or global summarized information" << endl;
 }
 
 int main(int argc, char *argv[]) {

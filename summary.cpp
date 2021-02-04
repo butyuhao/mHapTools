@@ -533,7 +533,7 @@ static void help() {
   cout << "  -r  str  region, e.g. chr1:2000-200000" << endl;
   cout << "  -b  str  bed file, one query region per line" << endl;
   cout << "  -g  flag get genome-wide result" << endl;
-  cout << "  -s  flag group results by the direction of mhap reads" << endl;
+  cout << "  -s  flag group results by the direction of mHap reads" << endl;
   cout << "  -o  str  output filename [genome_wide.txt | summary.txt]" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
