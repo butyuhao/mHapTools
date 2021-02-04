@@ -13,19 +13,19 @@ export LD_LIBRARY_PATH=`pwd`/htslib-1.10.2/lib
 
 ### Commands
 
-#### convert
+* **convert**
 
 Convert SAM/BAM format file to mHap format file. It takes an indexed Bisulfite-seq BAM and CpGs position files as inputs to extract DNA methylation haplotypes. 
 
-#### merge
+* **merge**
 
 Merge multiple sorted mHap files, produce a single sorted mHap file.
 
-#### beta
+* **beta**
 
 Output summary of CpG site-level methylation from mHap files. It is similar to Bismark DNA methylation caller but uses mHap as inputs.
 
-#### summary
+* **summary**
 
 Computes the total number of reads, methylated CpG sites, total CpG sites, DNA methylation discordant reads for given genomic regions or genome wide. 
 
