@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 2.6)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 project(mhaptools)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
+
+set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk)
 
 INCLUDE_DIRECTORIES(
-        include
-        ./htslib-1.10.2/htslib/
+        ./include
+        ./htslib-1.10.2/htslib
+
 )
 
 AUX_SOURCE_DIRECTORY(
