@@ -237,7 +237,7 @@ int get_summary(ContextSummary &ctx_sum) {
   }
 
   if (ctx_sum.region != NULL) {
-    summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0, 0, 0};
+    summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0,0,0};
     region_t reg_t = region_t {"", 0,0};
     ret = get_region(ctx_sum.region, reg_t);
     if (ret == 1) {
@@ -253,7 +253,7 @@ int get_summary(ContextSummary &ctx_sum) {
     regidx_t *idx = regidx_init(ctx_sum.fn_bed,NULL,NULL,0,NULL);
     regitr_t *itr = regitr_init(idx);
     while (regitr_loop(itr)) {
-      summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0, 0, 0};
+      summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0,0,0};
       region_t reg_t = region_t {"", 0,0};
       reg_t.chr = itr->seq;
       reg_t.beg =  itr->beg;
@@ -353,13 +353,13 @@ int load_cpg_init_map(ContextSummary &ctx_sum) {
     chr_itor = ctx_sum.genome_wide_map.find(chr);
     if (chr_itor == ctx_sum.genome_wide_map.end()) {
       map<mhap_pos_t, summary_t> summary_t_map;
-      summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0, 0, 0};
+      summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0,0,0};
       summary_t_map[beg] = sum_t;
       ctx_sum.genome_wide_map[chr] = summary_t_map;
     } else {
       cpg_itor = ctx_sum.genome_wide_map[chr].find(beg);
       if (cpg_itor == ctx_sum.genome_wide_map[chr].end()) {
-        summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0, 0, 0};
+        summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0,0,0};
         ctx_sum.genome_wide_map[chr][beg] = sum_t;
       }
     }
@@ -434,7 +434,7 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       hts_log_error("Can not find CpG begin point %lld, CpG file and mhap file are not match.", hap_line_t.chr_beg);
       return 1;
     }
-    summary_t cur_sum_t = summary_t{0,0,0,0,0,0,0,0,0,0, 0, 0};
+    summary_t cur_sum_t = summary_t{0,0,0,0,0,0,0,0,0,0,0,0};
     if (ctx_sum.stranded) {
       if (hap_line_t.mhap_direction == '+') {
         cur_sum_t.n_reads += hap_line_t.mhap_count;
