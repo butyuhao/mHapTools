@@ -379,7 +379,7 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
   map<string, map<mhap_pos_t, summary_t> >::iterator chr_itor;
   map<mhap_pos_t, summary_t>::iterator cpg_itor;
 
-  out_stream << "Chr" << '\t' << "Start" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "K4plus" << '\t' << "nDR" << endl;
+  out_stream << "Chr" << '\t' << "Start" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "K4plus" << '\t' << "nDR" << '\t' << "nMR" <<endl;
 
   for (chr_itor = ctx_sum.genome_wide_map.begin(); chr_itor != ctx_sum.genome_wide_map.end(); chr_itor++) {
     for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
@@ -389,19 +389,19 @@ int saving_genome_wide(ContextSummary &ctx_sum) {
             out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
                 '\t' + to_string(cpg_itor->first + 1) + '\t' + '+' + '\t' + to_string(cpg_itor->second.n_reads)
                 + '\t' + to_string(cpg_itor->second.m_base) + '\t' + to_string(cpg_itor->second.t_base) + '\t' +
-                to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) << endl;
+                to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) + '\t' + to_string(cpg_itor->second.n_mr) << endl;
           }
           if (!cpg_itor->second.is_direction_minus_empty()) {
             out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
                 '\t' + to_string(cpg_itor->first + 1) + '\t' + '-' + '\t' + to_string(cpg_itor->second.n_reads_r)
                 + '\t' + to_string(cpg_itor->second.m_base_r) + '\t' + to_string(cpg_itor->second.t_base_r) + '\t' +
-                to_string(cpg_itor->second.n_reads_k4_r) + '\t' + to_string(cpg_itor->second.n_dr_r) << endl;
+                to_string(cpg_itor->second.n_reads_k4_r) + '\t' + to_string(cpg_itor->second.n_dr_r) + '\t' + to_string(cpg_itor->second.n_mr_r) << endl;
           }
         } else {
           out_stream << chr_itor->first + '\t' + to_string(cpg_itor->first) +
               '\t' + to_string(cpg_itor->first + 1) + '\t' + '*' + '\t' + to_string(cpg_itor->second.n_reads)
               + '\t' + to_string(cpg_itor->second.m_base) + '\t' + to_string(cpg_itor->second.t_base) + '\t' +
-              to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) << endl;
+              to_string(cpg_itor->second.n_reads_k4) + '\t' + to_string(cpg_itor->second.n_dr) + '\t' + to_string(cpg_itor->second.n_mr)<< endl;
         }
       }
     }
@@ -434,18 +434,24 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       hts_log_error("Can not find CpG begin point %lld, CpG file and mhap file are not match.", hap_line_t.chr_beg);
       return 1;
     }
-    summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0, 0, 0};
+    summary_t cur_sum_t = summary_t{0,0,0,0,0,0,0,0,0,0, 0, 0};
     if (ctx_sum.stranded) {
       if (hap_line_t.mhap_direction == '+') {
         cur_sum_t.n_reads += hap_line_t.mhap_count;
         cur_sum_t.t_base += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
         cur_t_base = hap_line_t.mhap_str.size();
+        bool nmr = false;
         for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
+            nmr = true;
             cur_sum_t.m_base += hap_line_t.mhap_count;
             ++cur_m_base;
           }
         }
+        if (nmr) {
+          cur_sum_t.n_mr += hap_line_t.mhap_count;
+        }
+
         if (cur_t_base >= 4) {
           cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
           if (cur_t_base != cur_m_base && cur_m_base != 0) {
@@ -457,12 +463,18 @@ int process_genome_wide(ContextSummary &ctx_sum) {
         cur_sum_t.n_reads_r += hap_line_t.mhap_count;
         cur_sum_t.t_base_r += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
         cur_t_base = hap_line_t.mhap_str.size();
+        bool nmr = false;
         for (auto b : hap_line_t.mhap_str) {
           if (b == '1') {
+            nmr = true;
             cur_sum_t.m_base_r += hap_line_t.mhap_count;
             ++cur_m_base;
           }
         }
+        if (nmr) {
+          cur_sum_t.n_mr_r += hap_line_t.mhap_count;
+        }
+
         if (cur_t_base >= 4) {
           cur_sum_t.n_reads_k4_r += hap_line_t.mhap_count;
           if (cur_t_base != cur_m_base && cur_m_base != 0) {
@@ -478,11 +490,16 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       cur_sum_t.n_reads += hap_line_t.mhap_count;
       cur_sum_t.t_base += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
       cur_t_base = hap_line_t.mhap_str.size();
+      bool nmr = false;
       for (auto b : hap_line_t.mhap_str) {
         if (b == '1') {
+          nmr = true;
           cur_sum_t.m_base += hap_line_t.mhap_count;
           ++cur_m_base;
         }
+      }
+      if (nmr) {
+        cur_sum_t.n_mr += hap_line_t.mhap_count;
       }
       if (cur_t_base >= 4) {
         cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
@@ -502,6 +519,7 @@ int process_genome_wide(ContextSummary &ctx_sum) {
       cpg_itor->second.t_base += cur_sum_t.t_base;
       cpg_itor->second.n_reads_k4 += cur_sum_t.n_reads_k4;
       cpg_itor->second.n_dr += cur_sum_t.n_dr;
+      cpg_itor->second.n_mr += cur_sum_t.n_mr;
 
       if (ctx_sum.stranded) {
         cpg_itor->second.n_reads_r += cur_sum_t.n_reads_r;
@@ -509,6 +527,7 @@ int process_genome_wide(ContextSummary &ctx_sum) {
         cpg_itor->second.t_base_r += cur_sum_t.t_base_r;
         cpg_itor->second.n_reads_k4_r += cur_sum_t.n_reads_k4_r;
         cpg_itor->second.n_dr_r += cur_sum_t.n_dr_r;
+        cpg_itor->second.n_mr_r += cur_sum_t.n_mr_r;
       }
       //sanity check
       if (i == hap_line_t.mhap_str.size() - 1) {
