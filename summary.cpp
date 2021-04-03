@@ -211,17 +211,17 @@ void get_summary_str(ContextSummary &ctx_sum, region_t &reg_t, summary_t &sum_t)
     ctx_sum.summary_result.push_back(reg_t.chr + '\t' + to_string(reg_t.beg) +
     '\t' + to_string(reg_t.end) + '\t' + '+' + '\t' + to_string(sum_t.n_reads)
     + '\t' + to_string(sum_t.m_base) + '\t' + to_string(sum_t.t_base) + '\t' +
-    to_string(sum_t.n_reads_k4) + '\t' + to_string(sum_t.n_dr));
+    to_string(sum_t.n_reads_k4) + '\t' + to_string(sum_t.n_dr) + '\t' + to_string(sum_t.n_mr));
 
     ctx_sum.summary_result.push_back(reg_t.chr + '\t' + to_string(reg_t.beg) +
         '\t' + to_string(reg_t.end) + '\t' + '-' + '\t' + to_string(sum_t.n_reads_r)
         + '\t' + to_string(sum_t.m_base_r) + '\t' + to_string(sum_t.t_base_r) + '\t' +
-        to_string(sum_t.n_reads_k4_r) + '\t' + to_string(sum_t.n_dr_r));
+        to_string(sum_t.n_reads_k4_r) + '\t' + to_string(sum_t.n_dr_r) + '\t' + to_string(sum_t.n_mr_r));
   } else {
     ctx_sum.summary_result.push_back(reg_t.chr + '\t' + to_string(reg_t.beg) +
         '\t' + to_string(reg_t.end) + '\t' + '*' + '\t' + to_string(sum_t.n_reads)
         + '\t' + to_string(sum_t.m_base) + '\t' + to_string(sum_t.t_base) + '\t' +
-        to_string(sum_t.n_reads_k4) + '\t' + to_string(sum_t.n_dr));
+        to_string(sum_t.n_reads_k4) + '\t' + to_string(sum_t.n_dr) + '\t' + to_string(sum_t.n_mr));
   }
 }
 int get_summary(ContextSummary &ctx_sum) {
@@ -294,7 +294,7 @@ void saving_summary(ContextSummary &ctx_sum) {
   ofstream out_stream(out_stream_name);
 
   if (ctx_sum.summary_result.size() > 0) {
-    out_stream << "Chr" << '\t' << "Start" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "K4plus" << '\t' << "nDR" << endl;
+    out_stream << "Chr" << '\t' << "Start" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "K4plus" << '\t' << "nDR" << '\t' << "nMR" << endl;
   }
 
   for (auto s : ctx_sum.summary_result) {
