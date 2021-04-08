@@ -3,6 +3,8 @@ project(mhaptools)
 
 set(CMAKE_CXX_STANDARD 14)
 
+set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk)
+
 INCLUDE_DIRECTORIES(
         include
         ./htslib-1.10.2/htslib/
