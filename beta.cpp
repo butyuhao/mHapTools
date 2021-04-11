@@ -65,14 +65,14 @@ bool load_cpg_init_beta_map(ContextBeta &ctx_beta) {
     //load beta_map
     chr_itor = ctx_beta.beta_map.find(chr);
     if (chr_itor == ctx_beta.beta_map.end()) {
-        beta_t bt_t  = {0, 0,0,0};
-        map<mhap_pos_t, beta_t> m;
+        beta_t bt_t  = {0, 0,0,0,false};
+        map<mhap_pos_t, beta_t, less<mhap_pos_t> > m;
         m[cpg_start] = bt_t;
         ctx_beta.beta_map[chr] = m;
     } else {
         cpg_itor = ctx_beta.beta_map[chr].find(cpg_start);
         if (cpg_itor == ctx_beta.beta_map[chr].end()) {
-          beta_t bt_t  = {0, 0,0,0};
+          beta_t bt_t  = {0, 0,0,0, false};
           ctx_beta.beta_map[chr][cpg_start] = bt_t;
         }
     }
@@ -91,7 +91,9 @@ bool load_cpg_init_beta_map(ContextBeta &ctx_beta) {
   return 0;
 }
 
-bool saving_beta(ContextBeta &ctx_beta) {
+bool saving_beta(ContextBeta &ctx_beta, int mode) {
+  //mode==1 whole 输出total reads !=0 的结果
+  //mode==2 bed 输出is_in_bed==true的结果
   string out_stream_name;
   if (ctx_beta.fn_out != NULL) {
     out_stream_name = ctx_beta.fn_out;
@@ -100,12 +102,12 @@ bool saving_beta(ContextBeta &ctx_beta) {
   }
   ofstream out_stream(out_stream_name);
 
-  map<string, map<mhap_pos_t, beta_t> >::iterator chr_itor;
-  map<mhap_pos_t, beta_t>::iterator cpg_itor;
+  map<string, map<mhap_pos_t, beta_t> , less<string> >::iterator chr_itor;
+  map<mhap_pos_t, beta_t, less<mhap_pos_t>>::iterator cpg_itor;
   if (ctx_beta.stranded) {
       for (chr_itor = ctx_beta.beta_map.begin(); chr_itor != ctx_beta.beta_map.end(); chr_itor++) {
         for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
-          if (cpg_itor->second.total_reads != 0) {
+          if ((mode==1 && (cpg_itor->second.total_reads != 0)) || (mode==2 && (cpg_itor->second.is_in_bed==true)) && (cpg_itor->second.total_reads != 0)) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
                        << cpg_itor->first + 1 << '\t' <<
                        cpg_itor->second.methy_reads * 100 / cpg_itor->second.total_reads <<
@@ -113,7 +115,7 @@ bool saving_beta(ContextBeta &ctx_beta) {
                        cpg_itor->second.total_reads - cpg_itor->second.methy_reads <<
                        '\t' << '+' << endl;
           }
-          if (cpg_itor->second.total_reads_r != 0) {
+          if ((mode==1 && (cpg_itor->second.total_reads_r != 0)) || (mode==2 && (cpg_itor->second.is_in_bed==true) && (cpg_itor->second.total_reads_r != 0))) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
                        << cpg_itor->first + 1 << '\t' <<
                        cpg_itor->second.methy_reads_r * 100 / cpg_itor->second.total_reads_r <<
@@ -126,7 +128,7 @@ bool saving_beta(ContextBeta &ctx_beta) {
     } else if (!ctx_beta.stranded){
       for (chr_itor = ctx_beta.beta_map.begin(); chr_itor != ctx_beta.beta_map.end(); chr_itor++) {
         for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
-          if (cpg_itor->second.total_reads != 0) {
+          if ((mode==1 && (cpg_itor->second.total_reads != 0)) || (mode==2 && (cpg_itor->second.is_in_bed==true) && (cpg_itor->second.total_reads != 0))) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
                        << cpg_itor->first + 1 << '\t' <<
                        cpg_itor->second.methy_reads * 100 / cpg_itor->second.total_reads <<
@@ -142,17 +144,20 @@ bool saving_beta(ContextBeta &ctx_beta) {
 }
 
 int process_beta(ContextBeta &ctx_beta, mhap_t &h_t) {
-  map<string, map<mhap_pos_t, beta_t> >::iterator chr_itor;
+  map<string, map<mhap_pos_t, beta_t>, less<string> >::iterator chr_itor;
 
-  map<mhap_pos_t, beta_t>::iterator cpg_itor;
+  map<mhap_pos_t, beta_t, less<mhap_pos_t> >::iterator cpg_itor;
 
   unordered_map<string, vector<hts_pos_t>>::iterator cpg_pos_map_itor;
 
-  //check the existence of the chr in the map
-  chr_itor = ctx_beta.beta_map.find(h_t.chr);
-  if (chr_itor == ctx_beta.beta_map.end()) {
-    hts_log_error("Can't find chr: %s in the input CpG file.", h_t.chr.c_str());
-    return 1;
+  if (ctx_beta.is_process_beta_checked == false) {
+    //check the existence of the first appear chr in the map
+    chr_itor = ctx_beta.beta_map.find(h_t.chr);
+    if (chr_itor == ctx_beta.beta_map.end()) {
+      hts_log_error("Can't find chr: %s in the input CpG file.", h_t.chr.c_str());
+      return 1;
+    }
+    ctx_beta.is_process_beta_checked = true;
   }
 
   int pos = _lower_bound(ctx_beta.cpg_pos_map[h_t.chr], h_t.chr_beg);
@@ -217,9 +222,9 @@ int process_beta(ContextBeta &ctx_beta, mhap_t &h_t) {
             }
           }
         } else {
-          hts_log_error("length of cpg pos and mhap str doesn't match in mhap read.");
-          hts_log_error("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.mhap_str.c_str(), h_t.mhap_direction);
-          return 1;
+          hts_log_warning("length of cpg pos and mhap str doesn't match in mhap read.");
+          hts_log_warning("mhap read: %s %lld %lld %s %c", h_t.chr.c_str(), h_t.chr_beg, h_t.chr_end, h_t.mhap_str.c_str(), h_t.mhap_direction);
+          return 0;
         }
         i++;
         pos++;
@@ -246,26 +251,33 @@ int get_beta(ContextBeta &ctx_beta) {
   } else {
     while(bgzf_getline(ctx_beta.fp_hap_gz, '\n', &str) >= 0) {
       parse_mhap_line(str.s, str.l, &h_t);
-      regidx_t *idx = regidx_init(ctx_beta.fn_bed,NULL,NULL,0,NULL);
-      regitr_t *itr = regitr_init(idx);
-      while (regitr_loop(itr)) {
-        region_t reg_t = region_t {"", 0,0};
-        reg_t.chr = itr->seq;
-        reg_t.beg =  itr->beg;
-        reg_t.end =  itr->end + 1;
-        if (h_t.chr == reg_t.chr &&
-            h_t.chr_beg >= reg_t.beg &&
-            h_t.chr_end <= reg_t.end) {
-          ret = process_beta(ctx_beta, h_t);
-          if (ret == 1) {
-            return 1;
-          }
-        } else {
-          continue;
-        }
+      ret = process_beta(ctx_beta, h_t);
+      if (ret == 1) {
+        return 1;
+      }
+    }
+    map<string, map<mhap_pos_t, beta_t> , less<string> >::iterator chr_itor;
+    map<mhap_pos_t, beta_t, less<mhap_pos_t>>::iterator cpg_itor;
+
+    regidx_t *idx = regidx_init(ctx_beta.fn_bed,NULL,NULL,0,NULL);
+    regitr_t *itr = regitr_init(idx);
+    while (regitr_loop(itr)) {
+      region_t reg_t = region_t {"", 0,0};
+      string chr = itr->seq;
+      mhap_pos_t beg =  itr->beg;
+      mhap_pos_t end =  itr->end + 1;
+      int pos = _lower_bound(ctx_beta.cpg_pos_map[chr], beg);
+      mhap_pos_t  beg_cpg_pos = ctx_beta.cpg_pos_map[chr][pos]; // 找出比指定beg大的第一个位置
+
+      chr_itor = ctx_beta.beta_map.find(chr);
+      cpg_itor = chr_itor->second.find(beg_cpg_pos);
+      while(cpg_itor->first <= end && cpg_itor!=chr_itor->second.end()) {
+        cpg_itor->second.is_in_bed = true;
+        cpg_itor++;
       }
     }
   }
+
   return 0;
 }
 
@@ -302,7 +314,7 @@ int beta_fn_suffix_check(ContextBeta &ctx_beta) {
   }
   if (ctx_beta.fn_bed) {
     if (!is_suffix(ctx_beta.fn_bed, bed_suffix)) {
-      hts_log_error("-o opt should be followed by a .bed file.");
+      hts_log_error("-b opt should be followed by a .bed file.");
       return 1;
     }
   }
@@ -422,7 +434,12 @@ int main_beta(int argc, char *argv[]) {
   }
 
   cout << "Saving..." << endl;
-  ret = saving_beta(ctx_beta);
+  if (ctx_beta.fn_bed == NULL) {
+    ret = saving_beta(ctx_beta, 1); // entire file
+  } else {
+    ret = saving_beta(ctx_beta, 2); // bed file
+  }
+
   if (ret == 1) {
     return 1;
   }

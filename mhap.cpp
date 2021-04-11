@@ -3,13 +3,13 @@
 #include "mhap.h"
 namespace std {
 
-//todo: 将hap的读取与解析改成c++风格而不是c风格
 mHapFile* mhap_open(const char *filename, const char *mode) {
   return fopen(filename, mode);
 }
 
 void parse_mhap_line(char *line, int buf_len, mhap_t *h_line_t) {
   char *p, *q;
+  char end_char;
   p = q = line;
 
   while(*q != MHAP_LINE_DELIM_TAB && *q !='\n' && (q - line) < buf_len) {q++;}
@@ -37,9 +37,10 @@ void parse_mhap_line(char *line, int buf_len, mhap_t *h_line_t) {
   q = p = q + 1;
 
   while(*q != MHAP_LINE_DELIM_TAB && *q !='\n' && (q - line) < buf_len) {q++;}
+  end_char = *q;
   (*q) = '\0';
   h_line_t->mhap_count = atoi(p);
-  (*q) = '\n';
+  (*q) = end_char;
   p = q + 1;
 
   h_line_t->mhap_direction = *p;

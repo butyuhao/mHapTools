@@ -133,10 +133,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
               ++cur_m_base;
             }
           }
-          if (nmr) {
-            sum_t.n_mr += hap_line_t.mhap_count;
-          }
+
           if (cur_t_base >= 4) {
+            if (nmr) {
+              sum_t.n_mr += hap_line_t.mhap_count;
+            }
             sum_t.n_reads_k4 += hap_line_t.mhap_count;
             if (cur_t_base != cur_m_base && cur_m_base != 0) {
               sum_t.n_dr += hap_line_t.mhap_count;
@@ -154,11 +155,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
               ++cur_m_base;
             }
           }
-          if (nmr) {
-            sum_t.n_mr_r += hap_line_t.mhap_count;
-          }
 
           if (cur_t_base >= 4) {
+            if (nmr) {
+              sum_t.n_mr_r += hap_line_t.mhap_count;
+            }
             sum_t.n_reads_k4_r += hap_line_t.mhap_count;
             if (cur_t_base != cur_m_base && cur_m_base != 0) {
               sum_t.n_dr_r += hap_line_t.mhap_count;
@@ -181,10 +182,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
             ++cur_m_base;
           }
         }
-        if (nmr) {
-          sum_t.n_mr += hap_line_t.mhap_count;
-        }
+
         if (cur_t_base >= 4) {
+          if (nmr) {
+            sum_t.n_mr += hap_line_t.mhap_count;
+          }
           sum_t.n_reads_k4 += hap_line_t.mhap_count;
           if (cur_t_base != cur_m_base && cur_m_base != 0) {
             sum_t.n_dr += hap_line_t.mhap_count;
@@ -448,11 +450,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
             ++cur_m_base;
           }
         }
-        if (nmr) {
-          cur_sum_t.n_mr += hap_line_t.mhap_count;
-        }
 
         if (cur_t_base >= 4) {
+          if (nmr) {
+            cur_sum_t.n_mr += hap_line_t.mhap_count;
+          }
           cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
           if (cur_t_base != cur_m_base && cur_m_base != 0) {
             cur_sum_t.n_dr += hap_line_t.mhap_count;
@@ -471,11 +473,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
             ++cur_m_base;
           }
         }
-        if (nmr) {
-          cur_sum_t.n_mr_r += hap_line_t.mhap_count;
-        }
 
         if (cur_t_base >= 4) {
+          if (nmr) {
+            cur_sum_t.n_mr_r += hap_line_t.mhap_count;
+          }
           cur_sum_t.n_reads_k4_r += hap_line_t.mhap_count;
           if (cur_t_base != cur_m_base && cur_m_base != 0) {
             cur_sum_t.n_dr_r += hap_line_t.mhap_count;
@@ -498,10 +500,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
           ++cur_m_base;
         }
       }
-      if (nmr) {
-        cur_sum_t.n_mr += hap_line_t.mhap_count;
-      }
+
       if (cur_t_base >= 4) {
+        if (nmr) {
+          cur_sum_t.n_mr += hap_line_t.mhap_count;
+        }
         cur_sum_t.n_reads_k4 += hap_line_t.mhap_count;
         if (cur_t_base != cur_m_base && cur_m_base != 0) {
           cur_sum_t.n_dr += hap_line_t.mhap_count;

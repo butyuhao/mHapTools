@@ -20,6 +20,8 @@ typedef struct beta_t {
   // when direction is -
   int methy_reads_r;
   int total_reads_r;
+
+  bool is_in_bed;
 } beta_t;
 
 int main_beta(int argc, char *argv[]);
@@ -27,7 +29,7 @@ int main_beta(int argc, char *argv[]);
 class ContextBeta {
  public:
   ContextBeta() :fn_hap(NULL), fn_cpg(NULL), fn_bed(NULL), fn_out(NULL),
-  fp_hap_gz(NULL), fp_cpg(NULL), fp_bed(NULL), stranded(false) {}
+  fp_hap_gz(NULL), fp_cpg(NULL), fp_bed(NULL), stranded(false), is_process_beta_checked(false) {}
   ~ContextBeta();
 
   char *fn_hap;
@@ -38,8 +40,10 @@ class ContextBeta {
   htsFile *fp_cpg;
   FILE *fp_bed;
   bool stranded;
+  bool is_process_beta_checked;
 
-  map<string, map<mhap_pos_t, beta_t> > beta_map;
+
+  map<string, map<mhap_pos_t, beta_t>, less<string>> beta_map;
   unordered_map<string, vector<hts_pos_t> > cpg_pos_map;
 
 };
