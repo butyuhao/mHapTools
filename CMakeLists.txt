@@ -4,11 +4,12 @@ set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOS
 
 project(mhaptools)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 
 INCLUDE_DIRECTORIES(
-        include
-        ./htslib-1.10.2/htslib/
+        ./include
+        ./htslib-1.10.2/htslib
+
 )
 
 AUX_SOURCE_DIRECTORY(

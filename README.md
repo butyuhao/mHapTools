@@ -27,7 +27,7 @@ Output summary of CpG site-level methylation from mHap files. It is similar to B
 
 * **summary**
 
-Computes the total number of reads, methylated CpG sites, total CpG sites, DNA methylation discordant reads for given genomic regions or genome wide. 
+Computes the total number of reads, methylated CpG sites, total CpG sites, DNA methylation discordant reads,  methylated reads for given genomic regions or genome wide. 
 
 ### Details
 

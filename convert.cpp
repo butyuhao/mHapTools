@@ -202,8 +202,10 @@ bool SamRead::haplo_type() {
   _hap_qual = hap_qual;
   _cpg = cpg;
   _hap_met = "";
+
   for (int i = 0; i < _hap_seq.size(); i++) {
     char nucleobases = _hap_seq[i];
+
     if (read_WC == DIRECTION_PLUS || read_WC == DIRECTION_UNKNOWN) {
       if (nucleobases == 'C') {
         _hap_met += '1';

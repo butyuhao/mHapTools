@@ -44,12 +44,14 @@ typedef struct summary_t {
   mhap_pos_t t_base;
   mhap_pos_t n_reads_k4;
   mhap_pos_t n_dr;
+  mhap_pos_t n_mr;
   // when direction is -
   mhap_pos_t n_reads_r;
   mhap_pos_t m_base_r;
   mhap_pos_t t_base_r;
   mhap_pos_t n_reads_k4_r;
   mhap_pos_t n_dr_r;
+  mhap_pos_t n_mr_r;
 
 } summary_t;
 
