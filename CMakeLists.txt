@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 2.6)
+
+set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk)
+
 project(mhaptools)
 
 set(CMAKE_CXX_STANDARD 14)
-
-set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk)
 
 INCLUDE_DIRECTORIES(
         include
