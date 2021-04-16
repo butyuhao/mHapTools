@@ -42,9 +42,9 @@ class ContextBeta {
   bool stranded;
   bool is_process_beta_checked;
 
-
   map<string, map<mhap_pos_t, beta_t>, less<string>> beta_map;
   unordered_map<string, vector<hts_pos_t> > cpg_pos_map;
+  map<string, beta_t, less<string> > beta_with_bed_results;
 
 };
 

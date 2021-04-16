@@ -104,10 +104,12 @@ bool saving_beta(ContextBeta &ctx_beta, int mode) {
 
   map<string, map<mhap_pos_t, beta_t> , less<string> >::iterator chr_itor;
   map<mhap_pos_t, beta_t, less<mhap_pos_t>>::iterator cpg_itor;
-  if (ctx_beta.stranded) {
+  map<string, beta_t, less<string> >::iterator beta_with_bed_result_itor;
+  if (mode==1) {
+    if (ctx_beta.stranded) {
       for (chr_itor = ctx_beta.beta_map.begin(); chr_itor != ctx_beta.beta_map.end(); chr_itor++) {
         for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
-          if ((mode==1 && (cpg_itor->second.total_reads != 0)) || (mode==2 && (cpg_itor->second.is_in_bed==true)) && (cpg_itor->second.total_reads != 0)) {
+          if (cpg_itor->second.total_reads != 0) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
                        << cpg_itor->first + 1 << '\t' <<
                        cpg_itor->second.methy_reads * 100 / cpg_itor->second.total_reads <<
@@ -115,7 +117,7 @@ bool saving_beta(ContextBeta &ctx_beta, int mode) {
                        cpg_itor->second.total_reads - cpg_itor->second.methy_reads <<
                        '\t' << '+' << endl;
           }
-          if ((mode==1 && (cpg_itor->second.total_reads_r != 0)) || (mode==2 && (cpg_itor->second.is_in_bed==true) && (cpg_itor->second.total_reads_r != 0))) {
+          if (cpg_itor->second.total_reads_r != 0) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
                        << cpg_itor->first + 1 << '\t' <<
                        cpg_itor->second.methy_reads_r * 100 / cpg_itor->second.total_reads_r <<
@@ -128,7 +130,7 @@ bool saving_beta(ContextBeta &ctx_beta, int mode) {
     } else if (!ctx_beta.stranded){
       for (chr_itor = ctx_beta.beta_map.begin(); chr_itor != ctx_beta.beta_map.end(); chr_itor++) {
         for (cpg_itor = chr_itor->second.begin(); cpg_itor != chr_itor->second.end(); cpg_itor++) {
-          if ((mode==1 && (cpg_itor->second.total_reads != 0)) || (mode==2 && (cpg_itor->second.is_in_bed==true) && (cpg_itor->second.total_reads != 0))) {
+          if (cpg_itor->second.total_reads != 0) {
             out_stream << chr_itor->first << '\t' << cpg_itor->first << '\t'
                        << cpg_itor->first + 1 << '\t' <<
                        cpg_itor->second.methy_reads * 100 / cpg_itor->second.total_reads <<
@@ -139,6 +141,49 @@ bool saving_beta(ContextBeta &ctx_beta, int mode) {
         }
       }
     }
+  } else if (mode == 2) {
+    beta_with_bed_result_itor = ctx_beta.beta_with_bed_results.begin();
+    while (beta_with_bed_result_itor != ctx_beta.beta_with_bed_results.end()) {
+      if (ctx_beta.stranded) {
+        if (beta_with_bed_result_itor->second.total_reads != 0) {
+          out_stream << beta_with_bed_result_itor->first << '\t' <<
+                     beta_with_bed_result_itor->second.methy_reads * 100 / beta_with_bed_result_itor->second.total_reads
+                     <<
+                     '\t' << beta_with_bed_result_itor->second.methy_reads << '\t' <<
+                     beta_with_bed_result_itor->second.total_reads - beta_with_bed_result_itor->second.methy_reads <<
+                     '\t' << '+' << endl;
+        } else {
+          out_stream << beta_with_bed_result_itor->first << '\t' << 0 << '\t' << 0 << '\t' << 0 << '\t' << '+' << endl;
+        }
+        if (beta_with_bed_result_itor->second.total_reads_r != 0) {
+          out_stream << beta_with_bed_result_itor->first << '\t' <<
+                     beta_with_bed_result_itor->second.methy_reads_r * 100
+                         / beta_with_bed_result_itor->second.total_reads_r <<
+                     '\t' << beta_with_bed_result_itor->second.methy_reads_r << '\t' <<
+                     beta_with_bed_result_itor->second.total_reads_r - beta_with_bed_result_itor->second.methy_reads_r
+                     <<
+                     '\t' << '-' << endl;
+        } else {
+          out_stream << beta_with_bed_result_itor->first << '\t' << 0 << '\t' << 0 << '\t' << 0 << '\t' << '-' << endl;
+        }
+
+      } else if (!ctx_beta.stranded) {
+        if (beta_with_bed_result_itor->second.total_reads != 0) {
+          out_stream << beta_with_bed_result_itor->first << '\t' <<
+                     beta_with_bed_result_itor->second.methy_reads * 100 / beta_with_bed_result_itor->second.total_reads
+                     <<
+                     '\t' << beta_with_bed_result_itor->second.methy_reads << '\t' <<
+                     beta_with_bed_result_itor->second.total_reads - beta_with_bed_result_itor->second.methy_reads <<
+                     '\t' << '*' << endl;
+        } else {
+          out_stream << beta_with_bed_result_itor->first << '\t' << 0 << '\t' << 0 << '\t' << 0 << '\t' << '*' << endl;
+        }
+      }
+      beta_with_bed_result_itor++;
+    }
+
+  }
+
   out_stream.close();
   return 0;
 }
@@ -267,14 +312,23 @@ int get_beta(ContextBeta &ctx_beta) {
       mhap_pos_t beg =  itr->beg;
       mhap_pos_t end =  itr->end + 1;
       int pos = _lower_bound(ctx_beta.cpg_pos_map[chr], beg);
+
+      string key = chr + '\t' + to_string(beg) + '\t' + to_string(end);
+
+      beta_t bt_t  = {0, 0,0,0, false};
+
       mhap_pos_t  beg_cpg_pos = ctx_beta.cpg_pos_map[chr][pos]; // 找出比指定beg大的第一个位置
 
       chr_itor = ctx_beta.beta_map.find(chr);
       cpg_itor = chr_itor->second.find(beg_cpg_pos);
       while(cpg_itor->first <= end && cpg_itor!=chr_itor->second.end()) {
-        cpg_itor->second.is_in_bed = true;
+        bt_t.methy_reads += cpg_itor->second.methy_reads;
+        bt_t.total_reads += cpg_itor->second.total_reads;
+        bt_t.methy_reads_r += cpg_itor->second.methy_reads_r;
+        bt_t.total_reads_r += cpg_itor->second.total_reads_r;
         cpg_itor++;
       }
+      ctx_beta.beta_with_bed_results[key] = bt_t;
     }
   }
 
