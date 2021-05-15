@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk)
+#set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk)
 
 project(mhaptools)
 
@@ -18,7 +18,7 @@ AUX_SOURCE_DIRECTORY(
 
 add_executable(mhaptools haptk.cpp convert.cpp mhap.cpp merge.cpp beta.cpp summary.cpp utils.cpp)
 
-target_link_libraries(mhaptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.a)
+target_link_libraries(mhaptools ${CMAKE_SOURCE_DIR}/htslib-1.10.2/libhts.so)
 
 target_link_libraries(mhaptools z)
 
