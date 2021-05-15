@@ -548,6 +548,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
           iter_pre = iter;
           ++iter;
           if ((read_id_cnt - iter_pre->second.read_id) > 5000) {
+              HT_vec.push_back(iter_pre->second.HT);
             sam_map.erase(iter_pre);
           }
         }
@@ -786,6 +787,80 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
           continue;
         }
 
+          cur_chr = sam_r.read_chr;
+
+          if (pre_chr == NULL) {
+              pre_chr = sam_r.read_chr;
+          }
+
+          if (strcmp(cur_chr, pre_chr) != 0) {
+              pre_chr = cur_chr;
+
+                // push all the unpaied HT to HT_vec
+              for (auto _sam :  sam_map) {
+                  HT_vec.push_back(_sam.second.HT);
+              }
+
+              if (HT_vec.size() != 0) {
+                  ctx.has_output = true;
+
+                    // count similar HT
+                  vector<HT_s>::iterator ht_itor;
+
+                  ofstream out_stream("./cache" + to_string(ctx.cache_cnt));
+                  ctx.cache_cnt += 1;
+
+                    //sort
+                  sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
+
+                  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+                      string ht_id = (*ht_itor).to_str();
+
+                      map<string, int>::iterator res_map_itor;
+
+                      res_map_itor = ctx.res_map.find(ht_id);
+                      if (res_map_itor == ctx.res_map.end()) {
+                          ctx.res_map[ht_id] = 1;
+                          ht_itor->ht_count = 1;
+
+                      } else {
+                          ctx.res_map[ht_id] += 1;
+                          ht_itor->ht_count = ctx.res_map[ht_id];
+                      }
+                  }
+                  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+                      string ht_id = (*ht_itor).to_str();
+
+                      map<string, int>::iterator res_map_itor;
+
+                      res_map_itor = ctx.res_map.find(ht_id);
+                      if (ht_itor->ht_count == res_map_itor->second) {
+                        //the last ht in duplicated hts
+                          (*ht_itor).get_WC_symbol();
+                          string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
+                                        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
+                                        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
+                          out_stream << line << '\n';
+                      }
+                //out_stream << ht_id << "\n";
+
+                  }
+                  out_stream.close();
+              }
+                // clear memory
+
+              vector<HT_s>().swap(HT_vec);
+              unordered_map<string, SamRead > empty_sam_map;
+              sam_map.swap(empty_sam_map);
+              sam_map.clear();
+              map<string, int> empty_res_map;
+              ctx.res_map.swap(empty_res_map);
+              ctx.res_map.clear();
+
+          }
+
+
+
           sam_r.read_id = read_id_cnt;
 
         if (read_id_cnt + 1 == 0) {
@@ -801,6 +876,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
             iter_pre = iter;
             ++iter;
             if ((read_id_cnt - iter_pre->second.read_id) > 5000) {
+                HT_vec.push_back(iter_pre->second.HT);
               sam_map.erase(iter_pre);
             }
           }
@@ -904,8 +980,6 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
     map<string, int> empty_res_map;
     ctx.res_map.swap(empty_res_map);
     ctx.res_map.clear();
-
-
 
   return HT_vec;
 }
