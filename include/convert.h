@@ -24,7 +24,8 @@ class ContextConvert {
  public:
   ContextConvert () : fp_bam(NULL), fp_cpg(NULL), idx_cpg(NULL), has_idx_cpg(false),
                       idx_bam(NULL), cpg_itr(NULL), sam_itr(NULL), hdr_bam(NULL),
-                      aln(NULL), bam_aux_p(NULL), cache_cnt(0), has_output(false), fn_bam(NULL), fn_out(NULL),
+                      aln(NULL), bam_aux_p(NULL), cache_cnt(0), cache_rand_id(""),
+                      has_output(false), fn_bam(NULL), fn_out(NULL),
                       fn_bed(NULL), fn_cpg(NULL), region(NULL), non_directional(false){};
   ~ContextConvert();
 
@@ -41,6 +42,7 @@ class ContextConvert {
   bam1_t *aln;
   uint8_t *bam_aux_p;
   int cache_cnt; // cache number
+  string cache_rand_id;
   bool has_output;
 
   // options

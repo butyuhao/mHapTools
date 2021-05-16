@@ -13,12 +13,15 @@
 #include <algorithm>
 #include <fcntl.h>
 #include <stdio.h>
+#include <cstdlib>
+#include <ctime>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/bgzf.h"
 #include "./htslib-1.10.2/htslib/hfile.h"
 #include "./htslib-1.10.2/htslib/regidx.h"
 #include "./include/convert.h"
 #include "./include/utils.h"
+
 namespace std {
 
 bool ContextConvert::parse_region() {
@@ -646,7 +649,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
               // count similar HT
               vector<HT_s>::iterator ht_itor;
 
-              ofstream out_stream("./cache" + to_string(ctx.cache_cnt));
+              ofstream out_stream("./" + ctx.cache_rand_id + ".mhap.tmp" + to_string(ctx.cache_cnt));
               ctx.cache_cnt += 1;
 
               //sort
@@ -821,7 +824,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
                     // count similar HT
                   vector<HT_s>::iterator ht_itor;
 
-                  ofstream out_stream("./cache" + to_string(ctx.cache_cnt));
+                  ofstream out_stream("./" + ctx.cache_rand_id + ".mhap.tmp" + to_string(ctx.cache_cnt));
                   ctx.cache_cnt += 1;
 
                     //sort
@@ -945,7 +948,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
         // count similar HT
         vector<HT_s>::iterator ht_itor;
 
-        ofstream out_stream("./cache" + to_string(ctx.cache_cnt));
+        ofstream out_stream("./" + ctx.cache_rand_id + ".mhap.tmp" + to_string(ctx.cache_cnt));
         ctx.cache_cnt += 1;
 
         //sort
@@ -1075,8 +1078,12 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
   ifstream cache_file;
   string cur_cache_name;
   for (int i = 0; i < ctx.cache_cnt; i++) {
-      cur_cache_name = "./cache" + to_string(i);
+      cur_cache_name = "./" + ctx.cache_rand_id + ".mhap.tmp" +  to_string(i);
       cache_file.open(cur_cache_name);
+      if (!cache_file.is_open()) {
+          hts_log_error("Do NOT delete the temporary files named xxx.mhap.tmp during processing! Please rerun mHaptools to get correct output result.");
+          continue;
+      }
       string line;
       getline(cache_file, line);
       out_stream << line << "\n";
@@ -1230,6 +1237,11 @@ int main_convert(int argc, char *argv[]) {
     }
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
+
+
+  // generate rand id for cache files
+  srand((int)time(NULL));
+  ctx.cache_rand_id = to_string((rand() % (1000000000 - 1000)) + 1000);
 
   int ret;
 
