@@ -586,7 +586,21 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
     }
 
   } else if (ctx.region_to_parse == WHOLE_FILE) {
-    load_cpg_no_idx(ctx);
+
+
+    // load the index file to ensure the bam file is sorted
+      static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
+      ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
+
+      if (ctx.idx_bam == NULL) {
+          string error_message = "Please run the command to generate the index file (.bai):\nsamtools index " +
+                                 string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
+          hts_log_error("%s", error_message.c_str());
+          vector<HT_s> null_HT_s;
+          return null_HT_s;
+      }
+
+      load_cpg_no_idx(ctx);
 
     while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) >= 0) {
 
