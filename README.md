@@ -60,7 +60,7 @@ Computes the total number of reads, methylated CpG sites, total CpG sites, DNA m
 
 ```c++
 //Generate index for .mhap.gz file
-tabix -b 2 -e 3 -p bed file.mhap.gz
+tabix -b 2 -e 3 file.mhap.gz
 ```
 
 * **-c** CpG file, gz format.
