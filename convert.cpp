@@ -13,12 +13,15 @@
 #include <algorithm>
 #include <fcntl.h>
 #include <stdio.h>
+#include <cstdlib>
+#include <ctime>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/bgzf.h"
 #include "./htslib-1.10.2/htslib/hfile.h"
 #include "./htslib-1.10.2/htslib/regidx.h"
 #include "./include/convert.h"
 #include "./include/utils.h"
+
 namespace std {
 
 bool ContextConvert::parse_region() {
@@ -444,6 +447,26 @@ void get_cpg_no_idx(ContextConvert &ctx, char *chr, hts_pos_t &beg, hts_pos_t &e
   }
 }
 
+void save_cache(ContextConvert &ctx) {
+
+}
+
+bool open_bam_file(ContextConvert &ctx) {
+
+    ctx.fp_bam = hts_open(ctx.fn_bam, "r");
+    ctx.hdr_bam = sam_hdr_read(ctx.fp_bam); //read header
+
+    if (ctx.hdr_bam == NULL) {
+        return false;
+    }
+    ctx.aln = bam_init1();
+    if (ctx.aln == NULL) {
+        return false;
+    }
+
+    return true;
+}
+
 vector<HT_s> itor_sam(ContextConvert &ctx) {
 
   unordered_map<string, SamRead > sam_map;
@@ -471,6 +494,9 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
   }
 
   uint64_t cnt = 0;
+
+  char* cur_chr = NULL;
+  char* pre_chr = NULL;
 
   if (ctx.region_to_parse == SINGLE_REGION) {
     auto single_start = std::chrono::high_resolution_clock::now(); //stop_watch
@@ -525,6 +551,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
           iter_pre = iter;
           ++iter;
           if ((read_id_cnt - iter_pre->second.read_id) > 5000) {
+              HT_vec.push_back(iter_pre->second.HT);
             sam_map.erase(iter_pre);
           }
         }
@@ -562,7 +589,21 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
     }
 
   } else if (ctx.region_to_parse == WHOLE_FILE) {
-    load_cpg_no_idx(ctx);
+
+
+    // load the index file to ensure the bam file is sorted
+      static string bam_idx_fn = string(ctx.fn_bam) + ".bai";
+      ctx.idx_bam = sam_index_load(ctx.fp_bam, bam_idx_fn.c_str());
+
+      if (ctx.idx_bam == NULL) {
+          string error_message = "Please run the command to generate the index file (.bai):\nsamtools index " +
+                                 string(ctx.fn_bam) + "\nand place the index file with the input file in the same folder.";
+          hts_log_error("%s", error_message.c_str());
+          vector<HT_s> null_HT_s;
+          return null_HT_s;
+      }
+
+      load_cpg_no_idx(ctx);
 
     while(sam_read1(ctx.fp_bam, ctx.hdr_bam, ctx.aln) >= 0) {
 
@@ -581,12 +622,85 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
       int ret = sam_r.init(ctx);
 
       if (!ret) {
-        hts_log_trace("san_r init error.");
-        if (sam_r.seq != NULL) {
-          delete [] sam_r.seq;
-        }
-        continue;
+          hts_log_trace("san_r init error.");
+          if (sam_r.seq != NULL) {
+              delete [] sam_r.seq;
+          }
+          continue;
       }
+
+      cur_chr = sam_r.read_chr;
+
+      if (pre_chr == NULL) {
+          pre_chr = sam_r.read_chr;
+      }
+
+      if (strcmp(cur_chr, pre_chr) != 0) {
+          pre_chr = cur_chr;
+
+          // push all the unpaied HT to HT_vec
+          for (auto _sam :  sam_map) {
+              HT_vec.push_back(_sam.second.HT);
+          }
+
+          if (HT_vec.size() != 0) {
+              ctx.has_output = true;
+
+              // count similar HT
+              vector<HT_s>::iterator ht_itor;
+
+              ofstream out_stream("./" + ctx.cache_rand_id + ".mhap.tmp" + to_string(ctx.cache_cnt));
+              ctx.cache_cnt += 1;
+
+              //sort
+              sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
+
+              for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+                  string ht_id = (*ht_itor).to_str();
+
+                  map<string, int>::iterator res_map_itor;
+
+                  res_map_itor = ctx.res_map.find(ht_id);
+                  if (res_map_itor == ctx.res_map.end()) {
+                      ctx.res_map[ht_id] = 1;
+                      ht_itor->ht_count = 1;
+
+                  } else {
+                      ctx.res_map[ht_id] += 1;
+                      ht_itor->ht_count = ctx.res_map[ht_id];
+                  }
+              }
+              for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+                  string ht_id = (*ht_itor).to_str();
+
+                  map<string, int>::iterator res_map_itor;
+
+                  res_map_itor = ctx.res_map.find(ht_id);
+                  if (ht_itor->ht_count == res_map_itor->second) {
+                      //the last ht in duplicated hts
+                      (*ht_itor).get_WC_symbol();
+                      string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
+                                    to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
+                                    to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
+                      out_stream << line << '\n';
+                  }
+                  //out_stream << ht_id << "\n";
+
+              }
+              out_stream.close();
+          }
+          // clear memory
+
+          vector<HT_s>().swap(HT_vec);
+          unordered_map<string, SamRead > empty_sam_map;
+          sam_map.swap(empty_sam_map);
+          sam_map.clear();
+          map<string, int> empty_res_map;
+          ctx.res_map.swap(empty_res_map);
+          ctx.res_map.clear();
+
+      }
+
 
       sam_r.read_id = read_id_cnt;
 
@@ -690,7 +804,81 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
           continue;
         }
 
-        sam_r.read_id = read_id_cnt;
+          cur_chr = sam_r.read_chr;
+
+          if (pre_chr == NULL) {
+              pre_chr = sam_r.read_chr;
+          }
+
+          if (strcmp(cur_chr, pre_chr) != 0) {
+              pre_chr = cur_chr;
+
+                // push all the unpaied HT to HT_vec
+              for (auto _sam :  sam_map) {
+                  HT_vec.push_back(_sam.second.HT);
+              }
+
+              if (HT_vec.size() != 0) {
+                  ctx.has_output = true;
+
+                    // count similar HT
+                  vector<HT_s>::iterator ht_itor;
+
+                  ofstream out_stream("./" + ctx.cache_rand_id + ".mhap.tmp" + to_string(ctx.cache_cnt));
+                  ctx.cache_cnt += 1;
+
+                    //sort
+                  sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
+
+                  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+                      string ht_id = (*ht_itor).to_str();
+
+                      map<string, int>::iterator res_map_itor;
+
+                      res_map_itor = ctx.res_map.find(ht_id);
+                      if (res_map_itor == ctx.res_map.end()) {
+                          ctx.res_map[ht_id] = 1;
+                          ht_itor->ht_count = 1;
+
+                      } else {
+                          ctx.res_map[ht_id] += 1;
+                          ht_itor->ht_count = ctx.res_map[ht_id];
+                      }
+                  }
+                  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+                      string ht_id = (*ht_itor).to_str();
+
+                      map<string, int>::iterator res_map_itor;
+
+                      res_map_itor = ctx.res_map.find(ht_id);
+                      if (ht_itor->ht_count == res_map_itor->second) {
+                        //the last ht in duplicated hts
+                          (*ht_itor).get_WC_symbol();
+                          string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
+                                        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
+                                        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
+                          out_stream << line << '\n';
+                      }
+                //out_stream << ht_id << "\n";
+
+                  }
+                  out_stream.close();
+              }
+                // clear memory
+
+              vector<HT_s>().swap(HT_vec);
+              unordered_map<string, SamRead > empty_sam_map;
+              sam_map.swap(empty_sam_map);
+              sam_map.clear();
+              map<string, int> empty_res_map;
+              ctx.res_map.swap(empty_res_map);
+              ctx.res_map.clear();
+
+          }
+
+
+
+          sam_r.read_id = read_id_cnt;
 
         if (read_id_cnt + 1 == 0) {
           hts_log_error("read_id_cnt overflow.");
@@ -705,6 +893,7 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
             iter_pre = iter;
             ++iter;
             if ((read_id_cnt - iter_pre->second.read_id) > 5000) {
+                HT_vec.push_back(iter_pre->second.HT);
               sam_map.erase(iter_pre);
             }
           }
@@ -748,24 +937,66 @@ vector<HT_s> itor_sam(ContextConvert &ctx) {
     exit(1);
   }
 
-  //merge
-  for (auto _sam :  sam_map) {
-    HT_vec.push_back(_sam.second.HT);
-  }
-
-  vector<HT_s>::iterator ht_itor;
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
-    string ht_id = (*ht_itor).to_str();
-
-    map<string, int>::iterator res_map_itor;
-
-    res_map_itor = ctx.res_map.find(ht_id);
-    if (res_map_itor == ctx.res_map.end()){
-      ctx.res_map[ht_id] = 1;
-    } else {
-      ctx.res_map[ht_id] += 1;
+    // push all the unpaied HT to HT_vec
+    for (auto _sam :  sam_map) {
+        HT_vec.push_back(_sam.second.HT);
     }
-  }
+
+    if (HT_vec.size() != 0) {
+        ctx.has_output = true;
+
+        // count similar HT
+        vector<HT_s>::iterator ht_itor;
+
+        ofstream out_stream("./" + ctx.cache_rand_id + ".mhap.tmp" + to_string(ctx.cache_cnt));
+        ctx.cache_cnt += 1;
+
+        //sort
+        sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
+
+        for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+            string ht_id = (*ht_itor).to_str();
+
+            map<string, int>::iterator res_map_itor;
+
+            res_map_itor = ctx.res_map.find(ht_id);
+            if (res_map_itor == ctx.res_map.end()) {
+                ctx.res_map[ht_id] = 1;
+                ht_itor->ht_count = 1;
+
+            } else {
+                ctx.res_map[ht_id] += 1;
+                ht_itor->ht_count = ctx.res_map[ht_id];
+            }
+        }
+        for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {//auto _ht: HT_vec
+            string ht_id = (*ht_itor).to_str();
+
+            map<string, int>::iterator res_map_itor;
+
+            res_map_itor = ctx.res_map.find(ht_id);
+            if (ht_itor->ht_count == res_map_itor->second) {
+                //the last ht in duplicated hts
+                (*ht_itor).get_WC_symbol();
+                string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
+                              to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
+                              to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
+                out_stream << line << '\n';
+            }
+            //out_stream << ht_id << "\n";
+
+        }
+        out_stream.close();
+    }
+    // clear memory
+
+    vector<HT_s>().swap(HT_vec);
+    unordered_map<string, SamRead > empty_sam_map;
+    sam_map.swap(empty_sam_map);
+    sam_map.clear();
+    map<string, int> empty_res_map;
+    ctx.res_map.swap(empty_res_map);
+    ctx.res_map.clear();
 
   return HT_vec;
 }
@@ -809,22 +1040,6 @@ inline ContextConvert::~ContextConvert() {
   }
 }
 
-bool open_bam_file(ContextConvert &ctx) {
-
-  ctx.fp_bam = hts_open(ctx.fn_bam, "r");
-  ctx.hdr_bam = sam_hdr_read(ctx.fp_bam); //read header
-
-  if (ctx.hdr_bam == NULL) {
-    return false;
-  }
-  ctx.aln = bam_init1();
-  if (ctx.aln == NULL) {
-    return false;
-  }
-
-  return true;
-}
-
 bool open_cpg_file(ContextConvert &ctx) {
   //open the cpg file (.gz file)
   ctx.fp_cpg = hts_open(ctx.fn_cpg, "r");
@@ -859,23 +1074,26 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
   unordered_map<string, bool> is_overlap;
   unordered_map<string, bool>::iterator itor;
   vector<HT_s>::iterator ht_itor;
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-    (*ht_itor).ht_count = ctx.res_map[(*ht_itor).to_str()];
-  }
-  //sort
-  sort(HT_vec.begin(), HT_vec.end(), comp_HT_vec);
 
-  for (ht_itor = HT_vec.begin(); ht_itor != HT_vec.end(); ht_itor++) {
-    (*ht_itor).get_WC_symbol();
-    string line = string((*ht_itor).h_chr) + '\t' + to_string((*ht_itor).h_start) + '\t' +
-        to_string((*ht_itor).h_end) + '\t' + (*ht_itor).hap_met + '\t' +
-        to_string((*ht_itor).ht_count) + '\t' + (*ht_itor).WC_symbol;
-    itor = is_overlap.find(line);
-    if (itor == is_overlap.end()) {
-      out_stream << line << '\n';
-    }
-    is_overlap[line] = true;
+  ifstream cache_file;
+  string cur_cache_name;
+  for (int i = 0; i < ctx.cache_cnt; i++) {
+      cur_cache_name = "./" + ctx.cache_rand_id + ".mhap.tmp" +  to_string(i);
+      cache_file.open(cur_cache_name);
+      if (!cache_file.is_open()) {
+          hts_log_error("Do NOT delete the temporary files named xxx.mhap.tmp during processing! Please rerun mHaptools to get correct output result.");
+          continue;
+      }
+      string line;
+      getline(cache_file, line);
+      out_stream << line << "\n";
+      while(getline(cache_file, line)) {
+          out_stream << line << "\n";
+      }
+      cache_file.close();
+      remove(cur_cache_name.c_str());
   }
+
   out_stream.close();
 
   // compress mhap to gz
@@ -1020,6 +1238,11 @@ int main_convert(int argc, char *argv[]) {
     opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
   }
 
+
+  // generate rand id for cache files
+  srand((int)time(NULL));
+  ctx.cache_rand_id = to_string((rand() % (1000000000 - 1000)) + 1000);
+
   int ret;
 
   if (!convert_opt_check(ctx)) {
@@ -1064,7 +1287,7 @@ int main_convert(int argc, char *argv[]) {
     hts_log_info("itor_sam(ctx).");
     cout << "Start processing..." << endl;
     HT_vec = itor_sam(ctx);
-    if (HT_vec.size() == 0) {
+    if (!ctx.has_output) {
       return 0;
     }
 
