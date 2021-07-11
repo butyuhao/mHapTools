@@ -18,16 +18,16 @@
 /* #undef ENABLE_PLUGINS */
 
 /* Define if HTSlib should enable S3 support. */
-/* #undef ENABLE_S3 */
+#define ENABLE_S3 1
 
 /* Define if you have the Common Crypto library. */
-/* #undef HAVE_COMMONCRYPTO */
+#define HAVE_COMMONCRYPTO 1
 
 /* Define to 1 if you have the `drand48' function. */
 #define HAVE_DRAND48 1
 
 /* Define to 1 if you have the `fdatasync' function. */
-#define HAVE_FDATASYNC 1
+/* #undef HAVE_FDATASYNC */
 
 /* Define to 1 if you have the `fsync' function. */
 #define HAVE_FSYNC 1

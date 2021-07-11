@@ -28,7 +28,7 @@
 # in the Makefile to reflect your configuration choices.  If you don't run
 # configure, the main Makefile contains suitable conservative defaults.
 
-prefix       = /home/butyuhao/Documents/Github/mHapTools/htslib-1.10.2
+prefix       = /Users/butyuhao/Documents/Github/mHapTools/htslib-1.10.2
 exec_prefix  = ${prefix}
 bindir       = ${exec_prefix}/bin
 includedir   = ${prefix}/include
@@ -37,16 +37,16 @@ libexecdir   = ${exec_prefix}/libexec
 datarootdir  = ${prefix}/share
 mandir       = ${datarootdir}/man
 
-CC     = gcc
+CC     = /usr/bin/gcc
 RANLIB = ranlib
 
-CPPFLAGS = 
+CPPFLAGS = -I/usr/local/opt/zlib/include
 CFLAGS   =  -Wall -g -O2 -fvisibility=hidden
-LDFLAGS  =  -fvisibility=hidden
-LIBS     = -llzma -lbz2 -lz -lm 
+LDFLAGS  = -L/usr/local/opt/zlib/lib -fvisibility=hidden
+LIBS     = -llzma -lbz2 -lz 
 
-PLATFORM   = default
-PLUGIN_EXT = .so
+PLATFORM   = Darwin
+PLUGIN_EXT = .bundle
 
 # The default Makefile enables some of the optional files, but we blank
 # them so they can be controlled by configure instead.
@@ -76,7 +76,7 @@ ifeq "gcs-enabled" "gcs-enabled"
 plugin_OBJS += hfile_gcs.o
 endif
 
-ifeq "s3-disabled" "s3-enabled"
+ifeq "s3-enabled" "s3-enabled"
 plugin_OBJS += hfile_s3.o
 plugin_OBJS += hfile_s3_write.o
 
