@@ -211,9 +211,17 @@ bool SamRead::haplo_type() {
 
     if (read_WC == DIRECTION_PLUS || read_WC == DIRECTION_UNKNOWN) {
       if (nucleobases == 'C') {
-        _hap_met += '1';
+         if (ctx->mode == "BS") {
+           _hap_met += '1';
+         } else if (ctx->mode == "TAPS") {
+           _hap_met += '0';
+         }
       } else if (nucleobases == 'T') {
-        _hap_met += '0';
+        if (ctx->mode == "BS") {
+          _hap_met += '0';
+        } else if (ctx->mode == "TAPS") {
+          _hap_met += '1';
+        }
       } else {
         _hap_met += nucleobases;
         hts_log_trace("Direction + or * : beg: %lld, end: %lld, nucleobases error: %s", read_start,read_end, _hap_met.c_str());
@@ -221,9 +229,17 @@ bool SamRead::haplo_type() {
       }
     } else if (read_WC == DIRECTION_MINUS) {
       if (nucleobases == 'G') {
-        _hap_met += '1';
+        if (ctx->mode == "BS") {
+          _hap_met += '1';
+        } else if (ctx->mode == "TAPS") {
+          _hap_met += '0';
+        }
       } else if (nucleobases == 'A') {
-        _hap_met += '0';
+        if (ctx->mode == "BS") {
+          _hap_met += '0';
+        } else if (ctx->mode == "TAPS") {
+          _hap_met += '1';
+        }
       } else {
         _hap_met += nucleobases;
         hts_log_trace("Direction - : beg: %lld, end: %lld, nucleobases error: %s", read_start,read_end, _hap_met.c_str());
@@ -1186,7 +1202,7 @@ int main_convert(int argc, char *argv[]) {
 
   int long_index;
 
-  static const char *opt_string = "i:b:c:r:o:nh";
+  static const char *opt_string = "i:b:c:r:o:m:nh";
 
   static const struct option long_opts[] = {
       { "input", required_argument, NULL, 'i' },
@@ -1194,6 +1210,7 @@ int main_convert(int argc, char *argv[]) {
       { "cpg", required_argument, NULL, 'c' },
       { "region", optional_argument, NULL, 'r' },
       { "output", optional_argument, NULL, 'o' },
+      { "mode", optional_argument, NULL, 'm' },
       { "non-directional", optional_argument, NULL, 'n' },
       { "help", optional_argument, NULL, 'h' },
       { NULL, no_argument, NULL, 0 }
@@ -1222,6 +1239,10 @@ int main_convert(int argc, char *argv[]) {
         ctx.fn_out = optarg;
         break;
       }
+      case 'm': {
+        ctx.mode = string(optarg);
+        break;
+      }
       case 'n': {
         ctx.non_directional = true;
         break;
@@ -1247,6 +1268,11 @@ int main_convert(int argc, char *argv[]) {
 
   if (!convert_opt_check(ctx)) {
     hts_log_error("opt error");
+    return 1;
+  }
+
+  if (!(ctx.mode == "BS" or ctx.mode == "TAPS")) {
+    hts_log_error("opt error: -m should be specified as BS or TAPS");
     return 1;
   }
 

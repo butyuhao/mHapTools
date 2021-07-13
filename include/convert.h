@@ -25,7 +25,7 @@ class ContextConvert {
   ContextConvert () : fp_bam(NULL), fp_cpg(NULL), idx_cpg(NULL), has_idx_cpg(false),
                       idx_bam(NULL), cpg_itr(NULL), sam_itr(NULL), hdr_bam(NULL),
                       aln(NULL), bam_aux_p(NULL), cache_cnt(0), cache_rand_id(""),
-                      has_output(false), fn_bam(NULL), fn_out(NULL),
+                      has_output(false), fn_bam(NULL), fn_out(NULL), mode(string("BS")),
                       fn_bed(NULL), fn_cpg(NULL), region(NULL), non_directional(false){};
   ~ContextConvert();
 
@@ -58,6 +58,7 @@ class ContextConvert {
 
   //region
   string i_chr;
+  string mode;  /* -m option */
   int i_tid;
   hts_pos_t i_beg;
   hts_pos_t i_end;
