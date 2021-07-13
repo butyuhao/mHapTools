@@ -38,6 +38,7 @@ Computes the total number of reads, methylated CpG sites, total CpG sites, DNA m
 - **-b** bed file, one query region per line.
 - **-c** CpG file, gz format.
 - **-r** region. **chr1:2000-200000**
+- **-m** sequencing mode. ( **TAPS** | **BS** (default)  )
 - **-o** output filename. (default: out.mhap.gz)
 
 #### merge
