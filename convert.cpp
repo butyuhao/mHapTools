@@ -1140,7 +1140,7 @@ void saving_hap(ContextConvert &ctx, vector<HT_s> &HT_vec) {
 }
 
 static void help() {
-  cout << "Usage: mhaptools convert -i <in.bam>|<in.sam> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] [-n] [-o name.mhap.gz]" << endl;
+  cout << "Usage: mhaptools convert -i <in.bam>|<in.sam> -c <CpG.gz> [-r chr:beg-end | -b bed_file.bed ] [-n] [-o name.mhap.gz] [-m BS|TAPS]" << endl;
   cout << "Options:" << endl;
   cout << "  -i  str  input file, SAM/BAM format, sorted by samtools" << endl;
   cout << "  -c  str  CpG file, gz format" << endl;
