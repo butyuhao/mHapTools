@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
 
-#set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk)
-
 project(mhaptools)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -9,11 +7,7 @@ set(CMAKE_CXX_STANDARD 11)
 INCLUDE_DIRECTORIES(
         ./include
         ./htslib-1.10.2/htslib
-
 )
-
-SET(CMAKE_C_COMPILER /usr/bin/gcc)
-SET(CMAKE_CXX_COMPILER /usr/bin/g++)
 
 AUX_SOURCE_DIRECTORY(
         ${CMAKE_SOURCE_DIR} DIR_SRCS
