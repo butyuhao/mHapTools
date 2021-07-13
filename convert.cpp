@@ -1146,8 +1146,9 @@ static void help() {
   cout << "  -c  str  CpG file, gz format" << endl;
   cout << "  -r  str  region, e.g. chr1:2000-200000" << endl;
   cout << "  -b  str  bed file, one query region per line" << endl;
-  cout << "  -n  flag non-directional, do not group results by the direction of reads." << endl;
+  cout << "  -n  flag non-directional, do not group results by the direction of reads" << endl;
   cout << "  -o  str  output filename [out.mhap.gz]" << endl;
+  cout << "  -m  str  sequencing mode, BS (default) or TAPS" << endl;
   cout << "Long options:" << endl;
   cout << "  -i  --input" << endl;
   cout << "  -c  --cpg" << endl;
@@ -1155,6 +1156,7 @@ static void help() {
   cout << "  -b  --bed" << endl;
   cout << "  -n  --non-directional" << endl;
   cout << "  -o  --output" << endl;
+  cout << "  -m  --mode" << endl;
   cout << "Examples:" << endl;
   cout << "- Convert the entire SAM/BAM file to mHap format:" << endl;
   cout << "  mhaptools convert -i in.bam -c CpG.gz" << endl << endl;
