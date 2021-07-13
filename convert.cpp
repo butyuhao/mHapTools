@@ -14,6 +14,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <cstdlib>
+#include <random>
+#include <sstream>
 #include <ctime>
 #include "./htslib-1.10.2/htslib/kseq.h"
 #include "./htslib-1.10.2/htslib/bgzf.h"
@@ -1191,6 +1193,40 @@ int convert_fn_suffix_check(ContextConvert &ctx_cvt) {
   return 0;
 }
 
+namespace uuid {
+static std::random_device              rd;
+static std::mt19937                    gen(rd());
+static std::uniform_int_distribution<> dis(0, 15);
+static std::uniform_int_distribution<> dis2(8, 11);
+
+std::string generate_uuid() {
+  std::stringstream ss;
+  int i;
+  ss << std::hex;
+  for (i = 0; i < 4; i++) {
+    ss << dis(gen);
+  }
+  ss << "-";
+  for (i = 0; i < 4; i++) {
+    ss << dis(gen);
+  }
+  ss << "-4";
+  for (i = 0; i < 3; i++) {
+    ss << dis(gen);
+  }
+  ss << "-";
+  ss << dis2(gen);
+  for (i = 0; i < 3; i++) {
+    ss << dis(gen);
+  }
+  ss << "-";
+  for (i = 0; i < 4; i++) {
+    ss << dis(gen);
+  };
+  return ss.str();
+}
+}
+
 int main_convert(int argc, char *argv[]) {
   if (argc == optind) {
     help();
@@ -1263,8 +1299,10 @@ int main_convert(int argc, char *argv[]) {
 
 
   // generate rand id for cache files
-  srand((int)time(NULL));
-  ctx.cache_rand_id = to_string((rand() % (1000000000 - 1000)) + 1000);
+
+
+
+  ctx.cache_rand_id = uuid::generate_uuid();
 
   int ret;
 
