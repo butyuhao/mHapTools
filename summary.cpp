@@ -133,7 +133,7 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
               ++cur_m_base;
             }
           }
-          if (nmr) {
+          if (nmr) { // 先计算碱基的总数量，之后从里面- m_base
             sum_t.c_base += hap_line_t.mhap_str.size() * hap_line_t.mhap_count;
           }
           if (cur_t_base >= 4) {
@@ -313,7 +313,7 @@ void saving_summary(ContextSummary &ctx_sum) {
   ofstream out_stream(out_stream_name);
 
   if (ctx_sum.summary_result.size() > 0) {
-    out_stream << "Chr" << '\t' << "Start" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "K4plus" << '\t' << "nDR" << '\t' << "nMR" << endl;
+    out_stream << "Chr" << '\t' << "Start" << '\t' << "End" << '\t' << "Strand" << '\t' << "nReads" << '\t' << "mBase" << '\t' << "tBase" << '\t' << "cBase" << '\t' << "K4plus" << '\t' << "nDR" << '\t' << "nMR" << endl;
   }
 
   for (auto s : ctx_sum.summary_result) {
@@ -537,6 +537,15 @@ int process_genome_wide(ContextSummary &ctx_sum) {
         }
       }
 
+    }
+
+    if (cur_sum_t.c_base != 0) {
+      cur_sum_t.c_base = cur_sum_t.c_base - cur_sum_t.m_base / cur_sum_t.t_base;
+    }
+    if (ctx_sum.stranded) {
+      if (cur_sum_t.c_base_r != 0) {
+        cur_sum_t.c_base_r = cur_sum_t.c_base_r - cur_sum_t.m_base_r / cur_sum_t.t_base_r;
+      }
     }
 
     for (int i = 0;
