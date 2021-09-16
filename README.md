@@ -1,3 +1,18 @@
+The homepage: https://jiantaoshi.github.io/mHap/index.html
+
+The PDF file of the paper related to this project: https://academic.oup.com/bioinformatics/advance-article-abstract/doi/10.1093/bioinformatics/btab458/6305824
+
+If you find mHapTools is helpful, please cite:
+
+> ```latex
+> @article{zhang2021dna,
+>   title={The DNA methylation haplotype (mHap) format and mHapTools},
+>   author={Zhang, Zhiqiang and Dan, Yuhao and Xu, Yaochen and Zhang, Jiarui and Zheng, Xiaoqi and Shi, Jiantao},
+>   journal={Bioinformatics},
+>   year={2021}
+> }
+> ```
+
 ### Build example
 
 ```bash
@@ -70,3 +85,6 @@ tabix -b 2 -e 3 file.mhap.gz
 * **-o** output fiename. (summary.txt | summary_genome_wide.txt)
 * **-s** group results by the direction of mHap reads.
 * **-g** get genome-wide result.
+
+
+
