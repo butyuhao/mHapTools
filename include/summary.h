@@ -20,20 +20,20 @@ typedef struct region_t {
 
 typedef struct summary_t {
   int is_empty() {
-    if (n_reads == 0 && m_base == 0 && t_base == 0 && n_reads_k4 == 0 && n_dr == 0 &&
-        n_reads_r == 0 && m_base_r == 0 && t_base_r == 0 && n_reads_k4_r == 0 && n_dr_r == 0) {
+    if (n_reads == 0 && m_base == 0 && t_base == 0  && c_base == 0 && n_reads_k4 == 0 && n_dr == 0 &&
+        n_reads_r == 0 && m_base_r == 0 && t_base_r == 0 && c_base_r == 0 && n_reads_k4_r == 0 && n_dr_r == 0) {
       return 1;
     }
     return 0;
   }
   int is_direction_plus_empty() {
-    if (n_reads == 0 && m_base == 0 && t_base == 0 && n_reads_k4 == 0 && n_dr == 0) {
+    if (n_reads == 0 && m_base == 0 && t_base == 0  && c_base == 0 && n_reads_k4 == 0 && n_dr == 0) {
       return 1;
     }
     return 0;
   }
   int is_direction_minus_empty() {
-    if (n_reads_r == 0 && m_base_r == 0 && t_base_r == 0 && n_reads_k4_r == 0 && n_dr_r == 0) {
+    if (n_reads_r == 0 && m_base_r == 0 && t_base_r == 0 && c_base_r == 0 && n_reads_k4_r == 0 && n_dr_r == 0) {
       return 1;
     }
     return 0;
@@ -42,6 +42,7 @@ typedef struct summary_t {
   mhap_pos_t n_reads;
   mhap_pos_t m_base;
   mhap_pos_t t_base;
+  mhap_pos_t c_base; // methylation concurrence
   mhap_pos_t n_reads_k4;
   mhap_pos_t n_dr;
   mhap_pos_t n_mr;
@@ -49,6 +50,7 @@ typedef struct summary_t {
   mhap_pos_t n_reads_r;
   mhap_pos_t m_base_r;
   mhap_pos_t t_base_r;
+  mhap_pos_t c_base_r; // methylation concurrence
   mhap_pos_t n_reads_k4_r;
   mhap_pos_t n_dr_r;
   mhap_pos_t n_mr_r;
