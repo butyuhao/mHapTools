@@ -203,11 +203,11 @@ int get_summary_within_region(ContextSummary &ctx_sum, region_t &reg_t, summary_
     }
   }
   if (sum_t.c_base != 0) {
-    sum_t.c_base = sum_t.c_base - sum_t.m_base / sum_t.t_base;
+    sum_t.c_base = sum_t.c_base - sum_t.m_base;
   }
   if (ctx_sum.stranded) {
     if (sum_t.c_base_r != 0) {
-      sum_t.c_base_r = sum_t.c_base_r - sum_t.m_base_r / sum_t.t_base_r;
+      sum_t.c_base_r = sum_t.c_base_r - sum_t.m_base_r;
     }
   }
 
@@ -540,11 +540,11 @@ int process_genome_wide(ContextSummary &ctx_sum) {
     }
 
     if (cur_sum_t.c_base != 0) {
-      cur_sum_t.c_base = cur_sum_t.c_base - cur_sum_t.m_base / cur_sum_t.t_base;
+      cur_sum_t.c_base = cur_sum_t.c_base - cur_sum_t.m_base;
     }
     if (ctx_sum.stranded) {
       if (cur_sum_t.c_base_r != 0) {
-        cur_sum_t.c_base_r = cur_sum_t.c_base_r - cur_sum_t.m_base_r / cur_sum_t.t_base_r;
+        cur_sum_t.c_base_r = cur_sum_t.c_base_r - cur_sum_t.m_base_r;
       }
     }
 
