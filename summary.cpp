@@ -275,7 +275,7 @@ int get_summary(ContextSummary &ctx_sum) {
       summary_t sum_t = summary_t{0,0,0,0,0,0,0,0,0,0,0,0,0,0};
       region_t reg_t = region_t {"", 0,0};
       reg_t.chr = itr->seq;
-      reg_t.beg =  itr->beg;
+      reg_t.beg =  itr->beg + 1;
       reg_t.end =  itr->end + 1;
       ret = get_summary_within_region(ctx_sum, reg_t, sum_t);
       if (ret == 1) {
