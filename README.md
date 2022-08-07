@@ -1,6 +1,6 @@
 The homepage: https://jiantaoshi.github.io/mHap/index.html
 
-The PDF file of the paper related to this project: https://academic.oup.com/bioinformatics/advance-article-abstract/doi/10.1093/bioinformatics/btab458/6305824
+The PDF file of the paper: https://academic.oup.com/bioinformatics/advance-article-abstract/doi/10.1093/bioinformatics/btab458/6305824
 
 If you find mHapTools is helpful, please cite:
 
