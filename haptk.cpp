@@ -60,9 +60,10 @@ int main(int argc, char *argv[]) {
 
   stop=time(NULL);
 
-  cout << "Process finished." << endl;
+  // to stderr, so that output written to stdout (e.g. convert -o -) stays clean
+  cerr << "Process finished." << endl;
 
-  cout << "The duration is: "<< difftime(stop,start) <<" seconds." << endl;
+  cerr << "The duration is: "<< difftime(stop,start) <<" seconds." << endl;
 
   return ret;
 }
