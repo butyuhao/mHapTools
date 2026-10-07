@@ -14,3 +14,4 @@ bismark_test/hg38_CpG.gz.tbi
 /htslib-1.10.2/
 /test/out/
 *.o
+/mhaptools
